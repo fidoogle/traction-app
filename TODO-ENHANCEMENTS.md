@@ -18,10 +18,18 @@ queued.
 - [ ] Password reset / forgot-password flow (currently only an admin, or
       the user themself via their existing password, can change it).
 - [ ] Audit log for sensitive actions (role changes, deletes).
-- [ ] CSRF protection for the web UI beyond SameSite=Lax cookies. Lax
-      blocks the cookie on cross-site POST/PATCH/DELETE, which covers the
-      common case, but a dedicated CSRF token would be more robust if this
-      ever needs to satisfy a stricter security review.
+- [ ] Content-Security-Policy header. Not set yet - the templates rely on
+      inline htmx `hx-on::` attributes and an inline script (CSRF header
+      injection in base.html), so a CSP tight enough to matter would need
+      those moved to external JS first.
+- [ ] Login rate limiting is IP-keyed only (10 failed attempts / 15 min,
+      see app/core/rate_limit.py). Blunts single-source brute force, but
+      an attacker spraying many accounts from many IPs isn't slowed down,
+      and a NAT'd network (e.g. a whole school building) shares one bucket.
+      Consider adding a per-account counter alongside the per-IP one if
+      targeted-account attacks turn out to be the bigger risk in practice.
+      Also in-memory/per-process - fine for a single on-prem instance, not
+      distributed-safe if this ever runs multi-worker/multi-instance.
 
 ## Data Model
 
