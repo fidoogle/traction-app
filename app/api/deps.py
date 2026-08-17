@@ -14,7 +14,7 @@ from app.models.user import User
 
 # auto_error=False: a missing header isn't fatal here, since the session
 # cookie is an equally valid way in (see get_bearer_or_cookie_token below).
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def get_db() -> Generator[Session, None, None]:

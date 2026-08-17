@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Welcome, {{ current_user.name }}</h1>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="value">{{ open_rocks }}</div>
+    <div class="label">Open rocks</div>
+  </div>
+  <div class="stat">
+    <div class="value">{{ off_track_rocks }}</div>
+    <div class="label">Off-track rocks</div>
+  </div>
+  <div class="stat">
+    <div class="value">{{ open_issues }}</div>
+    <div class="label">Open issues</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Upcoming meetings</h2>
+  {% if upcoming_meetings %}
+  <table>
+    <thead><tr><th>Team</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for meeting in upcoming_meetings %}
+      <tr>
+        <td>{{ meeting.team.name }}</td>
+        <td>{{ meeting.scheduled_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No upcoming meetings scheduled.</p>
+  {% endif %}
+</div>
+{% endblock %}

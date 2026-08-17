@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Rocks - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Rocks</h1>
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Title</th><th>Owner</th><th>Team</th><th>Quarter</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      {% for rock in rocks %}
+        {% include "rocks/_row.html" %}
+      {% else %}
+      <tr><td colspan="5">No rocks yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

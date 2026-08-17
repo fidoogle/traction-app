@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Traction/EOS{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+  {% if current_user %}
+  <div class="topbar">
+    <a class="brand" href="/">Traction/EOS</a>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/rocks">Rocks</a>
+      <span class="user-info">{{ current_user.name }} &middot; {{ current_user.role.value }}</span>
+      <form class="logout-form" method="post" action="/logout">
+        <button type="submit">Log out</button>
+      </form>
+    </nav>
+  </div>
+  {% endif %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

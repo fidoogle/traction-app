@@ -1,0 +1,26 @@
+<tr id="rock-row-{{ rock.id }}">
+  <td>{{ rock.title }}</td>
+  <td>{{ rock.owner.name }}</td>
+  <td>{{ rock.team.name }}</td>
+  <td>{{ rock.quarter }}</td>
+  <td>
+    {% if current_user.role.value == "viewer" %}
+      <span class="badge {{ rock.status.value }}">{{ rock.status.value.replace("_", " ") }}</span>
+    {% else %}
+      <select
+        class="status-select"
+        name="status"
+        hx-patch="/rocks/{{ rock.id }}/status"
+        hx-target="#rock-row-{{ rock.id }}"
+        hx-swap="outerHTML"
+        hx-trigger="change"
+      >
+        {% for choice in RockStatus %}
+        <option value="{{ choice.value }}" {% if choice == rock.status %}selected{% endif %}>
+          {{ choice.value.replace("_", " ") }}
+        </option>
+        {% endfor %}
+      </select>
+    {% endif %}
+  </td>
+</tr>
