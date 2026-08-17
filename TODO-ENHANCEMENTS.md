@@ -41,12 +41,10 @@ queued.
 
 ## Web UI
 
-Rocks, Issues, and To-Dos have pages (list + inline status edit; Issues/
-To-Dos also have a create form). Remaining entities still need pages:
-Teams, Users, Measurables & Scorecard (a chart would be worth it here —
-12 weeks of history is already seeded), Meetings, Seats/accountability
-chart (a real org-chart visual, not just a table), VTO editor, People
-Analyzer.
+Done: Rocks, Issues, To-Dos, Teams, Users, Scorecard (list + inline edit;
+most have a create form; Scorecard has real SVG sparklines). Remaining:
+Meetings, Seats/accountability chart (a real org-chart visual, not just
+a table — the most involved of what's left), VTO editor, People Analyzer.
 
 ## Ops / Dev Experience
 
