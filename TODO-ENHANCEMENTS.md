@@ -49,11 +49,11 @@ queued.
 
 ## Web UI
 
-Done: Rocks, Issues, To-Dos, Teams, Users, Scorecard, Meetings, Seats/
-Accountability Chart, VTO editor (list + inline edit; most have a create
-form; Scorecard has real SVG sparklines; Seats is a recursive tree render;
-VTO is a single-document form, not a list). Remaining: People Analyzer -
-the last one.
+Done - all nine EOS tools have a page: Rocks, Issues, To-Dos, Teams,
+Users, Scorecard, Meetings, Seats/Accountability Chart, VTO, People
+Analyzer. Nothing left on the original page list; next UI work is
+whatever the app actually needs in practice (polish, new workflows)
+rather than filling a gap.
 
 ## Ops / Dev Experience
 
