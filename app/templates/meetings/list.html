@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Meetings - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Meetings</h1>
+
+{% if current_user.role.value != "viewer" %}
+<div class="card">
+  <h2>Schedule a meeting</h2>
+  <form hx-post="/meetings" hx-target="#meetings-table-body" hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="team_id">Team</label>
+        <select id="team_id" name="team_id" required>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field-narrow">
+        <label for="scheduled_date">Date</label>
+        <input type="date" id="scheduled_date" name="scheduled_date" required>
+      </div>
+      <button class="primary" type="submit">Schedule</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Team</th><th>Date</th><th>Status</th></tr>
+    </thead>
+    <tbody id="meetings-table-body">
+      {% for meeting in meetings %}
+        {% include "meetings/_row.html" %}
+      {% else %}
+      <tr><td colspan="3">No meetings yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

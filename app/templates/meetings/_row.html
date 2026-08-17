@@ -1,0 +1,24 @@
+<tr id="meeting-row-{{ meeting.id }}">
+  <td>{{ meeting.team.name }}</td>
+  <td>{{ meeting.scheduled_date }}</td>
+  <td>
+    {% if current_user.role.value == "viewer" %}
+      <span class="badge {{ meeting.status.value }}">{{ meeting.status.value.replace("_", " ") }}</span>
+    {% else %}
+      <select
+        class="status-select"
+        name="status"
+        hx-patch="/meetings/{{ meeting.id }}/status"
+        hx-target="#meeting-row-{{ meeting.id }}"
+        hx-swap="outerHTML"
+        hx-trigger="change"
+      >
+        {% for choice in MeetingStatus %}
+        <option value="{{ choice.value }}" {% if choice == meeting.status %}selected{% endif %}>
+          {{ choice.value.replace("_", " ") }}
+        </option>
+        {% endfor %}
+      </select>
+    {% endif %}
+  </td>
+</tr>

@@ -134,6 +134,10 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
 .badge.open { color: #92400e; background: #fef3e0; }
 .badge.resolved { color: var(--on-track); background: var(--on-track-bg); }
 .badge.dropped { color: var(--text-muted); background: #eef0f2; }
+.badge.scheduled { color: var(--done); background: var(--done-bg); }
+.badge.in_progress { color: #92400e; background: #fef3e0; }
+.badge.completed { color: var(--on-track); background: var(--on-track-bg); }
+.badge.canceled { color: var(--text-muted); background: #eef0f2; }
 
 .form-row {
   display: flex;
