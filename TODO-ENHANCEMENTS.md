@@ -49,10 +49,10 @@ queued.
 
 ## Web UI
 
-Done: Rocks, Issues, To-Dos, Teams, Users, Scorecard, Meetings (list +
-inline edit; most have a create form; Scorecard has real SVG sparklines).
-Remaining: Seats/accountability chart (a real org-chart visual, not just
-a table — the most involved of what's left), VTO editor, People Analyzer.
+Done: Rocks, Issues, To-Dos, Teams, Users, Scorecard, Meetings, Seats/
+Accountability Chart (list + inline edit; most have a create form;
+Scorecard has real SVG sparklines; Seats is a recursive tree render, not
+a table). Remaining: VTO editor, People Analyzer.
 
 ## Ops / Dev Experience
 
