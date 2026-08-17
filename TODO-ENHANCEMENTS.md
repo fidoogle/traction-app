@@ -50,9 +50,10 @@ queued.
 ## Web UI
 
 Done: Rocks, Issues, To-Dos, Teams, Users, Scorecard, Meetings, Seats/
-Accountability Chart (list + inline edit; most have a create form;
-Scorecard has real SVG sparklines; Seats is a recursive tree render, not
-a table). Remaining: VTO editor, People Analyzer.
+Accountability Chart, VTO editor (list + inline edit; most have a create
+form; Scorecard has real SVG sparklines; Seats is a recursive tree render;
+VTO is a single-document form, not a list). Remaining: People Analyzer -
+the last one.
 
 ## Ops / Dev Experience
 
