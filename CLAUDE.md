@@ -47,3 +47,10 @@ charts, etc.).
 - Commit completed, tested, and verified work sooner rather than later.
   Prefer piecewise commits over batching up a large set of changes — once a
   unit of work is done and verified, commit it before moving on to the next.
+- When work surfaces a feature or improvement worth doing but out of scope
+  for the current task, add it to `TODO-ENHANCEMENTS.md` instead of letting
+  it drop.
+- Before starting new work, skim `TODO-ENHANCEMENTS.md`: check off (remove)
+  any items that have already been implemented, and consider whether an
+  existing item fits naturally alongside the current task — if so, suggest
+  tackling it together.

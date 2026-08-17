@@ -7,6 +7,7 @@ import jwt
 from app.config import settings
 
 ALGORITHM = "HS256"
+ACCESS_TOKEN_COOKIE_NAME = "access_token"
 
 
 def hash_password(password: str) -> str:
