@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Issues - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Issues</h1>
+
+{% if current_user.role.value != "viewer" %}
+<div class="card">
+  <h2>Log a new issue</h2>
+  <form hx-post="/issues" hx-target="#issues-table-body" hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="team_id">Team</label>
+        <select id="team_id" name="team_id" required>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+      <div class="field field-narrow">
+        <label for="priority">Priority</label>
+        <input type="number" id="priority" name="priority" value="0">
+      </div>
+      <button class="primary" type="submit">Add issue</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Title</th><th>Team</th><th>Priority</th><th>Status</th></tr>
+    </thead>
+    <tbody id="issues-table-body">
+      {% for issue in issues %}
+        {% include "issues/_row.html" %}
+      {% else %}
+      <tr><td colspan="4">No issues yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

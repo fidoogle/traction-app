@@ -1,0 +1,26 @@
+<tr id="todo-row-{{ todo.id }}">
+  <td>{{ todo.title }}</td>
+  <td>{{ todo.owner.name }}</td>
+  <td>{{ todo.issue.title if todo.issue else "—" }}</td>
+  <td>{{ todo.due_date if todo.due_date else "—" }}</td>
+  <td>
+    {% if current_user.role.value == "viewer" %}
+      <span class="badge {{ todo.status.value }}">{{ todo.status.value }}</span>
+    {% else %}
+      <select
+        class="status-select"
+        name="status"
+        hx-patch="/todos/{{ todo.id }}/status"
+        hx-target="#todo-row-{{ todo.id }}"
+        hx-swap="outerHTML"
+        hx-trigger="change"
+      >
+        {% for choice in TodoStatus %}
+        <option value="{{ choice.value }}" {% if choice == todo.status %}selected{% endif %}>
+          {{ choice.value }}
+        </option>
+        {% endfor %}
+      </select>
+    {% endif %}
+  </td>
+</tr>

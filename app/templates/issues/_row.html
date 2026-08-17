@@ -1,0 +1,25 @@
+<tr id="issue-row-{{ issue.id }}">
+  <td>{{ issue.title }}</td>
+  <td>{{ issue.team.name }}</td>
+  <td>{{ issue.priority }}</td>
+  <td>
+    {% if current_user.role.value == "viewer" %}
+      <span class="badge {{ issue.status.value }}">{{ issue.status.value }}</span>
+    {% else %}
+      <select
+        class="status-select"
+        name="status"
+        hx-patch="/issues/{{ issue.id }}/status"
+        hx-target="#issue-row-{{ issue.id }}"
+        hx-swap="outerHTML"
+        hx-trigger="change"
+      >
+        {% for choice in IssueStatus %}
+        <option value="{{ choice.value }}" {% if choice == issue.status %}selected{% endif %}>
+          {{ choice.value }}
+        </option>
+        {% endfor %}
+      </select>
+    {% endif %}
+  </td>
+</tr>
