@@ -168,6 +168,33 @@ select.status-select {
   background: var(--surface);
 }
 
+.text-muted { color: var(--text-muted); font-size: 0.85rem; }
+
+.measurable-card { padding: 1.25rem 1.5rem 1.5rem; }
+
+.measurable-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.measurable-header h2 { margin: 0 0 0.15rem; }
+
+.measurable-latest { text-align: right; }
+.measurable-latest .value { font-size: 1.5rem; font-weight: 600; }
+.measurable-latest .label { color: var(--text-muted); font-size: 0.78rem; }
+
+svg.sparkline {
+  width: 100%;
+  height: 60px;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.trend-line { stroke: var(--brand); stroke-width: 2; }
+.goal-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 4 3; }
+
 .login-wrap {
   min-height: 100vh;
   display: flex;

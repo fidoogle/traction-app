@@ -1,0 +1,46 @@
+<div class="card measurable-card" id="measurable-card-{{ measurable.id }}">
+  <div class="measurable-header">
+    <div>
+      <h2>{{ measurable.name }}</h2>
+      <div class="text-muted">{{ measurable.team.name }} &middot; Goal: {{ measurable.goal_value }}</div>
+    </div>
+    <div class="measurable-latest">
+      {% if latest_value is not none %}
+        <div class="value">{{ latest_value }}</div>
+        <div class="label">week of {{ latest_week }}</div>
+      {% else %}
+        <div class="value">—</div>
+        <div class="label">no data yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <svg class="sparkline" viewBox="0 0 {{ chart.width }} {{ chart.height }}" preserveAspectRatio="none">
+    {% if chart.goal_y is not none %}
+    <line x1="0" y1="{{ chart.goal_y }}" x2="{{ chart.width }}" y2="{{ chart.goal_y }}" class="goal-line" />
+    {% endif %}
+    {% if chart.points %}
+    <polyline points="{{ chart.points }}" class="trend-line" fill="none" />
+    {% endif %}
+  </svg>
+
+  {% if current_user.role.value != "viewer" %}
+  <form
+    hx-post="/scorecard/{{ measurable.id }}/entries"
+    hx-target="#measurable-card-{{ measurable.id }}"
+    hx-swap="outerHTML"
+  >
+    <div class="form-row">
+      <div class="field field-narrow">
+        <label>Week ending</label>
+        <input type="date" name="week_ending" value="{{ default_week_ending }}" required>
+      </div>
+      <div class="field field-narrow">
+        <label>Value</label>
+        <input type="number" step="any" name="actual_value" required>
+      </div>
+      <button class="primary" type="submit">Log</button>
+    </div>
+  </form>
+  {% endif %}
+</div>

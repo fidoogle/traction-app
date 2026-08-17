@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Scorecard - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Scorecard</h1>
+
+{% if current_user.role.value != "viewer" %}
+<div class="card">
+  <h2>Add a measurable</h2>
+  <form hx-post="/scorecard" hx-target="#scorecard-cards" hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="team_id">Team</label>
+        <select id="team_id" name="team_id" required>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field-narrow">
+        <label for="goal_value">Goal</label>
+        <input type="number" step="any" id="goal_value" name="goal_value" required>
+      </div>
+      <button class="primary" type="submit">Add measurable</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div id="scorecard-cards">
+  {% for item in cards %}
+    {% with measurable=item.measurable, chart=item.chart, latest_value=item.latest_value, latest_week=item.latest_week, default_week_ending=item.default_week_ending %}
+      {% include "scorecard/_card.html" %}
+    {% endwith %}
+  {% else %}
+  <div class="card">No measurables yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}
