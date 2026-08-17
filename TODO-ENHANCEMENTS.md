@@ -18,6 +18,10 @@ queued.
 - [ ] Password reset / forgot-password flow (currently only an admin, or
       the user themself via their existing password, can change it).
 - [ ] Audit log for sensitive actions (role changes, deletes).
+- [ ] CSRF protection for the web UI beyond SameSite=Lax cookies. Lax
+      blocks the cookie on cross-site POST/PATCH/DELETE, which covers the
+      common case, but a dedicated CSRF token would be more robust if this
+      ever needs to satisfy a stricter security review.
 
 ## Data Model
 
@@ -35,10 +39,18 @@ queued.
 - [ ] Seat vacancy reporting — a quick endpoint/view listing seats with no
       current `user_id`, useful for accountability-chart gap analysis.
 
+## Web UI
+
+Only Rocks has a page so far (list + inline status edit), as the first
+vertical slice proving out the FastAPI + Jinja2 + htmx pattern. Remaining
+entities still need pages: Teams, Users, Issues, Todos, Measurables &
+Scorecard (a chart would be worth it here — 12 weeks of history is already
+seeded), Meetings, Seats/accountability chart (a real org-chart visual,
+not just a table), VTO editor, People Analyzer.
+
 ## Ops / Dev Experience
 
 - [ ] Automated test suite (pytest). Verification so far has been manual
-      curl runs against a live Postgres container, not committed tests.
-- [ ] Seed/fixture script beyond `bootstrap_admin.py` for populating a full
-      demo dataset (multiple teams, rocks, scorecard history) for dev/demo.
+      curl runs / browser clicks against a live Postgres container, not
+      committed tests.
 - [ ] CI pipeline (lint, type-check, tests) — none configured yet.
