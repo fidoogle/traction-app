@@ -10,6 +10,7 @@ from app.web.seats_routes import router as seats_routes
 from app.web.teams_routes import router as teams_routes
 from app.web.todos_routes import router as todos_routes
 from app.web.users_routes import router as users_routes
+from app.web.vto_routes import router as vto_routes
 
 web_router = APIRouter()
 web_router.include_router(auth_routes)
@@ -22,3 +23,4 @@ web_router.include_router(users_routes)
 web_router.include_router(scorecard_routes)
 web_router.include_router(meetings_routes)
 web_router.include_router(seats_routes)
+web_router.include_router(vto_routes)

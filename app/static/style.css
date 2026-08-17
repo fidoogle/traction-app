@@ -244,6 +244,15 @@ svg.sparkline {
 .trend-line { stroke: var(--brand); stroke-width: 2; }
 .goal-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 4 3; }
 
+.saved-banner {
+  background: var(--on-track-bg);
+  color: var(--on-track);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
 .login-wrap {
   min-height: 100vh;
   display: flex;

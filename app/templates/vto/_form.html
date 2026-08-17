@@ -1,0 +1,148 @@
+<div id="vto-form-wrap">
+  {% if saved %}
+  <div class="saved-banner">Saved.</div>
+  {% endif %}
+
+  {% if current_user.role.value == "viewer" %}
+    <div class="card">
+      <h2>Core Values</h2>
+      {% if vto and vto.core_values %}
+      <ul>
+        {% for cv in vto.core_values %}
+        <li><strong>{{ cv.name }}</strong>{% if cv.description %} — {{ cv.description }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted">Not set yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Core Focus</h2>
+      <p><strong>Purpose:</strong> {{ vto.core_focus_purpose if vto and vto.core_focus_purpose else "—" }}</p>
+      <p><strong>Niche:</strong> {{ vto.core_focus_niche if vto and vto.core_focus_niche else "—" }}</p>
+    </div>
+
+    <div class="card">
+      <h2>10-Year Target</h2>
+      {% if vto and vto.ten_year_target %}
+      <p>
+        {{ vto.ten_year_target.description }}
+        {% if vto.ten_year_target.target_date %}(by {{ vto.ten_year_target.target_date }}){% endif %}
+      </p>
+      {% else %}
+      <p class="text-muted">Not set yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>3-Year Picture</h2>
+      {% if vto and vto.three_year_picture %}
+        {% if vto.three_year_picture.target_date %}
+        <p class="text-muted">Target date: {{ vto.three_year_picture.target_date }}</p>
+        {% endif %}
+        <ul>
+          {% for item in vto.three_year_picture.looks_like %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+      <p class="text-muted">Not set yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>1-Year Plan</h2>
+      {% if vto and vto.one_year_plan %}
+        {% if vto.one_year_plan.target_date %}
+        <p class="text-muted">Target date: {{ vto.one_year_plan.target_date }}</p>
+        {% endif %}
+        <ul>
+          {% for item in vto.one_year_plan.goals %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+      <p class="text-muted">Not set yet.</p>
+      {% endif %}
+    </div>
+  {% else %}
+    <form hx-put="/vto" hx-target="#vto-form-wrap" hx-swap="outerHTML">
+      <div class="card">
+        <h2>Core Values</h2>
+        <div class="form-row">
+          <div class="field field-full">
+            <label for="core_values">One per line, as <code>Name: Description</code></label>
+            <textarea id="core_values" name="core_values" rows="4">{{ core_values_text }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Core Focus</h2>
+        <div class="form-row">
+          <div class="field">
+            <label for="core_focus_purpose">Purpose / Cause / Passion</label>
+            <input type="text" id="core_focus_purpose" name="core_focus_purpose"
+                   value="{{ vto.core_focus_purpose if vto and vto.core_focus_purpose else '' }}">
+          </div>
+          <div class="field">
+            <label for="core_focus_niche">Niche</label>
+            <input type="text" id="core_focus_niche" name="core_focus_niche"
+                   value="{{ vto.core_focus_niche if vto and vto.core_focus_niche else '' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>10-Year Target</h2>
+        <div class="form-row">
+          <div class="field">
+            <label for="ten_year_target_description">Description</label>
+            <input type="text" id="ten_year_target_description" name="ten_year_target_description"
+                   value="{{ vto.ten_year_target.description if vto and vto.ten_year_target else '' }}">
+          </div>
+          <div class="field field-narrow">
+            <label for="ten_year_target_date">Target date</label>
+            <input type="date" id="ten_year_target_date" name="ten_year_target_date"
+                   value="{{ vto.ten_year_target.target_date if vto and vto.ten_year_target else '' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3-Year Picture</h2>
+        <div class="form-row">
+          <div class="field field-narrow">
+            <label for="three_year_target_date">Target date</label>
+            <input type="date" id="three_year_target_date" name="three_year_target_date"
+                   value="{{ vto.three_year_picture.target_date if vto and vto.three_year_picture else '' }}">
+          </div>
+          <div class="field field-full">
+            <label for="three_year_looks_like">What it looks like (one per line)</label>
+            <textarea id="three_year_looks_like" name="three_year_looks_like" rows="4">{{ looks_like_text }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>1-Year Plan</h2>
+        <div class="form-row">
+          <div class="field field-narrow">
+            <label for="one_year_target_date">Target date</label>
+            <input type="date" id="one_year_target_date" name="one_year_target_date"
+                   value="{{ vto.one_year_plan.target_date if vto and vto.one_year_plan else '' }}">
+          </div>
+          <div class="field field-full">
+            <label for="one_year_goals">Goals (one per line)</label>
+            <textarea id="one_year_goals" name="one_year_goals" rows="4">{{ goals_text }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <button class="primary" type="submit">Save VTO</button>
+      </div>
+    </form>
+  {% endif %}
+</div>
