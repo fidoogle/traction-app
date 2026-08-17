@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Users - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Users</h1>
+
+{% if current_user.role.value == "admin" %}
+<div class="card">
+  <h2>Add a user</h2>
+  <form hx-post="/users" hx-target="#users-table-body" hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="team_id">Team</label>
+        <select id="team_id" name="team_id" required>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="role">Role</label>
+        <select id="role" name="role" required>
+          {% for choice in UserRole %}
+          <option value="{{ choice.value }}" {% if choice.value == "member" %}selected{% endif %}>
+            {{ choice.value }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="password">Temporary password</label>
+        <input type="password" id="password" name="password" minlength="8" required>
+      </div>
+      <button class="primary" type="submit">Add user</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Email</th><th>Team</th><th>Role</th>
+        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody id="users-table-body">
+      {% for user in users %}
+        {% include "users/_row.html" %}
+      {% else %}
+      <tr><td colspan="5">No users yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

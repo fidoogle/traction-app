@@ -1,0 +1,40 @@
+<tr id="user-row-{{ user.id }}">
+  <td>{{ user.name }}</td>
+  <td>{{ user.email }}</td>
+  <td>{{ user.team.name }}</td>
+  <td>
+    {% if current_user.role.value == "admin" %}
+      <select
+        class="status-select"
+        name="role"
+        hx-patch="/users/{{ user.id }}/role"
+        hx-target="#user-row-{{ user.id }}"
+        hx-swap="outerHTML"
+        hx-trigger="change"
+      >
+        {% for choice in UserRole %}
+        <option value="{{ choice.value }}" {% if choice == user.role %}selected{% endif %}>
+          {{ choice.value }}
+        </option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <span class="badge">{{ user.role.value }}</span>
+    {% endif %}
+  </td>
+  {% if current_user.role.value == "admin" %}
+  <td>
+    {% if user.id != current_user.id %}
+    <button
+      class="link-danger"
+      hx-delete="/users/{{ user.id }}"
+      hx-target="#user-row-{{ user.id }}"
+      hx-swap="delete"
+      hx-confirm="Remove {{ user.name }}'s account? This cannot be undone."
+    >
+      Delete
+    </button>
+    {% endif %}
+  </td>
+  {% endif %}
+</tr>

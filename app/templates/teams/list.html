@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Teams - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Teams</h1>
+
+{% if current_user.role.value == "admin" %}
+<div class="card">
+  <h2>Add a team</h2>
+  <form hx-post="/teams" hx-target="#teams-table-body" hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="meeting_day">Meeting day</label>
+        <input type="text" id="meeting_day" name="meeting_day" placeholder="e.g. Monday">
+      </div>
+      <button class="primary" type="submit">Add team</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Meeting day</th>
+        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody id="teams-table-body">
+      {% for team in teams %}
+        {% include "teams/_row.html" %}
+      {% else %}
+      <tr><td colspan="3">No teams yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

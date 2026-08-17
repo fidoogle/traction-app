@@ -124,6 +124,8 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
 }
 
 .badge.on_track { color: var(--on-track); background: var(--on-track-bg); }
@@ -207,6 +209,17 @@ button.primary {
 }
 
 button.primary:hover { background: var(--brand-dark); }
+
+.link-danger {
+  background: none;
+  border: none;
+  color: var(--off-track);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.link-danger:hover { text-decoration: underline; }
 
 .error {
   background: var(--off-track-bg);

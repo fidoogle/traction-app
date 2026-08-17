@@ -1,0 +1,17 @@
+<tr id="team-row-{{ team.id }}">
+  <td>{{ team.name }}</td>
+  <td>{{ team.meeting_day if team.meeting_day else "—" }}</td>
+  {% if current_user.role.value == "admin" %}
+  <td>
+    <button
+      class="link-danger"
+      hx-delete="/teams/{{ team.id }}"
+      hx-target="#team-row-{{ team.id }}"
+      hx-swap="delete"
+      hx-confirm="Delete {{ team.name }}? This also deletes everything that team owns (rocks, issues, meetings, seats, ...). This cannot be undone."
+    >
+      Delete
+    </button>
+  </td>
+  {% endif %}
+</tr>
