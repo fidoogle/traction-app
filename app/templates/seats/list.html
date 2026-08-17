@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Accountability Chart - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Accountability Chart</h1>
+
+{% if current_user.role.value != "viewer" %}
+<div class="card">
+  <h2>Add a seat</h2>
+  <form hx-post="/seats" hx-target="#seat-tree-container" hx-swap="outerHTML"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+      <div class="field">
+        <label for="team_id">Team</label>
+        <select id="team_id" name="team_id" required>
+          {% for team in teams %}
+          <option value="{{ team.id }}">{{ team.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="parent_seat_id">Reports to</label>
+        <select id="parent_seat_id" name="parent_seat_id">
+          <option value="">— top level —</option>
+          {% for s in seats %}
+          <option value="{{ s.id }}">{{ s.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="user_id">Occupant</label>
+        <select id="user_id" name="user_id">
+          <option value="">— vacant —</option>
+          {% for u in org_users %}
+          <option value="{{ u.id }}">{{ u.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field-full">
+        <label for="responsibilities">Responsibilities (one per line)</label>
+        <textarea id="responsibilities" name="responsibilities" rows="3"></textarea>
+      </div>
+      <button class="primary" type="submit">Add seat</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% include "seats/_tree.html" %}
+{% endblock %}

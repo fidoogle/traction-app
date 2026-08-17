@@ -148,6 +148,7 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
 
 .form-row .field { margin-bottom: 0; flex: 1; min-width: 160px; }
 .form-row .field-narrow { flex: 0 0 90px; min-width: 90px; }
+.form-row .field-full { flex: 1 1 100%; }
 
 .form-row select {
   width: 100%;
@@ -156,6 +157,16 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
   border-radius: 6px;
   font-size: 0.95rem;
   background: var(--surface);
+}
+
+.form-row textarea {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
 }
 
 .form-row button {
@@ -173,6 +184,40 @@ select.status-select {
 }
 
 .text-muted { color: var(--text-muted); font-size: 0.85rem; }
+
+.seat-tree { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.seat-box {
+  display: inline-block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  min-width: 240px;
+  margin-bottom: 0.5rem;
+}
+
+.seat-title { font-weight: 600; }
+.seat-team { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+
+.seat-occupant { font-size: 0.9rem; }
+.seat-occupant.vacant { color: var(--off-track); font-style: italic; }
+.seat-occupant-select { margin-top: 0.15rem; }
+
+.seat-responsibilities {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.seat-node .link-danger { display: block; margin-top: 0.5rem; }
+
+.seat-children {
+  margin-left: 2rem;
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--border);
+}
 
 .measurable-card { padding: 1.25rem 1.5rem 1.5rem; }
 

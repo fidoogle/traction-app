@@ -1,0 +1,65 @@
+{% macro render_seat(seat, tree, current_user, org_users) %}
+<div class="seat-node">
+  <div class="seat-box">
+    <div class="seat-title">{{ seat.title }}</div>
+    <div class="seat-team">{{ seat.team.name }}</div>
+
+    {% if current_user.role.value != "viewer" %}
+      <select
+        class="status-select seat-occupant-select"
+        name="user_id"
+        hx-patch="/seats/{{ seat.id }}/occupant"
+        hx-target="#seat-tree-container"
+        hx-swap="outerHTML"
+        hx-trigger="change"
+      >
+        <option value="" {% if not seat.user_id %}selected{% endif %}>— vacant —</option>
+        {% for u in org_users %}
+        <option value="{{ u.id }}" {% if seat.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <div class="seat-occupant {% if not seat.user %}vacant{% endif %}">
+        {{ seat.user.name if seat.user else "Vacant" }}
+      </div>
+    {% endif %}
+
+    {% if seat.responsibilities %}
+    <ul class="seat-responsibilities">
+      {% for r in seat.responsibilities %}
+      <li>{{ r }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if current_user.role.value != "viewer" %}
+    <button
+      class="link-danger"
+      hx-delete="/seats/{{ seat.id }}"
+      hx-target="#seat-tree-container"
+      hx-swap="outerHTML"
+      hx-confirm="Delete the {{ seat.title }} seat? Any seats reporting to it move to the top level. This cannot be undone."
+    >
+      Delete
+    </button>
+    {% endif %}
+  </div>
+
+  {% set children = tree.get(seat.id, []) %}
+  {% if children %}
+  <div class="seat-children">
+    {% for child in children %}
+      {{ render_seat(child, tree, current_user, org_users) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+<div id="seat-tree-container" class="seat-tree">
+  {% for root in roots %}
+    {{ render_seat(root, tree, current_user, org_users) }}
+  {% else %}
+  <div class="card">No seats yet.</div>
+  {% endfor %}
+</div>
