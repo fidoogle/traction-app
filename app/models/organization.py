@@ -18,3 +18,6 @@ class Organization(UUIDPKMixin, Base):
     users: Mapped[List["User"]] = relationship(
         back_populates="organization", cascade="all, delete-orphan"
     )
+    vto: Mapped[Optional["VTO"]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan", uselist=False
+    )

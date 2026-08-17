@@ -10,6 +10,7 @@ from app.models.seat import Seat
 from app.models.team import Team
 from app.models.todo import Todo
 from app.models.user import User
+from app.models.vto import VTO
 
 __all__ = [
     "Base",
@@ -23,6 +24,7 @@ __all__ = [
     "Todo",
     "Meeting",
     "Seat",
+    "VTO",
     "RockStatus",
     "IssueStatus",
     "TodoStatus",

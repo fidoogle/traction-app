@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.auth_router import router as auth_router
 from app.api.crud_router import build_crud_router
 from app.api.users_router import router as users_router
+from app.api.vto_router import router as vto_router
 from app.models import Issue, Measurable, Meeting, Organization, Rock, ScorecardEntry, Seat, Team, Todo
 from app.models.enums import UserRole
 from app.schemas.issue import IssueCreate, IssueRead, IssueUpdate
@@ -19,6 +20,7 @@ api_router = APIRouter()
 
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
+api_router.include_router(vto_router)
 
 api_router.include_router(
     build_crud_router(
