@@ -39,3 +39,6 @@ class User(UUIDPKMixin, Base):
     )
     # No cascade: deleting a user should vacate their seat(s), not delete them.
     seats: Mapped[List["Seat"]] = relationship(back_populates="user")
+    people_analyzer_entries: Mapped[List["PeopleAnalyzerEntry"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

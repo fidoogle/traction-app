@@ -35,3 +35,6 @@ class Seat(UUIDPKMixin, Base):
         remote_side="Seat.id", back_populates="children"
     )
     children: Mapped[List["Seat"]] = relationship(back_populates="parent")
+    people_analyzer_entries: Mapped[List["PeopleAnalyzerEntry"]] = relationship(
+        back_populates="seat", cascade="all, delete-orphan"
+    )

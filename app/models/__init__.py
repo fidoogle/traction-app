@@ -4,6 +4,7 @@ from app.models.issue import Issue
 from app.models.measurable import Measurable
 from app.models.meeting import Meeting
 from app.models.organization import Organization
+from app.models.people_analyzer import PeopleAnalyzerEntry
 from app.models.rock import Rock
 from app.models.scorecard_entry import ScorecardEntry
 from app.models.seat import Seat
@@ -25,6 +26,7 @@ __all__ = [
     "Meeting",
     "Seat",
     "VTO",
+    "PeopleAnalyzerEntry",
     "RockStatus",
     "IssueStatus",
     "TodoStatus",
