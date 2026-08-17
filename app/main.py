@@ -7,6 +7,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import api_router
 from app.config import DEFAULT_SECRET_KEY, settings
+from app.core.security_headers import SecurityHeadersMiddleware
+from app.web.csrf import CSRFMiddleware
 from app.web.deps import RedirectToLogin
 from app.web.routes import web_router
 
@@ -16,6 +18,9 @@ if settings.secret_key == DEFAULT_SECRET_KEY:
     logger.warning("Using default SECRET_KEY - set SECRET_KEY in the environment before deploying.")
 
 app = FastAPI(title="Traction/EOS App")
+
+app.add_middleware(CSRFMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
