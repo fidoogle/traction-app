@@ -20,6 +20,7 @@ class User(UUIDPKMixin, Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     auth_provider: Mapped[Optional[str]] = mapped_column(String(50))
+    hashed_password: Mapped[Optional[str]] = mapped_column(String(255))
 
     organization: Mapped["Organization"] = relationship(back_populates="users")
     team: Mapped["Team"] = relationship(back_populates="users", foreign_keys=[team_id])

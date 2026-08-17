@@ -1,7 +1,9 @@
 from fastapi import APIRouter
 
+from app.api.auth_router import router as auth_router
 from app.api.crud_router import build_crud_router
-from app.models import Issue, Measurable, Meeting, Organization, Rock, ScorecardEntry, Team, Todo, User
+from app.api.users_router import router as users_router
+from app.models import Issue, Measurable, Meeting, Organization, Rock, ScorecardEntry, Team, Todo
 from app.schemas.issue import IssueCreate, IssueRead, IssueUpdate
 from app.schemas.measurable import MeasurableCreate, MeasurableRead, MeasurableUpdate
 from app.schemas.meeting import MeetingCreate, MeetingRead, MeetingUpdate
@@ -10,9 +12,11 @@ from app.schemas.rock import RockCreate, RockRead, RockUpdate
 from app.schemas.scorecard_entry import ScorecardEntryCreate, ScorecardEntryRead, ScorecardEntryUpdate
 from app.schemas.team import TeamCreate, TeamRead, TeamUpdate
 from app.schemas.todo import TodoCreate, TodoRead, TodoUpdate
-from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 api_router = APIRouter()
+
+api_router.include_router(auth_router)
+api_router.include_router(users_router)
 
 api_router.include_router(
     build_crud_router(
@@ -32,16 +36,6 @@ api_router.include_router(
         read_schema=TeamRead,
         prefix="/teams",
         tags=["teams"],
-    )
-)
-api_router.include_router(
-    build_crud_router(
-        model=User,
-        create_schema=UserCreate,
-        update_schema=UserUpdate,
-        read_schema=UserRead,
-        prefix="/users",
-        tags=["users"],
     )
 )
 api_router.include_router(

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
 from app.crud.base import CRUDBase
 from app.models.base import Base
 
@@ -19,7 +19,7 @@ def build_crud_router(
     prefix: str,
     tags: list[str],
 ) -> APIRouter:
-    router = APIRouter(prefix=prefix, tags=tags)
+    router = APIRouter(prefix=prefix, tags=tags, dependencies=[Depends(get_current_user)])
     crud = CRUDBase(model)
     not_found_detail = f"{model.__name__} not found"
 

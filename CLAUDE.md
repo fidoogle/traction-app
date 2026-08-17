@@ -41,3 +41,9 @@ charts, etc.).
   the deployment story, not manual schema edits.
 - When adding a new dependency, check whether it phones home or requires an
   internet connection at runtime; avoid it or make it optional if so.
+
+## Workflow
+
+- Commit completed, tested, and verified work sooner rather than later.
+  Prefer piecewise commits over batching up a large set of changes — once a
+  unit of work is done and verified, commit it before moving on to the next.

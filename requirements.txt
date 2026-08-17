@@ -5,3 +5,6 @@ psycopg[binary]
 alembic
 pydantic-settings
 email-validator
+bcrypt
+pyjwt
+python-multipart
