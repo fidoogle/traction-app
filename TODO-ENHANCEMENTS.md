@@ -41,12 +41,12 @@ queued.
 
 ## Web UI
 
-Only Rocks has a page so far (list + inline status edit), as the first
-vertical slice proving out the FastAPI + Jinja2 + htmx pattern. Remaining
-entities still need pages: Teams, Users, Issues, Todos, Measurables &
-Scorecard (a chart would be worth it here — 12 weeks of history is already
-seeded), Meetings, Seats/accountability chart (a real org-chart visual,
-not just a table), VTO editor, People Analyzer.
+Rocks, Issues, and To-Dos have pages (list + inline status edit; Issues/
+To-Dos also have a create form). Remaining entities still need pages:
+Teams, Users, Measurables & Scorecard (a chart would be worth it here —
+12 weeks of history is already seeded), Meetings, Seats/accountability
+chart (a real org-chart visual, not just a table), VTO editor, People
+Analyzer.
 
 ## Ops / Dev Experience
 
