@@ -1,5 +1,5 @@
 from app.models.base import Base
-from app.models.enums import IssueStatus, MeetingStatus, RockStatus, TodoStatus
+from app.models.enums import IssueStatus, MeetingStatus, RockStatus, TodoStatus, UserRole
 from app.models.issue import Issue
 from app.models.measurable import Measurable
 from app.models.meeting import Meeting
@@ -25,4 +25,5 @@ __all__ = [
     "IssueStatus",
     "TodoStatus",
     "MeetingStatus",
+    "UserRole",
 ]

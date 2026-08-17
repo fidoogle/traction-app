@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.security import hash_password  # noqa: E402
 from app.db import SessionLocal  # noqa: E402
-from app.models import Organization, Team, User  # noqa: E402
+from app.models import Organization, Team, User, UserRole  # noqa: E402
 
 
 def main() -> None:
@@ -44,6 +44,7 @@ def main() -> None:
             name=args.name,
             email=args.email,
             hashed_password=hash_password(args.password),
+            role=UserRole.ADMIN,
         )
         db.add(user)
         db.commit()

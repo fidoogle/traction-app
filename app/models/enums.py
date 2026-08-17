@@ -24,3 +24,9 @@ class MeetingStatus(StrEnum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     CANCELED = "canceled"
+
+
+class UserRole(StrEnum):
+    ADMIN = "admin"
+    MEMBER = "member"
+    VIEWER = "viewer"

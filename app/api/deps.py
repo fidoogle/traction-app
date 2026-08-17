@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
 from app.db import SessionLocal
+from app.models.enums import UserRole
 from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -41,3 +42,16 @@ def get_current_user(
     if user is None:
         raise credentials_error
     return user
+
+
+def require_roles(*roles: UserRole):
+    allowed = set(roles)
+
+    def dependency(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
+            )
+        return current_user
+
+    return dependency

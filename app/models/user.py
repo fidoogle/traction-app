@@ -1,11 +1,13 @@
 import uuid
 from typing import List, Optional
 
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDPKMixin
+from app.models.enums import UserRole
 
 
 class User(UUIDPKMixin, Base):
@@ -21,6 +23,11 @@ class User(UUIDPKMixin, Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     auth_provider: Mapped[Optional[str]] = mapped_column(String(50))
     hashed_password: Mapped[Optional[str]] = mapped_column(String(255))
+    role: Mapped[UserRole] = mapped_column(
+        SAEnum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+        default=UserRole.MEMBER,
+    )
 
     organization: Mapped["Organization"] = relationship(back_populates="users")
     team: Mapped["Team"] = relationship(back_populates="users", foreign_keys=[team_id])

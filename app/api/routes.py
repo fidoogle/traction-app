@@ -4,6 +4,7 @@ from app.api.auth_router import router as auth_router
 from app.api.crud_router import build_crud_router
 from app.api.users_router import router as users_router
 from app.models import Issue, Measurable, Meeting, Organization, Rock, ScorecardEntry, Team, Todo
+from app.models.enums import UserRole
 from app.schemas.issue import IssueCreate, IssueRead, IssueUpdate
 from app.schemas.measurable import MeasurableCreate, MeasurableRead, MeasurableUpdate
 from app.schemas.meeting import MeetingCreate, MeetingRead, MeetingUpdate
@@ -26,6 +27,7 @@ api_router.include_router(
         read_schema=OrganizationRead,
         prefix="/organizations",
         tags=["organizations"],
+        write_roles=frozenset({UserRole.ADMIN}),
     )
 )
 api_router.include_router(
@@ -36,6 +38,7 @@ api_router.include_router(
         read_schema=TeamRead,
         prefix="/teams",
         tags=["teams"],
+        write_roles=frozenset({UserRole.ADMIN}),
     )
 )
 api_router.include_router(
