@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from app.api.auth_router import router as auth_router
 from app.api.crud_router import build_crud_router
 from app.api.users_router import router as users_router
-from app.models import Issue, Measurable, Meeting, Organization, Rock, ScorecardEntry, Team, Todo
+from app.models import Issue, Measurable, Meeting, Organization, Rock, ScorecardEntry, Seat, Team, Todo
 from app.models.enums import UserRole
 from app.schemas.issue import IssueCreate, IssueRead, IssueUpdate
 from app.schemas.measurable import MeasurableCreate, MeasurableRead, MeasurableUpdate
@@ -11,6 +11,7 @@ from app.schemas.meeting import MeetingCreate, MeetingRead, MeetingUpdate
 from app.schemas.organization import OrganizationCreate, OrganizationRead, OrganizationUpdate
 from app.schemas.rock import RockCreate, RockRead, RockUpdate
 from app.schemas.scorecard_entry import ScorecardEntryCreate, ScorecardEntryRead, ScorecardEntryUpdate
+from app.schemas.seat import SeatCreate, SeatRead, SeatUpdate
 from app.schemas.team import TeamCreate, TeamRead, TeamUpdate
 from app.schemas.todo import TodoCreate, TodoRead, TodoUpdate
 
@@ -99,5 +100,15 @@ api_router.include_router(
         read_schema=MeetingRead,
         prefix="/meetings",
         tags=["meetings"],
+    )
+)
+api_router.include_router(
+    build_crud_router(
+        model=Seat,
+        create_schema=SeatCreate,
+        update_schema=SeatUpdate,
+        read_schema=SeatRead,
+        prefix="/seats",
+        tags=["seats"],
     )
 )

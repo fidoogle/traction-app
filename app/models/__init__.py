@@ -6,6 +6,7 @@ from app.models.meeting import Meeting
 from app.models.organization import Organization
 from app.models.rock import Rock
 from app.models.scorecard_entry import ScorecardEntry
+from app.models.seat import Seat
 from app.models.team import Team
 from app.models.todo import Todo
 from app.models.user import User
@@ -21,6 +22,7 @@ __all__ = [
     "Issue",
     "Todo",
     "Meeting",
+    "Seat",
     "RockStatus",
     "IssueStatus",
     "TodoStatus",

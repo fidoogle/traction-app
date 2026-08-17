@@ -37,3 +37,5 @@ class User(UUIDPKMixin, Base):
     todos: Mapped[List["Todo"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )
+    # No cascade: deleting a user should vacate their seat(s), not delete them.
+    seats: Mapped[List["Seat"]] = relationship(back_populates="user")

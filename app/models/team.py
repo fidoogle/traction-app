@@ -33,3 +33,6 @@ class Team(UUIDPKMixin, Base):
     meetings: Mapped[List["Meeting"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
+    seats: Mapped[List["Seat"]] = relationship(
+        back_populates="team", cascade="all, delete-orphan"
+    )
