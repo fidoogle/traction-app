@@ -36,14 +36,22 @@ queued.
 - [ ] Meeting model is bare-bones (date + status only). A real L10 meeting
       has a standard agenda (segue, scorecard review, rock review, IDS,
       to-do review, conclude) — consider a MeetingSegment or agenda concept.
+      `scheduled_date` is also date-only (no time-of-day) - this would need
+      to become a real datetime before Meeting could sync to an actual
+      calendar slot (see Google/Microsoft calendar integration below).
 - [ ] Seat vacancy reporting — a quick endpoint/view listing seats with no
       current `user_id`, useful for accountability-chart gap analysis.
+- [ ] Google/Microsoft calendar integration (planned for later). Should be
+      an optional sync layer bolted onto Meeting (external event ID +
+      push/pull), not baked into the core domain model — consistent with
+      the on-prem/no-required-external-deps rule in CLAUDE.md. Requires
+      the scheduled_date -> datetime change above first.
 
 ## Web UI
 
-Done: Rocks, Issues, To-Dos, Teams, Users, Scorecard (list + inline edit;
-most have a create form; Scorecard has real SVG sparklines). Remaining:
-Meetings, Seats/accountability chart (a real org-chart visual, not just
+Done: Rocks, Issues, To-Dos, Teams, Users, Scorecard, Meetings (list +
+inline edit; most have a create form; Scorecard has real SVG sparklines).
+Remaining: Seats/accountability chart (a real org-chart visual, not just
 a table — the most involved of what's left), VTO editor, People Analyzer.
 
 ## Ops / Dev Experience
