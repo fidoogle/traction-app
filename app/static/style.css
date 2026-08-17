@@ -138,6 +138,24 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
 .badge.in_progress { color: #92400e; background: #fef3e0; }
 .badge.completed { color: var(--on-track); background: var(--on-track-bg); }
 .badge.canceled { color: var(--text-muted); background: #eef0f2; }
+.badge.yes { color: var(--on-track); background: var(--on-track-bg); }
+.badge.no { color: var(--off-track); background: var(--off-track-bg); }
+
+.gwc-row { gap: 1.25rem; margin-bottom: 0.75rem; }
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.checkbox-field input { width: auto; }
+
+.core-values-summary { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; }
+.core-values-summary li { display: inline-block; margin-right: 0.6rem; }
+.core-values-summary li.yes::before { content: "\2713 "; color: var(--on-track); }
+.core-values-summary li.no::before { content: "\2717 "; color: var(--off-track); }
 
 .form-row {
   display: flex;

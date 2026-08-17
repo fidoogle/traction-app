@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}People Analyzer - Traction/EOS{% endblock %}
+{% block content %}
+<h1>People Analyzer</h1>
+
+{% if current_user.role.value != "viewer" %}
+<div class="card">
+  <h2>Add an evaluation</h2>
+  <form hx-post="/people-analyzer" hx-target="#pae-table-body" hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="user_id">Person</label>
+        <select id="user_id" name="user_id" required>
+          {% for u in org_users %}
+          <option value="{{ u.id }}">{{ u.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="seat_id">Seat</label>
+        <select id="seat_id" name="seat_id" required>
+          {% for s in org_seats %}
+          <option value="{{ s.id }}">{{ s.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field field-narrow">
+        <label for="evaluated_at">Date</label>
+        <input type="date" id="evaluated_at" name="evaluated_at" value="{{ today }}" required>
+      </div>
+    </div>
+
+    <div class="form-row gwc-row">
+      <label class="checkbox-field"><input type="checkbox" name="gets_it" value="true"> Gets it</label>
+      <label class="checkbox-field"><input type="checkbox" name="wants_it" value="true"> Wants it</label>
+      <label class="checkbox-field"><input type="checkbox" name="has_capacity" value="true"> Has the capacity</label>
+    </div>
+
+    {% if core_value_names %}
+    <div class="form-row gwc-row">
+      {% for name in core_value_names %}
+      <label class="checkbox-field">
+        <input type="checkbox" name="core_value_names" value="{{ name }}"> {{ name }}
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">
+      No core values defined yet — set them on the <a href="/vto">VTO</a> page to rate against them here.
+    </p>
+    {% endif %}
+
+    <div class="form-row">
+      <div class="field field-full">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="2"></textarea>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <button class="primary" type="submit">Add evaluation</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Person</th><th>Seat</th><th>Date</th>
+        <th>Gets It</th><th>Wants It</th><th>Capacity</th>
+        <th>Core Values</th><th>Notes</th>
+      </tr>
+    </thead>
+    <tbody id="pae-table-body">
+      {% for entry in entries %}
+        {% include "people_analyzer/_row.html" %}
+      {% else %}
+      <tr><td colspan="8">No evaluations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

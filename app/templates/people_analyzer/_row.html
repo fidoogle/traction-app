@@ -1,0 +1,20 @@
+<tr id="pae-row-{{ entry.id }}">
+  <td>{{ entry.user.name }}</td>
+  <td>{{ entry.seat.title }}</td>
+  <td>{{ entry.evaluated_at }}</td>
+  <td><span class="badge {{ 'yes' if entry.gets_it else 'no' }}">{{ 'Yes' if entry.gets_it else 'No' }}</span></td>
+  <td><span class="badge {{ 'yes' if entry.wants_it else 'no' }}">{{ 'Yes' if entry.wants_it else 'No' }}</span></td>
+  <td><span class="badge {{ 'yes' if entry.has_capacity else 'no' }}">{{ 'Yes' if entry.has_capacity else 'No' }}</span></td>
+  <td>
+    {% if entry.core_values_ratings %}
+    <ul class="core-values-summary">
+      {% for name, rating in entry.core_values_ratings.items() %}
+      <li class="{{ 'yes' if rating else 'no' }}">{{ name }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    —
+    {% endif %}
+  </td>
+  <td>{{ entry.notes if entry.notes else "—" }}</td>
+</tr>
