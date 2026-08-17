@@ -16,8 +16,10 @@ class Todo(UUIDPKMixin, Base):
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
-    issue_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("issues.id"), nullable=False
+    # Nullable: to-dos commonly come straight out of an L10 meeting, not
+    # only from an issue that was IDS'd.
+    issue_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("issues.id")
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     due_date: Mapped[Optional[date]] = mapped_column(Date)
@@ -28,4 +30,4 @@ class Todo(UUIDPKMixin, Base):
     )
 
     owner: Mapped["User"] = relationship(back_populates="todos")
-    issue: Mapped["Issue"] = relationship(back_populates="todos")
+    issue: Mapped[Optional["Issue"]] = relationship(back_populates="todos")

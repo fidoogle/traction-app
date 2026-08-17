@@ -9,7 +9,7 @@ from app.models.enums import TodoStatus
 
 class TodoBase(BaseModel):
     owner_id: uuid.UUID
-    issue_id: uuid.UUID
+    issue_id: Optional[uuid.UUID] = None
     title: str
     due_date: Optional[date] = None
     status: TodoStatus = TodoStatus.OPEN
