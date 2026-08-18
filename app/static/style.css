@@ -110,7 +110,7 @@ a { color: var(--brand); }
 .nav-toggle-icon::before { top: -6px; }
 .nav-toggle-icon::after { top: 6px; }
 
-@media (max-width: 860px) {
+@media (max-width: 1024px) {
   .nav-toggle { display: inline-flex; }
 
   .topbar nav {

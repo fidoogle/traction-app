@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Traction/EOS{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <script src="/static/htmx.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css?v={{ static_version('style.css') }}">
+  <script src="/static/htmx.min.js?v={{ static_version('htmx.min.js') }}"></script>
   <script>
     document.addEventListener('htmx:configRequest', function (evt) {
       var match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/);
