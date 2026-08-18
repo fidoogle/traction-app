@@ -104,19 +104,19 @@ def main() -> None:
             return user
 
         superintendent = make_user(
-            "Dana Whitfield", "dana.whitfield@cedarvalley.k12.example", leadership, UserRole.ADMIN
+            "Dana Admin", "admin@school.example", leadership, UserRole.ADMIN
         )
         cfo = make_user(
-            "Marcus Ibe", "marcus.ibe@cedarvalley.k12.example", leadership, UserRole.MEMBER
+            "Marcus Member", "member1@school.example", leadership, UserRole.MEMBER
         )
         curriculum_dir = make_user(
-            "Priya Anand", "priya.anand@cedarvalley.k12.example", curriculum, UserRole.MEMBER
+            "Priya Member", "member2@school.example", curriculum, UserRole.MEMBER
         )
         ops_dir = make_user(
-            "Sam Okafor", "sam.okafor@cedarvalley.k12.example", ops, UserRole.MEMBER
+            "Sam Member", "member3@school.example", ops, UserRole.MEMBER
         )
         board_liaison = make_user(
-            "Ellis Grant", "ellis.grant@cedarvalley.k12.example", leadership, UserRole.VIEWER
+            "Ellis Viewer", "viewer@school.example", leadership, UserRole.VIEWER
         )
 
         # --- Accountability chart ---
