@@ -13,13 +13,33 @@
         evt.detail.headers['X-CSRF-Token'] = decodeURIComponent(match[1]);
       }
     });
+    // Delegated (not a direct getElementById+listener at parse time) so
+    // this works regardless of where the script tag sits relative to the
+    // button in the DOM - see the CSRF listener above for the same reason.
+    document.addEventListener('click', function (evt) {
+      var toggle = evt.target.closest('#nav-toggle');
+      if (!toggle) return;
+      var nav = document.getElementById('site-nav');
+      var isOpen = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
   </script>
 </head>
 <body>
   {% if current_user %}
   <div class="topbar">
     <a class="brand" href="/">Traction/EOS</a>
-    <nav>
+    <button
+      type="button"
+      id="nav-toggle"
+      class="nav-toggle"
+      aria-expanded="false"
+      aria-controls="site-nav"
+      aria-label="Toggle navigation"
+    >
+      <span class="nav-toggle-icon"></span>
+    </button>
+    <nav id="site-nav">
       <a href="/">Dashboard</a>
       <a href="/rocks">Rocks</a>
       <a href="/scorecard">Scorecard</a>
