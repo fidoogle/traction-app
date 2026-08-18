@@ -1,3 +1,8 @@
+# Quick-start (testing): docker compose up --build
+#
+# Before any real deployment, copy .env.example to .env and set a real
+# SECRET_KEY (and change POSTGRES_PASSWORD below) - the values here are
+# safe-for-local-testing defaults only, not production-safe.
 services:
   db:
     image: postgres:16
@@ -15,6 +20,24 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://traction:traction@db:5432/traction
+      # Reads from a .env file next to this compose file if present
+      # (Compose's own convention - separate from the app's own .env
+      # handling, which only ever sees real process env vars in a
+      # container). Falls back to a dev-only default so `docker compose
+      # up` works out of the box for local testing.
+      SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "8000:8000"
 
 volumes:
   db_data:
