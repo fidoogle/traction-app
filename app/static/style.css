@@ -180,6 +180,18 @@ h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
 
 table { width: 100%; border-collapse: collapse; }
 
+/* Lets a wide table scroll horizontally within its own box instead of
+   squishing every column (and wrapping cell text mid-word) to fit a
+   phone screen. nowrap keeps each row on one line so columns take their
+   natural width - the container scrolls for whatever doesn't fit,
+   rather than the table trying to reflow. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table { white-space: nowrap; }
+
 th, td {
   text-align: left;
   padding: 0.6rem 0.5rem;
