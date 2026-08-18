@@ -65,7 +65,21 @@ rather than filling a gap.
 
 ## Ops / Dev Experience
 
+Done: Dockerfile + docker-compose now run the whole app (not just
+Postgres), with migrations applied automatically on container start.
+
 - [ ] Automated test suite (pytest). Verification so far has been manual
       curl runs / browser clicks against a live Postgres container, not
       committed tests.
 - [ ] CI pipeline (lint, type-check, tests) — none configured yet.
+- [ ] TLS / reverse proxy. The container serves plain HTTP on :8000, and
+      COOKIE_SECURE defaults to false to match. Fine for internal-network
+      testing, but before this is trusted with real district data, put a
+      reverse proxy (nginx/Caddy) in front with a real TLS cert and flip
+      COOKIE_SECURE to true - session cookies aren't marked Secure right
+      now, so they'd be sent over plain HTTP if this were ever reachable
+      outside a trusted network.
+- [ ] The `db` service's Postgres credentials (docker-compose.yml) and
+      SECRET_KEY's dev-only fallback are safe-for-testing defaults, not
+      production-safe. Copy .env.example to .env and set real values
+      before this runs anywhere that matters.
