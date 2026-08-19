@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traction/EOS Progress Review</title>
+<style>
+:root {
+  --paper: #f3f1e9;
+  --surface: #fffdf8;
+  --surface-2: #ece8db;
+  --ink: #1f2b28;
+  --ink-muted: #5c6b63;
+  --ink-faint: #8b968e;
+  --line: #d9d3c1;
+  --line-soft: #e6e1d1;
+  --accent: #2f6f5e;
+  --accent-strong: #1f4d40;
+  --accent-wash: #e3ece7;
+  --copper: #a85f2e;
+  --copper-wash: #f3e6d9;
+  --done: #4c7a3f;
+  --done-wash: #e6ede1;
+  --pending: #96701f;
+  --pending-wash: #f2ead6;
+  --shadow: 0 1px 2px rgba(31,43,40,0.06), 0 6px 20px -8px rgba(31,43,40,0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #161c1a;
+    --surface: #1d2422;
+    --surface-2: #232b28;
+    --ink: #e9e5d8;
+    --ink-muted: #a9b3ac;
+    --ink-faint: #6f7c75;
+    --line: #333d38;
+    --line-soft: #2a332f;
+    --accent: #5fa38e;
+    --accent-strong: #7cbba6;
+    --accent-wash: #223330;
+    --copper: #d38a52;
+    --copper-wash: #33291e;
+    --done: #8ab97a;
+    --done-wash: #202b1f;
+    --pending: #d3ac5c;
+    --pending-wash: #2e2818;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px -8px rgba(0,0,0,0.45);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #161c1a;
+  --surface: #1d2422;
+  --surface-2: #232b28;
+  --ink: #e9e5d8;
+  --ink-muted: #a9b3ac;
+  --ink-faint: #6f7c75;
+  --line: #333d38;
+  --line-soft: #2a332f;
+  --accent: #5fa38e;
+  --accent-strong: #7cbba6;
+  --accent-wash: #223330;
+  --copper: #d38a52;
+  --copper-wash: #33291e;
+  --done: #8ab97a;
+  --done-wash: #202b1f;
+  --pending: #d3ac5c;
+  --pending-wash: #2e2818;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px -8px rgba(0,0,0,0.45);
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", ui-sans-serif, system-ui, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 56px 24px 96px;
+}
+.sheet { max-width: 780px; margin: 0 auto; }
+h1, h2, h3 {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  color: var(--ink);
+  text-wrap: balance;
+  margin: 0;
+}
+.mono, .badge, .stat .value { font-variant-numeric: tabular-nums; }
+code, .mono {
+  font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* ---- header ---- */
+.memo-head { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 8px; }
+.eyebrow {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  margin: 0 0 10px;
+}
+h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 14px; }
+.memo-meta { display: flex; flex-wrap: wrap; gap: 4px 28px; font-size: 13.5px; color: var(--ink-muted); }
+.memo-meta strong { color: var(--ink); font-weight: 600; }
+.memo-meta a { color: var(--accent-strong); }
+
+.lede { font-size: 17px; color: var(--ink-muted); margin: 22px 0 32px; max-width: 62ch; }
+.lede strong { color: var(--ink); font-weight: 600; }
+
+/* ---- stat strip ---- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 40px;
+}
+.stat { background: var(--surface); padding: 16px 14px; }
+.stat .value {
+  font-size: 26px; font-weight: 700; color: var(--accent-strong);
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+}
+.stat .label { font-size: 12px; color: var(--ink-muted); margin-top: 2px; line-height: 1.3; }
+
+/* ---- sections ---- */
+section.block { margin-bottom: 44px; }
+.block-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 18px;
+}
+h2 { font-size: 21px; font-weight: 600; }
+.block-head .count { font-size: 12.5px; color: var(--ink-faint); white-space: nowrap; }
+.block-note { font-size: 14.5px; color: var(--ink-muted); margin: -8px 0 18px; max-width: 66ch; }
+
+/* ---- tool grid (EOS toolset) ---- */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.tool {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.tool .check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--done-wash); color: var(--done);
+  font-size: 11px; font-weight: 700; margin-right: 7px;
+}
+.tool-title { font-weight: 650; font-size: 14.5px; display: flex; align-items: center; margin-bottom: 5px; }
+.tool p { margin: 0; font-size: 13px; color: var(--ink-muted); }
+@media (max-width: 620px) { .tool-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ---- item cards ---- */
+.item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+.item-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.item-title { font-weight: 650; font-size: 15.5px; color: var(--ink); }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 5px; font-weight: 600; white-space: nowrap;
+}
+.badge.done { background: var(--done-wash); color: var(--done); }
+.badge.pending { background: var(--pending-wash); color: var(--pending); }
+.item p { margin: 0; font-size: 14.5px; color: var(--ink-muted); max-width: 66ch; }
+.item .note {
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line);
+  font-size: 13.5px; color: var(--ink-faint);
+}
+
+/* ---- on-prem callout ---- */
+.callout {
+  border: 1px solid var(--accent);
+  border-left-width: 4px;
+  background: var(--accent-wash);
+  border-radius: 8px;
+  padding: 22px 24px;
+  margin-bottom: 14px;
+}
+.callout h3 { font-size: 17px; margin-bottom: 10px; }
+.callout p { margin: 0 0 10px; font-size: 14.5px; color: var(--ink); opacity: 0.9; max-width: 68ch; }
+.callout p:last-child { margin-bottom: 0; }
+.callout ul { margin: 10px 0 0; padding-left: 18px; font-size: 14px; color: var(--ink); opacity: 0.9; }
+.callout li { margin-bottom: 5px; }
+.callout li strong { opacity: 1; }
+
+/* ---- footer note ---- */
+.closing {
+  border-top: 2px solid var(--ink);
+  padding-top: 18px;
+  margin-top: 48px;
+  font-size: 14.5px;
+  color: var(--ink-muted);
+}
+.closing strong { color: var(--ink); }
+.closing a { color: var(--accent-strong); }
+
+@media (max-width: 620px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  h1 { font-size: 26px; }
+  body { padding: 36px 16px 72px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .item, .tool, .callout { transition: box-shadow 0.15s ease; }
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <div class="memo-head">
+    <p class="eyebrow">Progress Review — Prepared for the Project Owner</p>
+    <h1>Traction/EOS App: What's Already Built</h1>
+    <div class="memo-meta">
+      <span><strong>Date:</strong> Aug 19, 2026</span>
+      <span><strong>Demo:</strong> 137.184.61.75:8000</span>
+      <span><strong>Companion doc:</strong> <a href="/static/status-review.html">What's Left &amp; Feasibility Review</a></span>
+    </div>
+  </div>
+
+  <p class="lede">
+    This is the companion to the remaining-work review — the other half of the picture. It covers what
+    has actually been built and proven, why that adds up to real progress toward a district or church
+    running this on its own hardware, and what security work is already in place versus one deployment
+    step away from finished.
+  </p>
+
+  <div class="stats">
+    <div class="stat"><div class="value">9 / 9</div><div class="label">EOS tools built &amp; working</div></div>
+    <div class="stat"><div class="value">1</div><div class="label">command to stand up the whole app</div></div>
+    <div class="stat"><div class="value">7</div><div class="label">security protections already active</div></div>
+    <div class="stat"><div class="value">0</div><div class="label">required cloud services</div></div>
+  </div>
+
+  <section class="block">
+    <div class="block-head"><h2>The Full EOS Toolset</h2><span class="count">complete</span></div>
+    <p class="block-note">Every tool a district or church needs to run a weekly Level&nbsp;10 meeting the way EOS is actually practiced — not a partial slice of it.</p>
+    <div class="tool-grid">
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>Rocks</div><p>Quarterly goals with on-track / off-track / complete status per owner.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>Scorecard</div><p>Weekly numbers per measurable, with real trend-line charts, not just a table.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>Issues List</div><p>Identify, discuss, solve — the IDS workflow EOS meetings run on.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>To-Dos</div><p>Action items, optionally tied back to the issue that raised them.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>Meetings</div><p>Level&nbsp;10 meeting scheduling and status per team.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>Teams &amp; Users</div><p>Org structure, membership, and role assignment.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>Accountability Chart</div><p>Seats in a reporting hierarchy, rendered as a real org chart.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>VTO</div><p>The Vision/Traction Organizer — the 8 EOS questions, as a living document.</p></div>
+      <div class="tool"><div class="tool-title"><span class="check">&#10003;</span>People Analyzer</div><p>GWC + core-values evaluation, scored against the org's own VTO values.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><h2>Getting to a Simple On-Premise Deployment</h2><span class="count">4 done</span></div>
+    <p class="block-note">The gap between "a working app" and "something district or church IT can actually stand up" is usually the hard part. That gap is closed.</p>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">One-command startup</span><span class="badges"><span class="badge done">Done</span></span></div>
+      <p>The entire app — database included — starts with a single <code>docker compose up</code>. No manual server setup, no separately-installed database, no pip-install-and-hope.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Automatic database migrations</span><span class="badges"><span class="badge done">Done</span></span></div>
+      <p>Schema changes apply themselves on container start. No one has to hand-run SQL to install or upgrade this.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Starter data &amp; onboarding scripts</span><span class="badges"><span class="badge done">Done</span></span></div>
+      <p>A bootstrap script creates the first admin account; a demo-seed script can populate a realistic sample org for training or a sales walkthrough.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Works from a phone on the same network</span><span class="badges"><span class="badge done">Done</span></span></div>
+      <p>The web UI is mobile-responsive — a hamburger menu on small screens and horizontally-scrollable tables — so a principal or pastor checking Rocks from a phone isn't stuck squinting at a desktop layout.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Proven, not just claimed</span><span class="badges"><span class="badge done">Done</span></span></div>
+      <p>This isn't "the build succeeded" — it has been deployed end-to-end to a real server and walked through as a live app in a browser: login, adding a Rock, updating the scorecard, the works. The exact same container images are what would run inside a district's or church's own server room.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><h2>Security Posture</h2><span class="count">7 active · 3 near-ready</span></div>
+    <p class="block-note">What's already protecting the app today, and what's a deployment step — not a redesign — away from being finished.</p>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Passwords are hashed, never stored in plain text</span><span class="badges"><span class="badge done">Active</span></span></div>
+      <p>Local sign-in uses bcrypt password hashing throughout.</p>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">Role-based access control</span><span class="badges"><span class="badge done">Active</span></span></div>
+      <p>Admin / member / viewer roles are enforced on every route, not just hidden in the UI.</p>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">CSRF protection</span><span class="badges"><span class="badge done">Active</span></span></div>
+      <p>Every state-changing request is checked against a double-submit CSRF token.</p>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">Login rate limiting</span><span class="badges"><span class="badge done">Active</span></span></div>
+      <p>Repeated failed logins from the same source are throttled to blunt password-guessing attempts.</p>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">Locked-down session cookies</span><span class="badges"><span class="badge done">Active</span></span></div>
+      <p>Session cookies are HttpOnly (invisible to page scripts) and restricted with SameSite, so they aren't a soft target for the usual cookie-theft tricks.</p>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">Security response headers</span><span class="badges"><span class="badge done">Active</span></span></div>
+      <p>Clickjacking protection, MIME-type sniffing protection, and controlled referrer leakage are set on every response.</p>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">Zero telemetry</span><span class="badges"><span class="badge done">Active</span></span></div>
+      <p>No analytics beacons, no usage tracking, no outbound calls reporting anything about how the app is used. Nothing about a district's or church's data leaves their server, by design.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">HTTPS (TLS) + Secure cookie flag</span><span class="badges"><span class="badge pending">Near-ready</span></span></div>
+      <p>The code already supports this behind a single configuration flag — it's off only because the current public demo server doesn't have a certificate. Turning it on for a real deployment is a standard reverse-proxy-plus-certificate step, not new development.</p>
+      <div class="note">Needs a domain name pointed at wherever the app is hosted, or an internal certificate if it's staying entirely inside a private network.</div>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">Deployment-specific secrets</span><span class="badges"><span class="badge pending">Near-ready</span></span></div>
+      <p>The database password and app secret key ship with safe-for-testing defaults today. Generating real, org-specific values is a documented checklist step at install time, not a code change.</p>
+    </div>
+    <div class="item">
+      <div class="item-head"><span class="item-title">Content-Security-Policy header</span><span class="badges"><span class="badge pending">Near-ready</span></span></div>
+      <p>A small amount of inline-script cleanup away from a tighter CSP header — scoped and understood, just not done yet.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head"><h2>On-Premise, Not Cloud</h2></div>
+    <div class="callout">
+      <h3>This is not a hosted product districts or churches sign up for. It's software they run.</h3>
+      <p>
+        There is no multi-tenant cloud service behind this app, and none is planned. From the first line
+        of the project's own build rules: no required external or cloud dependencies — no calls to hosted
+        SaaS APIs, no cloud database, no third-party identity provider as a condition of the app working.
+      </p>
+      <p>
+        It runs entirely inside Docker containers on hardware the district or church owns or leases,
+        sitting inside their own network, behind their own firewall — the same posture as any other
+        internal administrative system they already run.
+      </p>
+      <ul>
+        <li><strong>No internet dependency at runtime.</strong> Once installed, nothing about normal day-to-day use requires an outside connection — no license phone-home, no CDN-loaded scripts or fonts, no third-party service the app quietly depends on to function.</li>
+        <li><strong>Air-gap friendly.</strong> A network that's heavily firewalled, or fully disconnected from the internet, is a supported target, not an edge case.</li>
+        <li><strong>Staff still just use a browser.</strong> Nothing changes about how people access it day to day — the difference is what's on the other end of that connection: the organization's own server, not a third party's.</li>
+        <li><strong>The public demo is a convenience, not a preview of a hosted product.</strong> It exists only so this can be reviewed and clicked through before anyone commits infrastructure. The container images running there are identical to the ones that would run in a server closet.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="closing">
+    <strong>Bottom line:</strong> the app itself is done — all nine tools, hardened, containerized, and
+    proven end-to-end on a live server. What separates today's demo from a real district or church
+    deployment isn't more building, it's a short, well-understood checklist (TLS, secrets, a couple of
+    decisions about calendar/email/SSO) — all covered in the companion
+    <a href="/static/status-review.html">What's Left &amp; Feasibility Review</a>.
+  </div>
+
+</div>
+</body>
+</html>

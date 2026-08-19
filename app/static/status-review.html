@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traction/EOS Status Review</title>
+<style>
+:root {
+  --paper: #f3f1e9;
+  --surface: #fffdf8;
+  --surface-2: #ece8db;
+  --ink: #1f2b28;
+  --ink-muted: #5c6b63;
+  --ink-faint: #8b968e;
+  --line: #d9d3c1;
+  --line-soft: #e6e1d1;
+  --accent: #2f6f5e;
+  --accent-strong: #1f4d40;
+  --accent-wash: #e3ece7;
+  --copper: #a85f2e;
+  --copper-wash: #f3e6d9;
+  --low: #4c7a3f;
+  --low-wash: #e6ede1;
+  --med: #96701f;
+  --med-wash: #f2ead6;
+  --high: #a13f33;
+  --high-wash: #f3e2de;
+  --shadow: 0 1px 2px rgba(31,43,40,0.06), 0 6px 20px -8px rgba(31,43,40,0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #161c1a;
+    --surface: #1d2422;
+    --surface-2: #232b28;
+    --ink: #e9e5d8;
+    --ink-muted: #a9b3ac;
+    --ink-faint: #6f7c75;
+    --line: #333d38;
+    --line-soft: #2a332f;
+    --accent: #5fa38e;
+    --accent-strong: #7cbba6;
+    --accent-wash: #223330;
+    --copper: #d38a52;
+    --copper-wash: #33291e;
+    --low: #8ab97a;
+    --low-wash: #202b1f;
+    --med: #d3ac5c;
+    --med-wash: #2e2818;
+    --high: #d17a6a;
+    --high-wash: #302120;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px -8px rgba(0,0,0,0.45);
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #161c1a;
+  --surface: #1d2422;
+  --surface-2: #232b28;
+  --ink: #e9e5d8;
+  --ink-muted: #a9b3ac;
+  --ink-faint: #6f7c75;
+  --line: #333d38;
+  --line-soft: #2a332f;
+  --accent: #5fa38e;
+  --accent-strong: #7cbba6;
+  --accent-wash: #223330;
+  --copper: #d38a52;
+  --copper-wash: #33291e;
+  --low: #8ab97a;
+  --low-wash: #202b1f;
+  --med: #d3ac5c;
+  --med-wash: #2e2818;
+  --high: #d17a6a;
+  --high-wash: #302120;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 20px -8px rgba(0,0,0,0.45);
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", ui-sans-serif, system-ui, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 56px 24px 96px;
+}
+.sheet {
+  max-width: 780px;
+  margin: 0 auto;
+}
+h1, h2, h3 {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  color: var(--ink);
+  text-wrap: balance;
+  margin: 0;
+}
+.mono, .num, .badge, .stat .value, .meta {
+  font-variant-numeric: tabular-nums;
+}
+code, .mono {
+  font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* ---- header ---- */
+.memo-head {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 20px;
+  margin-bottom: 8px;
+}
+.eyebrow {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  margin: 0 0 10px;
+}
+h1 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+.memo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.memo-meta strong { color: var(--ink); font-weight: 600; }
+
+.lede {
+  font-size: 17px;
+  color: var(--ink-muted);
+  margin: 22px 0 32px;
+  max-width: 62ch;
+}
+.lede strong { color: var(--ink); font-weight: 600; }
+
+/* ---- stat strip ---- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 40px;
+}
+.stat {
+  background: var(--surface);
+  padding: 16px 14px;
+}
+.stat .value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent-strong);
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+}
+.stat .label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* ---- section scaffolding ---- */
+section.block { margin-bottom: 44px; }
+.block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+}
+h2 {
+  font-size: 21px;
+  font-weight: 600;
+}
+.block-head .count {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.block-note {
+  font-size: 14.5px;
+  color: var(--ink-muted);
+  margin: -8px 0 18px;
+  max-width: 64ch;
+}
+
+/* ---- item cards ---- */
+.item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+.item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.item-title {
+  font-weight: 650;
+  font-size: 15.5px;
+  color: var(--ink);
+}
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge.low { background: var(--low-wash); color: var(--low); }
+.badge.med { background: var(--med-wash); color: var(--med); }
+.badge.high { background: var(--high-wash); color: var(--high); }
+.badge.decision { background: var(--copper-wash); color: var(--copper); }
+
+.item p {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--ink-muted);
+  max-width: 66ch;
+}
+.item .ask {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 13.5px;
+  color: var(--copper);
+}
+.item .ask strong { color: inherit; }
+
+/* ---- integration cards (slightly distinct) ---- */
+.integration {
+  border: 1px solid var(--accent);
+  border-left-width: 4px;
+  background: var(--accent-wash);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.integration .item-title { font-size: 16.5px; }
+.integration p { color: var(--ink); opacity: 0.85; }
+.integration ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.integration li { margin-bottom: 4px; }
+.integration li strong { color: var(--ink); }
+
+/* ---- sequencing ---- */
+.sequence {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+}
+.sequence li {
+  counter-increment: step;
+  position: relative;
+  padding: 4px 0 16px 34px;
+  border-left: 2px solid var(--line);
+  margin-left: 12px;
+  font-size: 14.5px;
+}
+.sequence li:last-child { border-color: transparent; padding-bottom: 0; }
+.sequence li::before {
+  content: counter(step);
+  position: absolute;
+  left: -13px;
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  color: var(--accent-strong);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sequence strong { color: var(--ink); }
+.sequence .why { color: var(--ink-muted); }
+
+/* ---- footer note ---- */
+.closing {
+  border-top: 2px solid var(--ink);
+  padding-top: 18px;
+  margin-top: 48px;
+  font-size: 14.5px;
+  color: var(--ink-muted);
+}
+.closing strong { color: var(--ink); }
+
+@media (max-width: 620px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  h1 { font-size: 26px; }
+  body { padding: 36px 16px 72px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .item, .integration { transition: box-shadow 0.15s ease; }
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <div class="memo-head">
+    <p class="eyebrow">Status Review — Prepared for the Project Owner</p>
+    <h1>Traction/EOS App: What's Left, and What It Takes</h1>
+    <div class="memo-meta">
+      <span><strong>Date:</strong> Aug 17, 2026</span>
+      <span><strong>Current state:</strong> All 9 EOS tools live, hardened, containerized, deployed for demo</span>
+      <span><strong>Demo:</strong> 137.184.61.75:8000</span>
+      <span><strong>Companion doc:</strong> <a href="/static/progress-review.html" style="color:var(--accent-strong)">What's Already Built</a></span>
+    </div>
+  </div>
+
+  <p class="lede">
+    The core app is feature-complete: every EOS tool a district or church would run a weekly Level&nbsp;10
+    meeting on — Rocks, Scorecard, Issues, To-Dos, Meetings, Accountability Chart, VTO, People Analyzer —
+    is built, mobile-friendly, and running in Docker. What's left falls into two buckets: <strong>backlog
+    items already tracked</strong> in the project's TODO file, and <strong>Microsoft/Google integration</strong>,
+    which hasn't been started. Below is both, with an honest effort read and a flag on anything that needs
+    an answer from the districts or churches actually using this before it can be built.
+  </p>
+
+  <div class="stats">
+    <div class="stat"><div class="value">9 / 9</div><div class="label">EOS tools shipped &amp; live</div></div>
+    <div class="stat"><div class="value">15</div><div class="label">open backlog items</div></div>
+    <div class="stat"><div class="value">3</div><div class="label">Microsoft/Google workstreams, not started</div></div>
+    <div class="stat"><div class="value">2</div><div class="label">items blocking any non-demo rollout</div></div>
+  </div>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Authorization &amp; Access Control</h2>
+      <span class="count">6 open</span>
+    </div>
+    <p class="block-note">Mostly engineering work with no district/church decision attached — the exceptions are called out.</p>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Team-scoped data access</span><span class="badges"><span class="badge med">Medium</span><span class="badge decision">Input needed</span></span></div>
+      <p>Members and viewers can currently read and write any team's Rocks, Issues, Scorecard, etc., not just their own. Mechanical to fix — row-level scoping on existing queries — but touches every route.</p>
+      <div class="ask"><strong>Ask districts/churches:</strong> do they want strict team isolation, or is org-wide visibility actually preferred for a small staff (common for a single-campus church)?</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Refresh tokens &amp; session revocation</span><span class="badges"><span class="badge med">Medium</span></span></div>
+      <p>Access tokens are 24-hour bearer JWTs with no server-side kill switch — offboarding a staff member today doesn't invalidate their active session. Standard fix, no open decision.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Password reset flow</span><span class="badges"><span class="badge low">Low–Medium</span></span></div>
+      <p>Straightforward once outbound email exists (see the Email item under Integration below) — this is blocked on that, not on difficulty.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Audit log</span><span class="badges"><span class="badge low">Low–Medium</span><span class="badge decision">Input needed</span></span></div>
+      <p>Log role changes and deletes. Simple once scoped.</p>
+      <div class="ask"><strong>Ask:</strong> how long should logs be retained? A district's records-retention policy and a church's may differ, and neither has been specified yet.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Content-Security-Policy header</span><span class="badges"><span class="badge low">Low</span></span></div>
+      <p>A few inline scripts need to move to external files first; then a real CSP can be turned on. Pure cleanup, no decision.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Rate limiting: per-account + distributed-safe</span><span class="badges"><span class="badge low">Low</span></span></div>
+      <p>Current limiter is per-IP and in-memory — fine for one instance, blind to a distributed attack or a multi-worker deployment. Only matters if this ever runs on more than one app instance.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Data Model</h2>
+      <span class="count">4 open</span>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">People Analyzer: 3-state core-values rating</span><span class="badges"><span class="badge low">Low</span><span class="badge decision">Input needed</span></span></div>
+      <p>Ratings are currently a simple yes/no per value; standard EOS practice often uses a +/&plusmn;/&minus; scale. Small schema and UI change either way.</p>
+      <div class="ask"><strong>Ask:</strong> confirm this actually matters to how districts/churches run People Analyzer sessions before building it — worth a quick check with a real user first.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">VTO version history</span><span class="badges"><span class="badge med">Medium</span><span class="badge decision">Input needed</span></span></div>
+      <p>The Vision/Traction Organizer is a single current-state row, overwritten on every edit. EOS orgs typically revisit it quarterly or annually.</p>
+      <div class="ask"><strong>Ask:</strong> how far back should history go, and do they want past versions exportable/printable (useful for a board packet or a leadership retreat)?</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Meeting agenda structure + real date/time</span><span class="badges"><span class="badge med">Medium</span></span></div>
+      <p>Meetings currently store a status and a date with no time-of-day, and no standard L10 agenda (segue, scorecard, rock review, IDS, to-do review, conclude). The datetime change is a hard prerequisite for calendar sync, below.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Seat vacancy reporting</span><span class="badges"><span class="badge low">Low</span></span></div>
+      <p>A simple view listing accountability-chart seats with no assigned person. No open questions.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Ops &amp; Deployment Readiness</h2>
+      <span class="count">4 open</span>
+    </div>
+    <p class="block-note">This is the category to read carefully — two of these are genuinely required before real district or church data goes anywhere near this app.</p>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">TLS + secure cookies</span><span class="badges"><span class="badge low">Low–Medium</span><span class="badge decision">Input needed</span></span></div>
+      <p><strong style="color:var(--high)">Blocking for real use.</strong> The app currently serves plain HTTP; login cookies aren't marked Secure to match. Fine for a private demo, not acceptable once real staff credentials or student-adjacent data are involved. Fix is a reverse proxy (nginx/Caddy) with a certificate — well-understood, not a big lift.</p>
+      <div class="ask"><strong>Ask:</strong> will the hosting org (district IT, or whoever hosts it for a church) provide a domain name they can point at the server for a real certificate, or does this run entirely inside a private network on a self-signed/internal cert instead?</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Production-safe secrets</span><span class="badges"><span class="badge low">Low</span></span></div>
+      <p><strong style="color:var(--high)">Blocking for real use.</strong> The database password and app secret key currently ship with safe-for-testing defaults. Each real deployment needs its own generated values — a deployment checklist item, not a coding task.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">Automated test suite</span><span class="badges"><span class="badge high">Medium–High</span></span></div>
+      <p>Everything so far has been verified by hand — manual API calls and live browser clicks. Not a blocker for continued demo use, but a real risk once this holds live data and changes keep landing. Ongoing effort, not a one-time task.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="item-title">CI pipeline</span><span class="badges"><span class="badge low">Low</span></span></div>
+      <p>Cheap once a test suite exists to run — not worth building ahead of it.</p>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Microsoft &amp; Google Integration</h2>
+      <span class="count">0 of 3 started</span>
+    </div>
+    <p class="block-note">
+      "Integration" is really three separate features with very different effort levels. Worth not
+      lumping them together when scoping — email is a near-term win; calendar sync is a real project.
+    </p>
+
+    <div class="integration">
+      <div class="item-head"><span class="item-title">Sign-in with Microsoft / Google (SSO)</span><span class="badges"><span class="badge med">Medium</span><span class="badge decision">Input needed</span></span></div>
+      <p>Lets staff log in with the Microsoft 365 / Google Workspace account they already use, instead of a separate app password. The data model already anticipates this (a provider field on the user record sits unused). Well-documented OAuth2/OIDC pattern — the effort is real but not exotic.</p>
+      <ul>
+        <li><strong>Which platform(s)?</strong> Districts likely run Microsoft 365 or Google Workspace org-wide; many churches don't have a managed tenant at all and rely on personal Gmail accounts — that changes what's even possible here.</li>
+        <li><strong>Who approves the OAuth app?</strong> District IT security review, or whoever administers the church's Workspace/365 subscription, needs to register the app and grant consent. This is often the slowest step, not the code.</li>
+        <li><strong>Auto-create accounts on first login, or require pre-provisioning by an admin?</strong></li>
+        <li><strong>Keep local password login as a fallback,</strong> or replace it once SSO works? (CLAUDE.md's on-prem rule means local login stays available regardless — this is about default behavior, not a hard requirement to drop it.)</li>
+      </ul>
+    </div>
+
+    <div class="integration">
+      <div class="item-head"><span class="item-title">Calendar sync (Outlook / Google Calendar)</span><span class="badges"><span class="badge high">Medium–High</span><span class="badge decision">Input needed</span></span></div>
+      <p>The biggest single piece of remaining work. Requires the Meeting datetime change above, an OAuth consent flow per user or resource calendar, secure storage of refresh tokens, and — if two-way sync is wanted — webhook subscriptions that expire and must be renewed, plus logic for what happens when the app and the calendar disagree.</p>
+      <ul>
+        <li><strong>One-way or two-way?</strong> "Meeting shows up on my calendar automatically" (push-only) is meaningfully simpler than keeping changes in sync both directions.</li>
+        <li><strong>Personal calendars per staff member, or one shared team calendar?</strong></li>
+        <li><strong>Which platform(s)</strong> — same tenant/consent question as SSO above, and the two features can share the OAuth plumbing if both are wanted.</li>
+      </ul>
+    </div>
+
+    <div class="integration">
+      <div class="item-head"><span class="item-title">Email notifications</span><span class="badges"><span class="badge low">Low</span><span class="badge decision">Input needed</span></span></div>
+      <p>The app currently sends <em>no</em> email at all, by any method — this is the actual gap, not "Microsoft/Google" specifically. Plain SMTP (works against a district or church's existing mail server, or a Microsoft 365 / Google Workspace account with an app password) unlocks password reset, meeting reminders, and scorecard-due nudges, with no OAuth required. This is the cheapest, highest-leverage item on this whole page.</p>
+      <ul>
+        <li><strong>Whose mail server?</strong> Their own relay, or an app password on an existing Microsoft/Google account.</li>
+        <li><strong>Which events should actually send email</strong> — just password reset, or also reminders and weekly digests? Over-notifying is a fast way to get an EOS tool ignored.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2>Recommended Sequencing</h2>
+    </div>
+    <p class="block-note">Ordered by technical dependency and risk, not necessarily by what matters most to the business — reorder freely.</p>
+    <ol class="sequence">
+      <li><strong>Email / SMTP notifications</strong> — <span class="why">low effort, no OAuth, unlocks password reset immediately.</span></li>
+      <li><strong>Password reset flow</strong> — <span class="why">depends directly on #1.</span></li>
+      <li><strong>TLS + secure cookies, production secrets</strong> — <span class="why">required before any real staff data touches this, regardless of what else ships.</span></li>
+      <li><strong>Meeting date/time + agenda model</strong> — <span class="why">hard prerequisite for calendar sync later.</span></li>
+      <li><strong>Automated tests</strong> — <span class="why">de-risks everything above before real orgs depend on it.</span></li>
+      <li><strong>Sign-in with Microsoft / Google</strong> — <span class="why">the single biggest quality-of-life win for real deployments, but needs district/church IT coordination started early since approval is often the slow part.</span></li>
+      <li><strong>Calendar sync</strong> — <span class="why">builds on #4 and reuses #6's OAuth plumbing; the largest remaining project.</span></li>
+    </ol>
+  </section>
+
+  <div class="closing">
+    <strong>Bottom line:</strong> nothing left is architecturally risky — every item above fits the
+    on-prem, no-required-external-dependency approach this app was built around from the start (SSO,
+    calendar, and email are all additive, not load-bearing). The fastest path to a trustworthy pilot
+    with a real district or church is items&nbsp;1–5: cheap, no external decisions blocking them, and
+    they close the gap between "demo" and "safe to hold real data." Items&nbsp;6–7 are worth starting
+    the IT-approval conversation on now, even before the code, since that approval step is usually
+    slower than the engineering.
+  </div>
+
+</div>
+</body>
+</html>
