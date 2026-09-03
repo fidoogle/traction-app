@@ -19,9 +19,12 @@ queued.
       the user themself via their existing password, can change it).
 - [ ] Audit log for sensitive actions (role changes, deletes).
 - [ ] Content-Security-Policy header. Not set yet - the templates rely on
-      inline htmx `hx-on::` attributes and an inline script (CSRF header
-      injection in base.html), so a CSP tight enough to matter would need
-      those moved to external JS first.
+      inline htmx `hx-on::` attributes and two inline scripts in base.html
+      (CSRF header injection, and the pre-paint theme snippet that has to
+      run before first paint to avoid a flash of the wrong theme), so a CSP
+      tight enough to matter would need those moved to external JS first
+      (the theme snippet would need a nonce or hash, since it must stay
+      inline).
 - [ ] Login rate limiting is IP-keyed only (10 failed attempts / 15 min,
       see app/core/rate_limit.py). Blunts single-source brute force, but
       an attacker spraying many accounts from many IPs isn't slowed down,

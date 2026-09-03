@@ -4,6 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Traction/EOS{% endblock %}</title>
+  <script>
+    // Runs before first paint so there's no flash of the wrong theme.
+    // Only an explicit choice is stamped; absent that, CSS falls back to
+    // the OS preference (prefers-color-scheme).
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="/static/style.css?v={{ static_version('style.css') }}">
   <script src="/static/htmx.min.js?v={{ static_version('htmx.min.js') }}"></script>
   <script>
@@ -17,6 +30,20 @@
     // this works regardless of where the script tag sits relative to the
     // button in the DOM - see the CSRF listener above for the same reason.
     document.addEventListener('click', function (evt) {
+      var themeToggle = evt.target.closest('#theme-toggle');
+      if (themeToggle) {
+        var root = document.documentElement;
+        var current = root.getAttribute('data-theme');
+        if (current !== 'light' && current !== 'dark') {
+          // No explicit choice yet - start from whatever the OS gave us.
+          current = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        var next = current === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+        return;
+      }
+
       var toggle = evt.target.closest('#nav-toggle');
       if (!toggle) return;
       var nav = document.getElementById('site-nav');
@@ -27,6 +54,11 @@
 </head>
 <body>
   {% if current_user %}
+  {% set current_path = request.url.path %}
+  {% macro navlink(href, label) %}
+    {%- set active = (current_path == href) if href == '/' else current_path.startswith(href) -%}
+    <a href="{{ href }}"{% if active %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+  {%- endmacro %}
   <div class="topbar">
     <a class="brand" href="/">Traction/EOS</a>
     <button
@@ -40,23 +72,28 @@
       <span class="nav-toggle-icon"></span>
     </button>
     <nav id="site-nav">
-      <a href="/">Dashboard</a>
-      <a href="/rocks">Rocks</a>
-      <a href="/scorecard">Scorecard</a>
-      <a href="/issues">Issues</a>
-      <a href="/todos">To-Dos</a>
-      <a href="/meetings">Meetings</a>
-      <a href="/seats">Org Chart</a>
-      <a href="/vto">VTO</a>
-      <a href="/people-analyzer">People Analyzer</a>
-      <a href="/teams">Teams</a>
-      <a href="/users">Users</a>
+      {{ navlink('/', 'Dashboard') }}
+      {{ navlink('/rocks', 'Rocks') }}
+      {{ navlink('/scorecard', 'Scorecard') }}
+      {{ navlink('/issues', 'Issues') }}
+      {{ navlink('/todos', 'To-Dos') }}
+      {{ navlink('/meetings', 'Meetings') }}
+      {{ navlink('/seats', 'Org Chart') }}
+      {{ navlink('/vto', 'VTO') }}
+      {{ navlink('/people-analyzer', 'People Analyzer') }}
+      {{ navlink('/teams', 'Teams') }}
+      {{ navlink('/users', 'Users') }}
       <span class="user-info">{{ current_user.name }} &middot; {{ current_user.role.value }}</span>
+      {% include "_theme_toggle.html" %}
       <form class="logout-form" method="post" action="/logout">
         <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
         <button type="submit">Log out</button>
       </form>
     </nav>
+  </div>
+  {% else %}
+  <div class="theme-toggle-floating">
+    {% include "_theme_toggle.html" %}
   </div>
   {% endif %}
 
