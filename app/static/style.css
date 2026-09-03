@@ -133,6 +133,9 @@ textarea::placeholder { color: var(--text-faint); }
 
 .topbar {
   position: relative;
+  /* Keeps the bar - and its absolutely-positioned mobile dropdown - above
+     any positioned element in the page content below. */
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
