@@ -22,6 +22,10 @@
   --brand-dark: #234a82;
   --on-brand: #ffffff;
 
+  /* Stronger than --border - form controls need to read as distinct,
+     fillable boxes, not blend into the surface behind them. */
+  --input-border: #99a3b3;
+
   /* Used sparingly - active nav only - so a wrong-contrast accent can't
      land on body text or a button label. */
   --accent: #b8930b;
@@ -55,6 +59,11 @@
     --brand: #4cc2ff;
     --brand-dark: #2f9fe0;
     --on-brand: #0c1a24;
+
+    /* Noticeably lighter than --border - the dark surfaces sit so close
+       in value that a --border-weight line all but disappears on an
+       input's edge. */
+    --input-border: #6b7690;
 
     --accent: #f2c811;
 
@@ -125,11 +134,18 @@ select,
 textarea {
   color: var(--text);
   background: var(--surface);
-  border-color: var(--border);
+  border-color: var(--input-border);
 }
 
 input::placeholder,
 textarea::placeholder { color: var(--text-faint); }
+
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
 
 .topbar {
   position: relative;
@@ -410,7 +426,7 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
 .form-row select {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   font-size: 0.95rem;
   background: var(--surface);
@@ -419,7 +435,7 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
 .form-row textarea {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   font-size: 0.95rem;
   font-family: inherit;
@@ -433,7 +449,7 @@ th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; text-transfo
 }
 
 select.status-select {
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   padding: 0.25rem 0.4rem;
   font-size: 0.85rem;
@@ -534,7 +550,7 @@ svg.sparkline {
 .field input {
   width: 100%;
   padding: 0.5rem 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   font-size: 0.95rem;
 }
