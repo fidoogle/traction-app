@@ -147,44 +147,113 @@ textarea:focus-visible {
   outline-offset: 1px;
 }
 
-.topbar {
-  position: relative;
-  /* Keeps the bar - and its absolutely-positioned mobile dropdown - above
-     any positioned element in the page content below. */
-  z-index: 20;
+/* Sidebar + topbar shell. The sidebar carries primary navigation; the
+   topbar is deliberately thin - brand (mobile only) plus account controls. */
+.app-shell {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1.5rem;
+  min-height: 100vh;
 }
 
-.topbar .brand {
+.sidebar {
+  flex: 0 0 240px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-brand {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand .brand {
   font-weight: 600;
   font-size: 1.05rem;
   text-decoration: none;
   color: var(--text);
 }
 
-.topbar nav {
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem;
+}
+
+.sidebar-nav a {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-}
-
-.topbar nav a {
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
-.topbar nav a:hover { color: var(--text); }
+.sidebar-nav a:hover { background: var(--surface-2); color: var(--text); }
+
+.sidebar-nav a.active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.sidebar-nav .nav-icon {
+  display: flex;
+  flex: 0 0 auto;
+  color: inherit;
+}
+
+.sidebar-nav .nav-icon svg { width: 20px; height: 20px; display: block; }
+
+.main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  /* Keeps the bar above any positioned element in the page content below. */
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.9rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.5rem;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  /* Pushes account controls to the right edge. */
+  margin-right: auto;
+}
+
+/* The sidebar carries the brand on desktop; it's off-canvas on mobile, so
+   the topbar shows a compact brand there instead (see breakpoint below). */
+.topbar-brand {
+  display: none;
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-decoration: none;
+  color: var(--text);
+}
 
 .topbar .user-info {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-right: 0.5rem;
 }
 
 .logout-form button {
@@ -197,14 +266,6 @@ textarea:focus-visible {
 }
 
 .logout-form button:hover { color: var(--text); }
-
-.topbar nav a.active {
-  color: var(--text);
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 6px;
-  text-decoration-thickness: 2px;
-}
 
 .theme-toggle {
   display: inline-flex;
@@ -284,40 +345,26 @@ textarea:focus-visible {
 
 @media (max-width: 1024px) {
   .nav-toggle { display: inline-flex; }
+  .topbar-brand { display: inline-block; }
 
-  .topbar nav {
-    display: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    position: absolute;
-    top: 100%;
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
     left: 0;
-    right: 0;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0.5rem 1.5rem 1rem;
+    z-index: 30;
+    width: 240px;
+    max-width: 80vw;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
     box-shadow: var(--shadow);
   }
 
-  .topbar nav.open { display: flex; }
-
-  .topbar nav a {
-    padding: 0.65rem 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .topbar .user-info {
-    margin: 0.65rem 0 0;
-  }
-
-  .logout-form { margin-top: 0.5rem; }
-  .logout-form button { padding: 0.4rem 0; }
+  .sidebar.open { transform: translateX(0); }
 }
 
 main {
-  max-width: 960px;
-  margin: 0 auto;
+  max-width: 1100px;
   padding: 2rem 1.5rem;
 }
 
@@ -593,6 +640,7 @@ button.primary:hover { background: var(--brand-dark); }
 @media (prefers-reduced-motion: no-preference) {
   body,
   .topbar,
+  .sidebar,
   .card,
   .stat,
   .seat-box,

@@ -46,8 +46,8 @@
 
       var toggle = evt.target.closest('#nav-toggle');
       if (!toggle) return;
-      var nav = document.getElementById('site-nav');
-      var isOpen = nav.classList.toggle('open');
+      var sidebar = document.getElementById('site-sidebar');
+      var isOpen = sidebar.classList.toggle('open');
       toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
   </script>
@@ -55,50 +55,78 @@
 <body>
   {% if current_user %}
   {% set current_path = request.url.path %}
-  {% macro navlink(href, label) %}
+  {% macro navlink(href, label, icon) %}
     {%- set active = (current_path == href) if href == '/' else current_path.startswith(href) -%}
-    <a href="{{ href }}"{% if active %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+    <a href="{{ href }}"{% if active %} class="active" aria-current="page"{% endif %}>
+      <span class="nav-icon">{{ icon | safe }}</span>
+      <span class="nav-label">{{ label }}</span>
+    </a>
   {%- endmacro %}
-  <div class="topbar">
-    <a class="brand" href="/">Traction/EOS</a>
-    <button
-      type="button"
-      id="nav-toggle"
-      class="nav-toggle"
-      aria-expanded="false"
-      aria-controls="site-nav"
-      aria-label="Toggle navigation"
-    >
-      <span class="nav-toggle-icon"></span>
-    </button>
-    <nav id="site-nav">
-      {{ navlink('/', 'Dashboard') }}
-      {{ navlink('/rocks', 'Rocks') }}
-      {{ navlink('/scorecard', 'Scorecard') }}
-      {{ navlink('/issues', 'Issues') }}
-      {{ navlink('/todos', 'To-Dos') }}
-      {{ navlink('/meetings', 'Meetings') }}
-      {{ navlink('/seats', 'Org Chart') }}
-      {{ navlink('/vto', 'VTO') }}
-      {{ navlink('/people-analyzer', 'People Analyzer') }}
-      {{ navlink('/teams', 'Teams') }}
-      {{ navlink('/users', 'Users') }}
-      <span class="user-info">{{ current_user.name }} &middot; {{ current_user.role.value }}</span>
-      {% include "_theme_toggle.html" %}
-      <form class="logout-form" method="post" action="/logout">
-        <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
-        <button type="submit">Log out</button>
-      </form>
-    </nav>
+  {% set icon_dashboard %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>{% endset %}
+  {% set icon_rocks %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20L9 8l4 6 3-5 5 11H3z"></path></svg>{% endset %}
+  {% set icon_scorecard %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>{% endset %}
+  {% set icon_issues %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>{% endset %}
+  {% set icon_todos %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>{% endset %}
+  {% set icon_meetings %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>{% endset %}
+  {% set icon_orgchart %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>{% endset %}
+  {% set icon_vto %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>{% endset %}
+  {% set icon_people_analyzer %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>{% endset %}
+  {% set icon_teams %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>{% endset %}
+  {% set icon_users %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>{% endset %}
+  <div class="app-shell">
+    <aside class="sidebar" id="site-sidebar">
+      <div class="sidebar-brand">
+        <a class="brand" href="/">Traction/EOS</a>
+      </div>
+      <nav class="sidebar-nav">
+        {{ navlink('/', 'Dashboard', icon_dashboard) }}
+        {{ navlink('/rocks', 'Rocks', icon_rocks) }}
+        {{ navlink('/scorecard', 'Scorecard', icon_scorecard) }}
+        {{ navlink('/issues', 'Issues', icon_issues) }}
+        {{ navlink('/todos', 'To-Dos', icon_todos) }}
+        {{ navlink('/meetings', 'Meetings', icon_meetings) }}
+        {{ navlink('/seats', 'Org Chart', icon_orgchart) }}
+        {{ navlink('/vto', 'VTO', icon_vto) }}
+        {{ navlink('/people-analyzer', 'People Analyzer', icon_people_analyzer) }}
+        {{ navlink('/teams', 'Teams', icon_teams) }}
+        {{ navlink('/users', 'Users', icon_users) }}
+      </nav>
+    </aside>
+    <div class="main-col">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button
+            type="button"
+            id="nav-toggle"
+            class="nav-toggle"
+            aria-expanded="false"
+            aria-controls="site-sidebar"
+            aria-label="Toggle navigation"
+          >
+            <span class="nav-toggle-icon"></span>
+          </button>
+          <a class="topbar-brand" href="/">Traction/EOS</a>
+        </div>
+        <span class="user-info">{{ current_user.name }} &middot; {{ current_user.role.value }}</span>
+        {% include "_theme_toggle.html" %}
+        <form class="logout-form" method="post" action="/logout">
+          <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
+          <button type="submit">Log out</button>
+        </form>
+      </div>
+      <main>
+        {% block content %}{% endblock %}
+      </main>
+    </div>
   </div>
   {% else %}
   <div class="theme-toggle-floating">
     {% include "_theme_toggle.html" %}
   </div>
-  {% endif %}
 
   <main>
-    {% block content %}{% endblock %}
+    {{ self.content() }}
   </main>
+  {% endif %}
 </body>
 </html>
