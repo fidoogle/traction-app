@@ -74,7 +74,10 @@ Postgres), with migrations applied automatically on container start.
 - [ ] Automated test suite (pytest). Verification so far has been manual
       curl runs / browser clicks against a live Postgres container, not
       committed tests.
-- [ ] CI pipeline (lint, type-check, tests) — none configured yet.
+- [ ] CI pipeline: `.github/workflows/deploy.yml` now runs ruff (E9/F
+      only) + a Docker build on every push/PR, and auto-deploys `main` to
+      the droplet over SSH. Still missing: type-check (mypy) and a real
+      test suite in the gate.
 - [ ] TLS / reverse proxy. The container serves plain HTTP on :8000, and
       COOKIE_SECURE defaults to false to match. Fine for internal-network
       testing, but before this is trusted with real district data, put a

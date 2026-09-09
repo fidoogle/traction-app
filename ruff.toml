@@ -1,0 +1,11 @@
+# Lint config for CI. Intentionally conservative: this gate exists to stop
+# genuinely broken code (syntax errors, undefined names, unused imports,
+# bad f-strings) from reaching the droplet - not to enforce style on the
+# existing codebase.
+#
+# F821 (undefined name) is ignored because SQLAlchemy models use string
+# forward references like `Mapped["Team"]` that ruff cannot resolve.
+
+[lint]
+select = ["E9", "F"]
+ignore = ["F821"]
