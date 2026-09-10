@@ -147,8 +147,9 @@ textarea:focus-visible {
   outline-offset: 1px;
 }
 
-/* Sidebar + topbar shell. The sidebar carries primary navigation; the
-   topbar is deliberately thin - brand (mobile only) plus account controls. */
+/* Sidebar + topbar shell. The sidebar carries primary navigation and the
+   brand; the topbar is deliberately thin - just the mobile nav toggle plus
+   account controls. */
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -239,16 +240,6 @@ textarea:focus-visible {
   gap: 0.75rem;
   /* Pushes account controls to the right edge. */
   margin-right: auto;
-}
-
-/* The sidebar carries the brand on desktop; it's off-canvas on mobile, so
-   the topbar shows a compact brand there instead (see breakpoint below). */
-.topbar-brand {
-  display: none;
-  font-weight: 600;
-  font-size: 1.05rem;
-  text-decoration: none;
-  color: var(--text);
 }
 
 .topbar .user-info {
@@ -345,7 +336,6 @@ textarea:focus-visible {
 
 @media (max-width: 1024px) {
   .nav-toggle { display: inline-flex; }
-  .topbar-brand { display: inline-block; }
 
   .sidebar {
     position: fixed;
