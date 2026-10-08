@@ -944,3 +944,45 @@ tr:hover .note-btn.empty,
   .activity-item { flex-wrap: wrap; padding: 0.75rem 1rem; }
   .activity-time { flex-basis: 100%; margin-top: -0.4rem; padding-left: 3.1rem; }
 }
+
+/* Quick-add modal: Issue / To-Do switcher and confirmation toast. */
+.segmented {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  margin-bottom: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.segmented button {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.segmented button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+.toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translate(-50%, 1rem);
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: 0.95rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 50;
+}
+
+.toast.show { opacity: 1; transform: translate(-50%, 0); }

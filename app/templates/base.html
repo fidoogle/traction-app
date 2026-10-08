@@ -66,6 +66,39 @@
         }
       }
 
+      // Quick add (topbar +): load the Issue / To-Do form fresh, then open.
+      if (evt.target.closest('#quick-add-open')) {
+        var qaDialog = document.getElementById('quick-add-modal');
+        var qaBody = document.getElementById('quick-add-body');
+        if (qaDialog && qaBody && window.htmx) {
+          qaBody.innerHTML = '';
+          htmx.ajax('GET', '/quick-add', { target: qaBody, swap: 'innerHTML' })
+            .then(function () {
+              if (!qaBody.firstElementChild) return;
+              qaDialog.showModal();
+              var first = qaBody.querySelector('input[type=text]');
+              if (first) first.focus();
+            })
+            .catch(function () {});
+        }
+        return;
+      }
+      var qaTab = evt.target.closest('[data-qa-tab]');
+      if (qaTab) {
+        var qaRoot = qaTab.closest('#quick-add-body');
+        qaRoot.querySelectorAll('[data-qa-tab]').forEach(function (t) {
+          var on = t === qaTab;
+          t.classList.toggle('active', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        qaRoot.querySelectorAll('[data-qa-panel]').forEach(function (f) {
+          f.hidden = f.getAttribute('data-qa-panel') !== qaTab.getAttribute('data-qa-tab');
+        });
+        var qaInput = qaRoot.querySelector('[data-qa-panel]:not([hidden]) input[type=text]');
+        if (qaInput) qaInput.focus();
+        return;
+      }
+
       // Modals: <button data-modal-open="dialog-id"> opens a <dialog>;
       // [data-modal-close] or a click on the backdrop closes it.
       var opener = evt.target.closest('[data-modal-open]');
@@ -97,12 +130,33 @@
       toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
 
+    // A quick-add succeeded: if that list is on screen, show the new row in
+    // it too, and confirm with a brief toast either way.
+    function quickAddDone(kind, html) {
+      var body = document.getElementById(kind === 'issue' ? 'issues-table-body' : 'todos-table-body');
+      if (body) {
+        var empty = document.getElementById(kind === 'issue' ? 'issues-empty' : 'todos-empty');
+        if (empty) empty.remove();
+        body.insertAdjacentHTML('afterbegin', html);
+        if (window.htmx) htmx.process(body);
+      }
+      var toast = document.getElementById('toast');
+      if (toast) {
+        toast.textContent = kind === 'issue' ? 'Issue added' : 'To-do added';
+        toast.classList.add('show');
+        clearTimeout(quickAddDone.timer);
+        quickAddDone.timer = setTimeout(function () { toast.classList.remove('show'); }, 2500);
+      }
+    }
+
     // An htmx form inside a modal: close on success, show the modal's error
     // banner on failure. Closing (any way) resets the form for next time.
     document.addEventListener('htmx:afterRequest', function (evt) {
       var dlg = evt.detail.elt.closest && evt.detail.elt.closest('dialog.modal');
       if (!dlg || evt.detail.elt.tagName !== 'FORM') return;
       if (evt.detail.successful) {
+        var kind = evt.detail.elt.getAttribute('data-qa-kind');
+        if (kind) quickAddDone(kind, evt.detail.xhr.responseText);
         dlg.close();
       } else {
         var err = dlg.querySelector('[data-modal-error]');
@@ -176,6 +230,12 @@
             <span class="nav-toggle-icon"></span>
           </button>
         </div>
+        {% if current_user.role.value != "viewer" %}
+        <button type="button" id="quick-add-open" class="icon-button primary-icon"
+                aria-label="Quick add issue or to-do" title="Quick add issue or to-do">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        {% endif %}
         <span class="user-info">{{ current_user.name }} &middot; {{ current_user.role.value }}</span>
         {% include "_theme_toggle.html" %}
         <form class="logout-form" method="post" action="/logout">
@@ -188,6 +248,13 @@
       </main>
     </div>
   </div>
+  {% if current_user.role.value != "viewer" %}
+  {% from "_macros.html" import modal %}
+  {% call modal("quick-add-modal", "Quick add") %}
+  <div id="quick-add-body"></div>
+  {% endcall %}
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  {% endif %}
   {% else %}
   <div class="theme-toggle-floating">
     {% include "_theme_toggle.html" %}
