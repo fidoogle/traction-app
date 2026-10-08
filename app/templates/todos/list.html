@@ -1,45 +1,47 @@
 {% extends "base.html" %}
 {% block title %}To-Dos - Traction/EOS{% endblock %}
 {% block content %}
-<h1>To-Dos</h1>
+{% from "_macros.html" import page_header, modal %}
+{% set can_add = current_user.role.value != "viewer" %}
+{{ page_header("To-Dos", "Add to-do", "add-todo-modal" if can_add else None) }}
 
-{% if current_user.role.value != "viewer" %}
-<div class="card">
-  <h2>Add a to-do</h2>
-  <form hx-post="/todos" hx-target="#todos-table-body" hx-swap="afterbegin"
-        hx-on::after-request="if(event.detail.successful) this.reset()">
-    <div class="form-row">
-      <div class="field">
-        <label for="title">Title</label>
-        <input type="text" id="title" name="title" required>
-      </div>
-      <div class="field">
-        <label for="owner_id">Owner</label>
-        <select id="owner_id" name="owner_id" required>
-          {% for user in org_users %}
-          <option value="{{ user.id }}" {% if user.id == current_user.id %}selected{% endif %}>
-            {{ user.name }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field">
-        <label for="issue_id">Related issue (optional)</label>
-        <select id="issue_id" name="issue_id">
-          <option value="">— none —</option>
-          {% for issue in org_issues %}
-          <option value="{{ issue.id }}">{{ issue.title }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field field-narrow">
-        <label for="due_date">Due</label>
-        <input type="date" id="due_date" name="due_date">
-      </div>
-      <button class="primary" type="submit">Add to-do</button>
-    </div>
-  </form>
-</div>
+{% if can_add %}
+{% call modal("add-todo-modal", "Add a to-do") %}
+<form hx-post="/todos" hx-target="#todos-table-body" hx-swap="afterbegin"
+      hx-on::after-request="if(event.detail.successful) document.getElementById('todos-empty')?.remove()">
+  <div class="field">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" required autofocus>
+  </div>
+  <div class="field">
+    <label for="owner_id">Owner</label>
+    <select id="owner_id" name="owner_id" required>
+      {% for user in org_users %}
+      <option value="{{ user.id }}" {% if user.id == current_user.id %}selected{% endif %}>
+        {{ user.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="issue_id">Related issue (optional)</label>
+    <select id="issue_id" name="issue_id">
+      <option value="">— none —</option>
+      {% for issue in org_issues %}
+      <option value="{{ issue.id }}">{{ issue.title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="due_date">Due</label>
+    <input type="date" id="due_date" name="due_date">
+  </div>
+  <div class="modal-actions">
+    <button type="button" class="secondary" data-modal-close>Cancel</button>
+    <button type="submit" class="primary">Add to-do</button>
+  </div>
+</form>
+{% endcall %}
 {% endif %}
 
 <div class="card">
@@ -52,7 +54,7 @@
       {% for todo in todos %}
         {% include "todos/_row.html" %}
       {% else %}
-      <tr><td colspan="5">No to-dos yet.</td></tr>
+      <tr id="todos-empty"><td colspan="5">No to-dos yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

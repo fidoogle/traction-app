@@ -66,9 +66,6 @@ Analyzer. Nothing left on the original page list; next UI work is
 whatever the app actually needs in practice (polish, new workflows)
 rather than filling a gap.
 
-- [ ] Move Issues and To-Dos "add" forms into the page-header "+" button
-      + modal pattern Rocks uses (`page_header` / `modal` macros in
-      app/templates/_macros.html; open/close/reset wiring in base.html).
 
 ## Ops / Dev Experience
 
