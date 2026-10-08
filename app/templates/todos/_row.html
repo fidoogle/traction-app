@@ -4,9 +4,8 @@
   <td>{{ todo.issue.title if todo.issue else "—" }}</td>
   <td>{{ todo.due_date if todo.due_date else "—" }}</td>
   <td>
-    {% if current_user.role.value == "viewer" %}
-      <span class="badge {{ todo.status.value }}">{{ todo.status.value }}</span>
-    {% else %}
+    {# Admins can change any to-do's status; members only their own. #}
+    {% if current_user.role.value == "admin" or (current_user.role.value == "member" and todo.owner_id == current_user.id) %}
       <select
         class="status-select"
         name="status"
@@ -21,6 +20,29 @@
         </option>
         {% endfor %}
       </select>
+    {% else %}
+      <span class="badge {{ todo.status.value }}">{{ todo.status.value }}</span>
     {% endif %}
   </td>
+  {% if current_user.role.value == "admin" %}
+  <td class="row-actions">
+    <button
+      class="link"
+      hx-get="/todos/{{ todo.id }}/edit"
+      hx-target="#todo-row-{{ todo.id }}"
+      hx-swap="outerHTML"
+    >
+      Edit
+    </button>
+    <button
+      class="link-danger"
+      hx-delete="/todos/{{ todo.id }}"
+      hx-target="#todo-row-{{ todo.id }}"
+      hx-swap="delete"
+      hx-confirm="Delete the to-do &quot;{{ todo.title }}&quot;? This cannot be undone."
+    >
+      Delete
+    </button>
+  </td>
+  {% endif %}
 </tr>

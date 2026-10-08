@@ -22,13 +22,17 @@ def build_crud_router(
     prefix: str,
     tags: list[str],
     write_roles: frozenset[UserRole] = DEFAULT_WRITE_ROLES,
+    edit_roles: frozenset[UserRole] | None = None,
 ) -> APIRouter:
     # Router-level dependency requires any authenticated user (covers reads).
-    # Writes additionally require membership in write_roles.
+    # Creating requires membership in write_roles; updating/deleting requires
+    # edit_roles, which defaults to write_roles (so e.g. members can add an
+    # item but only admins can change or remove it).
     router = APIRouter(prefix=prefix, tags=tags, dependencies=[Depends(get_current_user)])
     crud = CRUDBase(model)
     not_found_detail = f"{model.__name__} not found"
     write_dep = Depends(require_roles(*write_roles))
+    edit_dep = Depends(require_roles(*(edit_roles or write_roles)))
 
     @router.post("/", response_model=read_schema, status_code=201, dependencies=[write_dep])
     def create_item(payload: create_schema, db: Session = Depends(get_db)):
@@ -45,14 +49,14 @@ def build_crud_router(
             raise HTTPException(status_code=404, detail=not_found_detail)
         return obj
 
-    @router.patch("/{item_id}", response_model=read_schema, dependencies=[write_dep])
+    @router.patch("/{item_id}", response_model=read_schema, dependencies=[edit_dep])
     def update_item(item_id: uuid.UUID, payload: update_schema, db: Session = Depends(get_db)):
         obj = crud.get(db, item_id)
         if obj is None:
             raise HTTPException(status_code=404, detail=not_found_detail)
         return crud.update(db, obj, payload)
 
-    @router.delete("/{item_id}", status_code=204, dependencies=[write_dep])
+    @router.delete("/{item_id}", status_code=204, dependencies=[edit_dep])
     def delete_item(item_id: uuid.UUID, db: Session = Depends(get_db)):
         obj = crud.remove(db, item_id)
         if obj is None:

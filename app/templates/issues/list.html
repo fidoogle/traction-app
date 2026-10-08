@@ -37,13 +37,16 @@
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Title</th><th>Team</th><th>Priority</th><th>Status</th></tr>
+      <tr>
+        <th>Title</th><th>Team</th><th>Priority</th><th>Status</th>
+        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
+      </tr>
     </thead>
     <tbody id="issues-table-body">
       {% for issue in issues %}
         {% include "issues/_row.html" %}
       {% else %}
-      <tr id="issues-empty"><td colspan="4">No issues yet.</td></tr>
+      <tr id="issues-empty"><td colspan="5">No issues yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

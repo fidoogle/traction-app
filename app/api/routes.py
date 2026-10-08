@@ -99,6 +99,7 @@ api_router.include_router(
         read_schema=IssueRead,
         prefix="/issues",
         tags=["issues"],
+        edit_roles=frozenset({UserRole.ADMIN}),
     )
 )
 api_router.include_router(
@@ -109,6 +110,7 @@ api_router.include_router(
         read_schema=TodoRead,
         prefix="/todos",
         tags=["todos"],
+        edit_roles=frozenset({UserRole.ADMIN}),
     )
 )
 api_router.include_router(

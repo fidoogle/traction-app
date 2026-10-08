@@ -48,13 +48,16 @@
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Title</th><th>Owner</th><th>Related issue</th><th>Due</th><th>Status</th></tr>
+      <tr>
+        <th>Title</th><th>Owner</th><th>Related issue</th><th>Due</th><th>Status</th>
+        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
+      </tr>
     </thead>
     <tbody id="todos-table-body">
       {% for todo in todos %}
         {% include "todos/_row.html" %}
       {% else %}
-      <tr id="todos-empty"><td colspan="5">No to-dos yet.</td></tr>
+      <tr id="todos-empty"><td colspan="6">No to-dos yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -1,0 +1,24 @@
+<tr id="issue-row-{{ issue.id }}" class="row-edit">
+  <td><input type="text" name="title" value="{{ issue.title }}" maxlength="255" required aria-label="Title"></td>
+  <td>
+    <select name="team_id" aria-label="Team">
+      {% for team in teams %}
+      <option value="{{ team.id }}" {% if team.id == issue.team_id %}selected{% endif %}>{{ team.name }}</option>
+      {% endfor %}
+    </select>
+  </td>
+  <td><input type="number" name="priority" value="{{ issue.priority }}" required aria-label="Priority"></td>
+  <td>
+    <select name="status" aria-label="Status">
+      {% for choice in IssueStatus %}
+      <option value="{{ choice.value }}" {% if choice == issue.status %}selected{% endif %}>{{ choice.value }}</option>
+      {% endfor %}
+    </select>
+  </td>
+  <td class="row-actions">
+    <button class="link" hx-put="/issues/{{ issue.id }}" hx-include="closest tr"
+            hx-target="#issue-row-{{ issue.id }}" hx-swap="outerHTML">Save</button>
+    <button class="link-muted" hx-get="/issues/{{ issue.id }}"
+            hx-target="#issue-row-{{ issue.id }}" hx-swap="outerHTML">Cancel</button>
+  </td>
+</tr>

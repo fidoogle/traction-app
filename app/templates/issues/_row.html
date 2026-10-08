@@ -22,4 +22,25 @@
       </select>
     {% endif %}
   </td>
+  {% if current_user.role.value == "admin" %}
+  <td class="row-actions">
+    <button
+      class="link"
+      hx-get="/issues/{{ issue.id }}/edit"
+      hx-target="#issue-row-{{ issue.id }}"
+      hx-swap="outerHTML"
+    >
+      Edit
+    </button>
+    <button
+      class="link-danger"
+      hx-delete="/issues/{{ issue.id }}"
+      hx-target="#issue-row-{{ issue.id }}"
+      hx-swap="delete"
+      hx-confirm="Delete the issue &quot;{{ issue.title }}&quot;? Any to-dos linked to it are kept but unlinked. This cannot be undone."
+    >
+      Delete
+    </button>
+  </td>
+  {% endif %}
 </tr>
