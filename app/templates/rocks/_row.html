@@ -4,7 +4,7 @@
   <td>{{ rock.team.name }}</td>
   <td>{{ rock.quarter }}</td>
   <td>
-    {% if current_user.role.value == "viewer" %}
+    {% if current_user.role.value != "admin" %}
       <span class="badge {{ rock.status.value }}">{{ rock.status.value.replace("_", " ") }}</span>
     {% else %}
       <select

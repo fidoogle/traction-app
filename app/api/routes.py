@@ -68,6 +68,7 @@ api_router.include_router(
         read_schema=RockRead,
         prefix="/rocks",
         tags=["rocks"],
+        write_roles=frozenset({UserRole.ADMIN}),
     )
 )
 api_router.include_router(

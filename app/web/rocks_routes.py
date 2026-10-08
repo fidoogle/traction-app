@@ -179,9 +179,8 @@ def update_rock_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
+    _require_admin(current_user)
     rock = _get_org_rock(db, rock_id, current_user.org_id)
-    if current_user.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403)
 
     rock.status = status
     db.commit()
