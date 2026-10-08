@@ -1,43 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Rocks - Traction/EOS{% endblock %}
 {% block content %}
-<h1>Rocks</h1>
+{% from "_macros.html" import page_header, modal %}
+{% set is_admin = current_user.role.value == "admin" %}
+{{ page_header("Rocks", "Add rock", "add-rock-modal" if is_admin else None) }}
 
-{% if current_user.role.value == "admin" %}
-<div class="card">
-  <h2>Add a new rock</h2>
-  <form hx-post="/rocks" hx-target="#rocks-table-body" hx-swap="afterbegin"
-        hx-on::after-request="if(event.detail.successful) { this.reset(); document.getElementById('rocks-empty')?.remove(); }">
-    <div class="form-row">
-      <div class="field">
-        <label for="title">Title</label>
-        <input type="text" id="title" name="title" maxlength="255" required>
-      </div>
-      <div class="field">
-        <label for="owner_id">Owner</label>
-        <select id="owner_id" name="owner_id" required>
-          {% for user in users %}
-          <option value="{{ user.id }}">{{ user.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field">
-        <label for="team_id">Team</label>
-        <select id="team_id" name="team_id" required>
-          {% for team in teams %}
-          <option value="{{ team.id }}">{{ team.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field field-narrow">
-        <label for="quarter">Quarter</label>
-        <input type="text" id="quarter" name="quarter" value="{{ default_quarter }}"
-               maxlength="10" placeholder="2026-Q4" required>
-      </div>
-      <button class="primary" type="submit">Add rock</button>
-    </div>
-  </form>
-</div>
+{% if is_admin %}
+{% call modal("add-rock-modal", "Add a new rock") %}
+<form hx-post="/rocks" hx-target="#rocks-table-body" hx-swap="afterbegin"
+      hx-on::after-request="if(event.detail.successful) document.getElementById('rocks-empty')?.remove()">
+  <div class="field">
+    <label for="title">Title</label>
+    <input type="text" id="title" name="title" maxlength="255" required autofocus>
+  </div>
+  <div class="field">
+    <label for="owner_id">Owner</label>
+    <select id="owner_id" name="owner_id" required>
+      {% for user in users %}
+      <option value="{{ user.id }}">{{ user.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="team_id">Team</label>
+    <select id="team_id" name="team_id" required>
+      {% for team in teams %}
+      <option value="{{ team.id }}">{{ team.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="quarter">Quarter</label>
+    <input type="text" id="quarter" name="quarter" value="{{ default_quarter }}"
+           maxlength="10" placeholder="2026-Q4" required>
+  </div>
+  <div class="modal-actions">
+    <button type="button" class="secondary" data-modal-close>Cancel</button>
+    <button type="submit" class="primary">Add rock</button>
+  </div>
+</form>
+{% endcall %}
 {% endif %}
 
 <div class="card">

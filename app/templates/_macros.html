@@ -1,0 +1,35 @@
+{# Shared UI patterns. Import with:
+   {% from "_macros.html" import page_header, modal %} #}
+
+{% set icon_plus %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>{% endset %}
+{% set icon_close %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>{% endset %}
+
+{# Page title with an optional "+" button flush right that opens a modal.
+   Pass modal_id=None (e.g. for roles that can't add) to omit the button. #}
+{% macro page_header(title, add_label=None, modal_id=None) %}
+<div class="page-header">
+  <h1>{{ title }}</h1>
+  {% if modal_id %}
+  <button type="button" class="icon-button primary-icon" data-modal-open="{{ modal_id }}"
+          aria-label="{{ add_label }}" title="{{ add_label }}">
+    {{ icon_plus | safe }}
+  </button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# A native <dialog>. Wrap the body with {% call modal(...) %}...{% endcall %}.
+   Any htmx form inside resets and closes the modal on success, and shows
+   the error banner on failure (wired up in base.html). #}
+{% macro modal(id, title) %}
+<dialog class="modal" id="{{ id }}" aria-labelledby="{{ id }}-title">
+  <div class="modal-header">
+    <h2 id="{{ id }}-title">{{ title }}</h2>
+    <button type="button" class="icon-button" data-modal-close aria-label="Close" title="Close">
+      {{ icon_close | safe }}
+    </button>
+  </div>
+  <div class="error" data-modal-error hidden>Couldn't save. Check the fields and try again.</div>
+  {{ caller() }}
+</dialog>
+{% endmacro %}

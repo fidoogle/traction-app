@@ -44,12 +44,55 @@
         return;
       }
 
+      // Modals: <button data-modal-open="dialog-id"> opens a <dialog>;
+      // [data-modal-close] or a click on the backdrop closes it.
+      var opener = evt.target.closest('[data-modal-open]');
+      if (opener) {
+        var dlg = document.getElementById(opener.getAttribute('data-modal-open'));
+        if (dlg) dlg.showModal();
+        return;
+      }
+      var closer = evt.target.closest('[data-modal-close]');
+      if (closer) {
+        closer.closest('dialog').close();
+        return;
+      }
+      // A click on the backdrop targets the <dialog> itself, but so does a
+      // click on its padding - only close when it's outside the box.
+      if (evt.target.matches('dialog.modal[open]')) {
+        var r = evt.target.getBoundingClientRect();
+        if (evt.clientX < r.left || evt.clientX > r.right ||
+            evt.clientY < r.top || evt.clientY > r.bottom) {
+          evt.target.close();
+        }
+        return;
+      }
+
       var toggle = evt.target.closest('#nav-toggle');
       if (!toggle) return;
       var sidebar = document.getElementById('site-sidebar');
       var isOpen = sidebar.classList.toggle('open');
       toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
+
+    // An htmx form inside a modal: close on success, show the modal's error
+    // banner on failure. Closing (any way) resets the form for next time.
+    document.addEventListener('htmx:afterRequest', function (evt) {
+      var dlg = evt.detail.elt.closest && evt.detail.elt.closest('dialog.modal');
+      if (!dlg || evt.detail.elt.tagName !== 'FORM') return;
+      if (evt.detail.successful) {
+        dlg.close();
+      } else {
+        var err = dlg.querySelector('[data-modal-error]');
+        if (err) err.hidden = false;
+      }
+    });
+    document.addEventListener('close', function (evt) {
+      if (!evt.target.matches || !evt.target.matches('dialog.modal')) return;
+      evt.target.querySelectorAll('form').forEach(function (f) { f.reset(); });
+      var err = evt.target.querySelector('[data-modal-error]');
+      if (err) err.hidden = true;
+    }, true);
   </script>
 </head>
 <body>
