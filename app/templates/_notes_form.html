@@ -1,0 +1,18 @@
+<p class="notes-subject">{{ subject }}</p>
+{% if can_edit %}
+<form hx-put="{{ url }}" hx-target="#{{ row_id }}" hx-swap="outerHTML">
+  <div class="field">
+    <label for="notes-text">Notes</label>
+    <textarea id="notes-text" name="notes" rows="8" maxlength="{{ max_length }}" autofocus>{{ notes or "" }}</textarea>
+  </div>
+  <div class="modal-actions">
+    <button type="button" class="secondary" data-modal-close>Cancel</button>
+    <button type="submit" class="primary">Save notes</button>
+  </div>
+</form>
+{% else %}
+<div class="notes-readonly">{{ notes or "No notes." }}</div>
+<div class="modal-actions">
+  <button type="button" class="secondary" data-modal-close>Close</button>
+</div>
+{% endif %}

@@ -1,8 +1,8 @@
 import uuid
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,6 +23,8 @@ class Issue(UUIDPKMixin, Base):
         default=IssueStatus.OPEN,
     )
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    notes: Mapped[Optional[str]] = mapped_column(Text)
 
     team: Mapped["Team"] = relationship(back_populates="issues")
     todos: Mapped[List["Todo"]] = relationship(back_populates="issue")

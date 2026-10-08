@@ -1,7 +1,8 @@
 import uuid
+from typing import Optional
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,6 +26,8 @@ class Rock(UUIDPKMixin, Base):
         nullable=False,
         default=RockStatus.ON_TRACK,
     )
+
+    notes: Mapped[Optional[str]] = mapped_column(Text)
 
     team: Mapped["Team"] = relationship(back_populates="rocks")
     owner: Mapped["User"] = relationship(back_populates="rocks")

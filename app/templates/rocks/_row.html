@@ -1,5 +1,7 @@
-<tr id="rock-row-{{ rock.id }}">
-  <td>{{ rock.title }}</td>
+{% from "_macros.html" import notes_indicator %}
+{% set can_edit_notes = current_user.role.value == "admin" %}
+<tr id="rock-row-{{ rock.id }}"{% if rock.notes or can_edit_notes %} data-notes-url="/rocks/{{ rock.id }}/notes"{% endif %}>
+  <td>{{ rock.title }} {{ notes_indicator("/rocks/" ~ rock.id ~ "/notes", rock.notes, can_edit_notes) }}</td>
   <td>{{ rock.owner.name }}</td>
   <td>{{ rock.team.name }}</td>
   <td>{{ rock.quarter }}</td>

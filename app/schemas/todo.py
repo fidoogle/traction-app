@@ -13,6 +13,7 @@ class TodoBase(BaseModel):
     title: str
     due_date: Optional[date] = None
     status: TodoStatus = TodoStatus.OPEN
+    notes: Optional[str] = None
 
 
 class TodoCreate(TodoBase):
@@ -25,6 +26,7 @@ class TodoUpdate(BaseModel):
     title: Optional[str] = None
     due_date: Optional[date] = None
     status: Optional[TodoStatus] = None
+    notes: Optional[str] = None
 
 
 class TodoRead(TodoBase):

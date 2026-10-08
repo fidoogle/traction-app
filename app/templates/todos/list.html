@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}To-Dos - Traction/EOS{% endblock %}
 {% block content %}
-{% from "_macros.html" import page_header, modal %}
+{% from "_macros.html" import page_header, modal, notes_modal %}
 {% set can_add = current_user.role.value != "viewer" %}
 {{ page_header("To-Dos", "Add to-do", "add-todo-modal" if can_add else None) }}
 
@@ -43,6 +43,8 @@
 </form>
 {% endcall %}
 {% endif %}
+
+{{ notes_modal() }}
 
 <div class="card">
   <div class="table-scroll">

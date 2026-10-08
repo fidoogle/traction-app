@@ -44,6 +44,28 @@
         return;
       }
 
+      // Notes: a [data-notes-url] button, or a table row carrying it, loads
+      // the notes form into #notes-modal and opens it. A click on a row's own
+      // controls (status dropdown, Edit/Delete, ...) or the end of a text
+      // selection doesn't count as a row click.
+      var notesEl = evt.target.closest('[data-notes-url]');
+      if (notesEl) {
+        var onControl = evt.target.closest('a, button, select, input, textarea, label');
+        var isRowClick = notesEl.tagName === 'TR';
+        var selecting = window.getSelection && String(window.getSelection()).length > 0;
+        if (!isRowClick || (!onControl && !selecting)) {
+          var notesDialog = document.getElementById('notes-modal');
+          var notesBody = document.getElementById('notes-modal-body');
+          if (notesDialog && notesBody && window.htmx) {
+            notesBody.innerHTML = '';
+            htmx.ajax('GET', notesEl.getAttribute('data-notes-url'), { target: notesBody, swap: 'innerHTML' })
+              .then(function () { if (notesBody.firstElementChild) notesDialog.showModal(); })
+              .catch(function () {});
+          }
+          return;
+        }
+      }
+
       // Modals: <button data-modal-open="dialog-id"> opens a <dialog>;
       // [data-modal-close] or a click on the backdrop closes it.
       var opener = evt.target.closest('[data-modal-open]');

@@ -1,11 +1,14 @@
-<tr id="todo-row-{{ todo.id }}">
-  <td>{{ todo.title }}</td>
+{% from "_macros.html" import notes_indicator %}
+{# Admins can edit any to-do; members only their own. Governs both the status
+   dropdown and notes. #}
+{% set can_edit = current_user.role.value == "admin" or (current_user.role.value == "member" and todo.owner_id == current_user.id) %}
+<tr id="todo-row-{{ todo.id }}"{% if todo.notes or can_edit %} data-notes-url="/todos/{{ todo.id }}/notes"{% endif %}>
+  <td>{{ todo.title }} {{ notes_indicator("/todos/" ~ todo.id ~ "/notes", todo.notes, can_edit) }}</td>
   <td>{{ todo.owner.name }}</td>
   <td>{{ todo.issue.title if todo.issue else "—" }}</td>
   <td>{{ todo.due_date if todo.due_date else "—" }}</td>
   <td>
-    {# Admins can change any to-do's status; members only their own. #}
-    {% if current_user.role.value == "admin" or (current_user.role.value == "member" and todo.owner_id == current_user.id) %}
+    {% if can_edit %}
       <select
         class="status-select"
         name="status"

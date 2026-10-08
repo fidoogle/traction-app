@@ -57,6 +57,11 @@ queued.
       push/pull), not baked into the core domain model — consistent with
       the on-prem/no-required-external-deps rule in CLAUDE.md. Requires
       the scheduled_date -> datetime change above first.
+- [ ] Notes on Rocks/Issues/To-Dos are a single free-text field with no
+      author, timestamp, or history (last save wins, and two people editing
+      at once overwrite each other). If teams want a running log, make it
+      a note/comment table (who + when) instead of one column. Also: notes
+      are readable by every role in the org, including viewers.
 
 ## Web UI
 

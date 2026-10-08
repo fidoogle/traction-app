@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Rocks - Traction/EOS{% endblock %}
 {% block content %}
-{% from "_macros.html" import page_header, modal %}
+{% from "_macros.html" import page_header, modal, notes_modal %}
 {% set is_admin = current_user.role.value == "admin" %}
 {{ page_header("Rocks", "Add rock", "add-rock-modal" if is_admin else None) }}
 
@@ -41,6 +41,8 @@
 </form>
 {% endcall %}
 {% endif %}
+
+{{ notes_modal() }}
 
 <div class="card">
   <div class="table-scroll">

@@ -33,3 +33,26 @@
   {{ caller() }}
 </dialog>
 {% endmacro %}
+
+{% set icon_note %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><line x1="8" y1="9" x2="16" y2="9"></line><line x1="8" y1="13" x2="13" y2="13"></line></svg>{% endset %}
+
+{# Notes indicator for a table row's title cell. Shown when the row has notes;
+   also shown (faint, revealed on hover/focus) for users who can add them.
+   Clicking it - or anywhere on a row carrying data-notes-url - opens the
+   shared #notes-modal (see base.html). #}
+{% macro notes_indicator(url, notes, can_edit) %}
+{% if notes %}
+<button type="button" class="note-btn has-notes" data-notes-url="{{ url }}"
+        aria-label="View notes" title="Has notes">{{ icon_note | safe }}</button>
+{% elif can_edit %}
+<button type="button" class="note-btn empty" data-notes-url="{{ url }}"
+        aria-label="Add notes" title="Add notes">{{ icon_note | safe }}</button>
+{% endif %}
+{% endmacro %}
+
+{# The single notes dialog a page needs; its body is loaded on demand. #}
+{% macro notes_modal() %}
+{% call modal("notes-modal", "Notes") %}
+<div id="notes-modal-body"></div>
+{% endcall %}
+{% endmacro %}

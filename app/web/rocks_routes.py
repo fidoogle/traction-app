@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_db
 from app.models import Rock, RockStatus, Team, User, UserRole
 from app.web.deps import get_current_user_web
+from app.web.notes import clean_notes, notes_form_response
 from app.web.templates import templates
 
 router = APIRouter(prefix="/rocks")
@@ -199,3 +200,37 @@ def delete_rock(
     db.delete(rock)
     db.commit()
     return Response(status_code=200)
+
+
+@router.get("/{rock_id}/notes")
+def get_rock_notes(
+    request: Request,
+    rock_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    rock = _get_org_rock(db, rock_id, current_user.org_id)
+    return notes_form_response(
+        request,
+        subject=rock.title,
+        url=f"/rocks/{rock.id}/notes",
+        row_id=f"rock-row-{rock.id}",
+        notes=rock.notes,
+        can_edit=current_user.role == UserRole.ADMIN,
+    )
+
+
+@router.put("/{rock_id}/notes")
+def update_rock_notes(
+    request: Request,
+    rock_id: uuid.UUID,
+    notes: str = Form(default=""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _require_admin(current_user)
+    rock = _get_org_rock(db, rock_id, current_user.org_id)
+    rock.notes = clean_notes(notes)
+    db.commit()
+    db.expire_all()
+    return _row_response(request, current_user, _get_org_rock(db, rock_id, current_user.org_id))

@@ -11,6 +11,7 @@ class IssueBase(BaseModel):
     title: str
     status: IssueStatus = IssueStatus.OPEN
     priority: int = 0
+    notes: Optional[str] = None
 
 
 class IssueCreate(IssueBase):
@@ -22,6 +23,7 @@ class IssueUpdate(BaseModel):
     title: Optional[str] = None
     status: Optional[IssueStatus] = None
     priority: Optional[int] = None
+    notes: Optional[str] = None
 
 
 class IssueRead(IssueBase):

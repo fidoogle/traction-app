@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_db
 from app.models import Issue, Team, Todo, TodoStatus, User, UserRole
 from app.web.deps import get_current_user_web
+from app.web.notes import clean_notes, notes_form_response
 from app.web.templates import templates
 
 router = APIRouter(prefix="/todos")
@@ -126,9 +127,7 @@ def update_todo_status(
     current_user: User = Depends(get_current_user_web),
 ):
     todo = _get_org_todo(db, todo_id, current_user.org_id)
-    # Admins can change any to-do's status; members only their own.
-    is_own_todo = current_user.role == UserRole.MEMBER and todo.owner_id == current_user.id
-    if current_user.role != UserRole.ADMIN and not is_own_todo:
+    if not _can_edit_todo(current_user, todo):
         raise HTTPException(status_code=403)
 
     todo.status = status
@@ -212,3 +211,45 @@ def delete_todo(
     db.delete(todo)
     db.commit()
     return Response(status_code=200)
+
+
+def _can_edit_todo(current_user: User, todo: Todo) -> bool:
+    # Admins: any to-do. Members: only their own (same rule as status).
+    return current_user.role == UserRole.ADMIN or (
+        current_user.role == UserRole.MEMBER and todo.owner_id == current_user.id
+    )
+
+
+@router.get("/{todo_id}/notes")
+def get_todo_notes(
+    request: Request,
+    todo_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    todo = _get_org_todo(db, todo_id, current_user.org_id)
+    return notes_form_response(
+        request,
+        subject=todo.title,
+        url=f"/todos/{todo.id}/notes",
+        row_id=f"todo-row-{todo.id}",
+        notes=todo.notes,
+        can_edit=_can_edit_todo(current_user, todo),
+    )
+
+
+@router.put("/{todo_id}/notes")
+def update_todo_notes(
+    request: Request,
+    todo_id: uuid.UUID,
+    notes: str = Form(default=""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    todo = _get_org_todo(db, todo_id, current_user.org_id)
+    if not _can_edit_todo(current_user, todo):
+        raise HTTPException(status_code=403)
+    todo.notes = clean_notes(notes)
+    db.commit()
+    db.expire_all()
+    return _row_response(request, current_user, _get_org_todo(db, todo_id, current_user.org_id))

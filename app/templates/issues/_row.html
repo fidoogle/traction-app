@@ -1,5 +1,7 @@
-<tr id="issue-row-{{ issue.id }}">
-  <td>{{ issue.title }}</td>
+{% from "_macros.html" import notes_indicator %}
+{% set can_edit_notes = current_user.role.value != "viewer" %}
+<tr id="issue-row-{{ issue.id }}"{% if issue.notes or can_edit_notes %} data-notes-url="/issues/{{ issue.id }}/notes"{% endif %}>
+  <td>{{ issue.title }} {{ notes_indicator("/issues/" ~ issue.id ~ "/notes", issue.notes, can_edit_notes) }}</td>
   <td>{{ issue.team.name }}</td>
   <td>{{ issue.priority }}</td>
   <td>

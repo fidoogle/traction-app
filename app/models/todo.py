@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import Date, Enum as SAEnum, ForeignKey, String
+from sqlalchemy import Date, Enum as SAEnum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +28,8 @@ class Todo(UUIDPKMixin, Base):
         nullable=False,
         default=TodoStatus.OPEN,
     )
+
+    notes: Mapped[Optional[str]] = mapped_column(Text)
 
     owner: Mapped["User"] = relationship(back_populates="todos")
     issue: Mapped[Optional["Issue"]] = relationship(back_populates="todos")

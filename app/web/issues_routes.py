@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.api.deps import get_db
 from app.models import Issue, IssueStatus, Team, User, UserRole
 from app.web.deps import get_current_user_web
+from app.web.notes import clean_notes, notes_form_response
 from app.web.templates import templates
 
 router = APIRouter(prefix="/issues")
@@ -198,3 +199,43 @@ def delete_issue(
     db.delete(issue)
     db.commit()
     return Response(status_code=200)
+
+
+def _require_notes_editor(current_user: User) -> None:
+    # Same people who can already change an issue's status.
+    if current_user.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403)
+
+
+@router.get("/{issue_id}/notes")
+def get_issue_notes(
+    request: Request,
+    issue_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    issue = _get_org_issue(db, issue_id, current_user.org_id)
+    return notes_form_response(
+        request,
+        subject=issue.title,
+        url=f"/issues/{issue.id}/notes",
+        row_id=f"issue-row-{issue.id}",
+        notes=issue.notes,
+        can_edit=current_user.role != UserRole.VIEWER,
+    )
+
+
+@router.put("/{issue_id}/notes")
+def update_issue_notes(
+    request: Request,
+    issue_id: uuid.UUID,
+    notes: str = Form(default=""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _require_notes_editor(current_user)
+    issue = _get_org_issue(db, issue_id, current_user.org_id)
+    issue.notes = clean_notes(notes)
+    db.commit()
+    db.expire_all()
+    return _row_response(request, current_user, _get_org_issue(db, issue_id, current_user.org_id))

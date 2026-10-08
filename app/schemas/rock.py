@@ -11,6 +11,7 @@ class RockBase(BaseModel):
     owner_id: uuid.UUID
     title: str
     quarter: str
+    notes: Optional[str] = None
     status: RockStatus = RockStatus.ON_TRACK
 
 
@@ -23,6 +24,7 @@ class RockUpdate(BaseModel):
     owner_id: Optional[uuid.UUID] = None
     title: Optional[str] = None
     quarter: Optional[str] = None
+    notes: Optional[str] = None
     status: Optional[RockStatus] = None
 
 
