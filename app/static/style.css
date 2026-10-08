@@ -169,6 +169,32 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Only shown when the sidebar is an off-canvas drawer (see media query). */
+.sidebar-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.sidebar-close:hover { color: var(--text); border-color: var(--input-border); }
+.sidebar-close svg { width: 1.15rem; height: 1.15rem; }
+
 .sidebar-brand .brand {
   font-weight: 600;
   font-size: 1.05rem;
@@ -336,6 +362,7 @@ textarea:focus-visible {
 
 @media (max-width: 1024px) {
   .nav-toggle { display: inline-flex; }
+  .sidebar-close { display: inline-flex; }
 
   .sidebar {
     position: fixed;
