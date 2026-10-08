@@ -1,3 +1,4 @@
+from app.models.activity import ActivityLog
 from app.models.base import Base
 from app.models.enums import IssueStatus, MeetingStatus, RockStatus, TodoStatus, UserRole
 from app.models.issue import Issue
@@ -27,6 +28,7 @@ __all__ = [
     "Seat",
     "VTO",
     "PeopleAnalyzerEntry",
+    "ActivityLog",
     "RockStatus",
     "IssueStatus",
     "TodoStatus",

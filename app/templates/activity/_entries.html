@@ -1,0 +1,47 @@
+{# Feed items, plus a "Show older" item that swaps itself for the next page. #}
+{% set icon_created %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>{% endset %}
+{% set icon_updated %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"></path></svg>{% endset %}
+{% set icon_deleted %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>{% endset %}
+{% set icons = {"created": icon_created, "updated": icon_updated, "deleted": icon_deleted} %}
+{% set verbs = {"created": "added", "updated": "updated", "deleted": "deleted"} %}
+{% for e in entries %}
+  {% set type_name, href = entity_types.get(e.entity_type, (e.entity_type, None)) %}
+  {% set mine = e.actor_id == current_user.id %}
+  {% set unread = not mine and e.created_at > last_seen %}
+  {% set parts = e.actor_name.split() %}
+  <li class="activity-item {{ e.action }}{% if unread %} unread{% endif %}">
+    <span class="activity-avatar" aria-hidden="true">
+      {%- if parts %}{{ (parts[0][0] ~ (parts[-1][0] if parts | length > 1 else "")) | upper }}{% endif -%}
+      <span class="activity-action-icon">{{ icons.get(e.action, "") | safe }}</span>
+    </span>
+    <div class="activity-body">
+      <div class="activity-text">
+        {% if unread %}<span class="visually-hidden">New: </span>{% endif %}
+        <strong>{{ "You" if mine else e.actor_name }}</strong>
+        {{ verbs.get(e.action, e.action) }} {{ type_name }}
+        {% if href and e.action != "deleted" -%}
+          <a href="{{ href }}">{{ e.entity_label }}</a>
+        {%- else -%}
+          <span class="activity-subject">{{ e.entity_label }}</span>
+        {%- endif %}
+      </div>
+      {% if e.changes %}
+      <ul class="activity-changes">
+        {% for change in e.changes %}<li>{{ change }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    <time class="activity-time" datetime="{{ e.created_at.isoformat() }}">{{ e.created_at.strftime("%b %d, %Y %H:%M UTC") }}</time>
+  </li>
+{% else %}
+  {% if not request.query_params.get("before") %}
+  <li class="activity-empty">No activity yet. Changes to Rocks, Issues, To-Dos and the rest will show up here.</li>
+  {% endif %}
+{% endfor %}
+{% if has_more %}
+<li class="activity-more">
+  <button type="button" class="secondary"
+          hx-get="/activity/entries?before={{ entries[-1].id }}&amp;last_seen={{ last_seen.isoformat() | urlencode }}"
+          hx-target="closest li" hx-swap="outerHTML">Show older</button>
+</li>
+{% endif %}

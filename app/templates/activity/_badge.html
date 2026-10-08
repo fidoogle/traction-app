@@ -1,0 +1,4 @@
+{# Unread-activity count on the sidebar's Activity link; re-polls itself. #}
+<span class="nav-badge{% if unread %} has-unread{% endif %}" hx-get="/activity/badge" hx-trigger="every 60s" hx-swap="outerHTML">
+  {%- if unread %}{{ "99+" if unread > 99 else unread }}<span class="visually-hidden"> new</span>{% endif -%}
+</span>

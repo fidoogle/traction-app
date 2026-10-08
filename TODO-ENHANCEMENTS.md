@@ -17,7 +17,11 @@ queued.
       out or deactivating a user doesn't invalidate outstanding tokens.
 - [ ] Password reset / forgot-password flow (currently only an admin, or
       the user themself via their existing password, can change it).
-- [ ] Audit log for sensitive actions (role changes, deletes).
+- [ ] Long-term audit trail. The Activity log (app/core/activity.py) now
+      records every add/edit/delete with who + when, including role changes
+      and deletes - but it's pruned after ACTIVITY_RETENTION_DAYS (90) and
+      every role can read it. If districts need a compliance-grade audit
+      record, keep a separate admin-only, non-pruned copy (or export).
 - [ ] Content-Security-Policy header. Not set yet - the templates rely on
       inline htmx `hx-on::` attributes and two inline scripts in base.html
       (CSRF header injection, and the pre-paint theme snippet that has to
@@ -70,6 +74,13 @@ Users, Scorecard, Meetings, Seats/Accountability Chart, VTO, People
 Analyzer. Nothing left on the original page list; next UI work is
 whatever the app actually needs in practice (polish, new workflows)
 rather than filling a gap.
+
+
+- [ ] Activity log follow-ups: filter the feed by type (Rocks, Issues, ...)
+      or person; a "For you" view of changes to things you own or were
+      assigned (closer to how Teams' Activity works); and show the unread
+      indicator on the mobile hamburger button too, since the sidebar
+      badge is hidden while the menu is collapsed.
 
 
 ## Ops / Dev Experience

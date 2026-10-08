@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # session cookie is marked Secure. False by default so local/plain-HTTP
     # on-prem dev setups still work.
     cookie_secure: bool = False
+    # How far back the Activity page goes; older entries are pruned.
+    activity_retention_days: int = 90
 
 
 settings = Settings()

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.web.activity_routes import router as activity_routes
 from app.web.auth_routes import router as auth_routes
 from app.web.dashboard_routes import router as dashboard_routes
 from app.web.issues_routes import router as issues_routes
@@ -16,6 +17,7 @@ from app.web.vto_routes import router as vto_routes
 web_router = APIRouter()
 web_router.include_router(auth_routes)
 web_router.include_router(dashboard_routes)
+web_router.include_router(activity_routes)
 web_router.include_router(rocks_routes)
 web_router.include_router(issues_routes)
 web_router.include_router(todos_routes)

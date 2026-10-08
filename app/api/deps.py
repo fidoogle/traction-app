@@ -7,6 +7,7 @@ from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from app.core.activity import set_actor
 from app.core.security import ACCESS_TOKEN_COOKIE_NAME, decode_access_token
 from app.db import SessionLocal
 from app.models.enums import UserRole
@@ -56,6 +57,7 @@ def get_current_user(
     user = db.get(User, uuid.UUID(user_id))
     if user is None:
         raise credentials_error
+    set_actor(db, user)
     return user
 
 
