@@ -43,8 +43,8 @@ def _get_org_rock(db: Session, rock_id: uuid.UUID, org_id: uuid.UUID) -> Rock:
     return rock
 
 
-def _require_editor(current_user: User) -> None:
-    if current_user.role == UserRole.VIEWER:
+def _require_admin(current_user: User) -> None:
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403)
 
 
@@ -104,8 +104,7 @@ def create_rock(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403)
+    _require_admin(current_user)
     title, quarter = _validate_fields(db, current_user.org_id, team_id, owner_id, title, quarter)
 
     rock = Rock(team_id=team_id, owner_id=owner_id, title=title, quarter=quarter, status=status)
@@ -131,7 +130,7 @@ def edit_rock_row(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
-    _require_editor(current_user)
+    _require_admin(current_user)
     rock = _get_org_rock(db, rock_id, current_user.org_id)
     return templates.TemplateResponse(
         request,
@@ -158,7 +157,7 @@ def update_rock(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
-    _require_editor(current_user)
+    _require_admin(current_user)
     rock = _get_org_rock(db, rock_id, current_user.org_id)
     title, quarter = _validate_fields(db, current_user.org_id, team_id, owner_id, title, quarter)
 
@@ -181,7 +180,8 @@ def update_rock_status(
     current_user: User = Depends(get_current_user_web),
 ):
     rock = _get_org_rock(db, rock_id, current_user.org_id)
-    _require_editor(current_user)
+    if current_user.role == UserRole.VIEWER:
+        raise HTTPException(status_code=403)
 
     rock.status = status
     db.commit()
@@ -195,7 +195,7 @@ def delete_rock(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
 ):
-    _require_editor(current_user)
+    _require_admin(current_user)
     rock = _get_org_rock(db, rock_id, current_user.org_id)
     db.delete(rock)
     db.commit()

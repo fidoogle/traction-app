@@ -23,7 +23,7 @@
       </select>
     {% endif %}
   </td>
-  {% if current_user.role.value != "viewer" %}
+  {% if current_user.role.value == "admin" %}
   <td class="row-actions">
     <button
       class="link"

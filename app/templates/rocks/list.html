@@ -46,7 +46,7 @@
     <thead>
       <tr>
         <th>Title</th><th>Owner</th><th>Team</th><th>Quarter</th><th>Status</th>
-        {% if current_user.role.value != "viewer" %}<th></th>{% endif %}
+        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody id="rocks-table-body">
