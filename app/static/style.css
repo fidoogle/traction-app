@@ -629,6 +629,37 @@ button.primary:hover { background: var(--brand-dark); }
 
 .link-danger:hover { text-decoration: underline; }
 
+.link,
+.link-muted {
+  background: none;
+  border: none;
+  color: var(--brand);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.link-muted { color: var(--text-muted); }
+
+.link:hover,
+.link-muted:hover { text-decoration: underline; }
+
+.row-actions { white-space: nowrap; }
+.row-actions button + button { margin-left: 0.75rem; }
+
+.row-edit input,
+.row-edit select {
+  width: 100%;
+  min-width: 7rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: var(--surface);
+  color: inherit;
+}
+
 .error {
   background: var(--off-track-bg);
   color: var(--off-track);

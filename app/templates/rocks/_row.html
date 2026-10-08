@@ -23,4 +23,25 @@
       </select>
     {% endif %}
   </td>
+  {% if current_user.role.value != "viewer" %}
+  <td class="row-actions">
+    <button
+      class="link"
+      hx-get="/rocks/{{ rock.id }}/edit"
+      hx-target="#rock-row-{{ rock.id }}"
+      hx-swap="outerHTML"
+    >
+      Edit
+    </button>
+    <button
+      class="link-danger"
+      hx-delete="/rocks/{{ rock.id }}"
+      hx-target="#rock-row-{{ rock.id }}"
+      hx-swap="delete"
+      hx-confirm="Delete the rock &quot;{{ rock.title }}&quot;? This cannot be undone."
+    >
+      Delete
+    </button>
+  </td>
+  {% endif %}
 </tr>
