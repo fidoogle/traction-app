@@ -3,7 +3,7 @@
   <td class="measurable-name">{{ measurable.name }}</td>
   <td class="goal">{{ format_goal(measurable.goal_value, measurable.unit, measurable.goal_direction) }}</td>
   {% for c in cells %}{% include "scorecard/_cell.html" %}{% endfor %}
-  {% if current_user.role.value == "admin" %}
+  {% if can_admin %}
   <td class="row-actions">
     <button
       class="link"

@@ -25,11 +25,6 @@ def _todos_query(team_ids: list[uuid.UUID]):
     )
 
 
-def _require_admin(current_user: User) -> None:
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403)
-
-
 def _get_todo(db: Session, todo_id: uuid.UUID, team_ctx: TeamContext) -> Todo:
     # Any of the user's teams, not just the current one (see scorecard_routes).
     todo = db.scalar(_todos_query(team_ctx.team_ids).where(Todo.id == todo_id))
@@ -132,7 +127,7 @@ def update_todo_status(
     team_ctx: TeamContext = Depends(get_team_context),
 ):
     todo = _get_todo(db, todo_id, team_ctx)
-    if not _can_edit_todo(current_user, todo):
+    if not _can_edit_todo(current_user, team_ctx, todo):
         raise HTTPException(status_code=403)
 
     todo.status = status
@@ -160,15 +155,15 @@ def edit_todo_row(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     todo = _get_todo(db, todo_id, team_ctx)
+    team_ctx.require_admin(todo.team_id)
     return templates.TemplateResponse(
         request,
         "todos/_edit_row.html",
         {
             "current_user": current_user,
             "todo": todo,
-            "teams": team_ctx.teams,
+            "teams": team_ctx.admin_teams,
             "people": team_people(db, team_ctx, keep_ids=[todo.owner_id]),
             "org_issues": _team_issues(db, team_ctx),
             "TodoStatus": TodoStatus,
@@ -190,8 +185,9 @@ def update_todo(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     todo = _get_todo(db, todo_id, team_ctx)
+    team_ctx.require_admin(todo.team_id)
+    team_ctx.require_admin(team_id)
     title = title.strip()
     if not title or len(title) > 255:
         raise HTTPException(status_code=422)
@@ -219,16 +215,17 @@ def delete_todo(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     todo = _get_todo(db, todo_id, team_ctx)
+    team_ctx.require_admin(todo.team_id)
     db.delete(todo)
     db.commit()
     return Response(status_code=200)
 
 
-def _can_edit_todo(current_user: User, todo: Todo) -> bool:
-    # Admins: any to-do. Members: only their own (same rule as status).
-    return current_user.role == UserRole.ADMIN or (
+def _can_edit_todo(current_user: User, team_ctx: TeamContext, todo: Todo) -> bool:
+    # Admins of the to-do's team: any to-do. Members: only their own (same
+    # rule as status).
+    return team_ctx.can_admin(todo.team_id) or (
         current_user.role == UserRole.MEMBER and todo.owner_id == current_user.id
     )
 
@@ -248,7 +245,7 @@ def get_todo_notes(
         url=f"/todos/{todo.id}/notes",
         row_id=f"todo-row-{todo.id}",
         notes=todo.notes,
-        can_edit=_can_edit_todo(current_user, todo),
+        can_edit=_can_edit_todo(current_user, team_ctx, todo),
     )
 
 
@@ -262,7 +259,7 @@ def update_todo_notes(
     team_ctx: TeamContext = Depends(get_team_context),
 ):
     todo = _get_todo(db, todo_id, team_ctx)
-    if not _can_edit_todo(current_user, todo):
+    if not _can_edit_todo(current_user, team_ctx, todo):
         raise HTTPException(status_code=403)
     todo.notes = clean_notes(notes)
     db.commit()

@@ -1,12 +1,12 @@
 {% from "_macros.html" import notes_indicator %}
-{% set can_edit_notes = current_user.role.value == "admin" %}
+{% set can_edit_notes = request.state.team_ctx.can_admin(rock.team_id) %}
 <tr id="rock-row-{{ rock.id }}"{% if rock.notes or can_edit_notes %} data-notes-url="/rocks/{{ rock.id }}/notes"{% endif %}>
   <td>{{ rock.title }} {{ notes_indicator("/rocks/" ~ rock.id ~ "/notes", rock.notes, can_edit_notes) }}</td>
   <td>{{ rock.owner.name }}</td>
   <td>{{ rock.team.name }}</td>
   <td>{{ rock.quarter }}</td>
   <td>
-    {% if current_user.role.value != "admin" %}
+    {% if not can_edit_notes %}
       <span class="badge {{ rock.status.value }}">{{ rock.status.value.replace("_", " ") }}</span>
     {% else %}
       <select
@@ -25,8 +25,9 @@
       </select>
     {% endif %}
   </td>
-  {% if current_user.role.value == "admin" %}
+  {% if request.state.team_ctx.can_admin_any %}
   <td class="row-actions">
+    {% if can_edit_notes %}
     <button
       class="link"
       hx-get="/rocks/{{ rock.id }}/edit"
@@ -44,6 +45,7 @@
     >
       Delete
     </button>
+    {% endif %}
   </td>
   {% endif %}
 </tr>

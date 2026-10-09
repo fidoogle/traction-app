@@ -2,7 +2,7 @@
 {% block title %}Rocks - Traction/EOS{% endblock %}
 {% block content %}
 {% from "_macros.html" import page_header, modal, notes_modal, people_options, team_select %}
-{% set is_admin = current_user.role.value == "admin" %}
+{% set is_admin = request.state.team_ctx.can_admin_any %}
 {{ page_header("Rocks", "Add rock", "add-rock-modal" if is_admin else None) }}
 
 {% if is_admin %}
@@ -44,7 +44,7 @@
     <thead>
       <tr>
         <th>Title</th><th>Owner</th><th>Team</th><th>Quarter</th><th>Status</th>
-        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
+        {% if is_admin %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody id="rocks-table-body">

@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
-from app.models import Rock, RockStatus, Team, User, UserRole
+from app.models import Rock, RockStatus, Team, User
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.notes import clean_notes, notes_form_response
 from app.web.team_context import TeamContext, require_member, team_people
@@ -35,11 +35,6 @@ def _get_rock(db: Session, rock_id: uuid.UUID, team_ctx: TeamContext) -> Rock:
     if rock is None:
         raise HTTPException(status_code=404)
     return rock
-
-
-def _require_admin(current_user: User) -> None:
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403)
 
 
 def _validate_fields(
@@ -82,7 +77,7 @@ def list_rocks(
         {
             "current_user": current_user,
             "rocks": rocks,
-            "teams": team_ctx.teams,
+            "teams": team_ctx.admin_teams,
             "default_team_id": default_team.id if default_team else None,
             "users": team_people(db, team_ctx),
             "default_quarter": _current_quarter(),
@@ -103,7 +98,7 @@ def create_rock(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
+    team_ctx.require_admin(team_id)
     team, title, quarter = _validate_fields(team_ctx, team_id, owner_id, title, quarter)
 
     rock = Rock(team_id=team.id, owner_id=owner_id, title=title, quarter=quarter, status=status)
@@ -131,15 +126,15 @@ def edit_rock_row(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     rock = _get_rock(db, rock_id, team_ctx)
+    team_ctx.require_admin(rock.team_id)
     return templates.TemplateResponse(
         request,
         "rocks/_edit_row.html",
         {
             "current_user": current_user,
             "rock": rock,
-            "teams": team_ctx.teams,
+            "teams": team_ctx.admin_teams,
             "users": team_people(db, team_ctx, keep_ids=[rock.owner_id]),
             "RockStatus": RockStatus,
         },
@@ -159,8 +154,9 @@ def update_rock(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     rock = _get_rock(db, rock_id, team_ctx)
+    team_ctx.require_admin(rock.team_id)
+    team_ctx.require_admin(team_id)
     # The owner may stay even if they've left the rock's team - but not when
     # moving the rock to another team, where they must be a member.
     team, title, quarter = _validate_fields(
@@ -191,8 +187,8 @@ def update_rock_status(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     rock = _get_rock(db, rock_id, team_ctx)
+    team_ctx.require_admin(rock.team_id)
 
     rock.status = status
     db.commit()
@@ -207,8 +203,8 @@ def delete_rock(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     rock = _get_rock(db, rock_id, team_ctx)
+    team_ctx.require_admin(rock.team_id)
     db.delete(rock)
     db.commit()
     return Response(status_code=200)
@@ -229,7 +225,7 @@ def get_rock_notes(
         url=f"/rocks/{rock.id}/notes",
         row_id=f"rock-row-{rock.id}",
         notes=rock.notes,
-        can_edit=current_user.role == UserRole.ADMIN,
+        can_edit=team_ctx.can_admin(rock.team_id),
     )
 
 
@@ -242,8 +238,8 @@ def update_rock_notes(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     rock = _get_rock(db, rock_id, team_ctx)
+    team_ctx.require_admin(rock.team_id)
     rock.notes = clean_notes(notes)
     db.commit()
     db.expire_all()

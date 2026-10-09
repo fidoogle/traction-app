@@ -2,7 +2,7 @@
 {% block title %}{{ scorecard.name }} - Scorecards - Traction/EOS{% endblock %}
 {% block content %}
 {% from "_macros.html" import page_header, modal %}
-{% set is_admin = current_user.role.value == "admin" %}
+{% set is_admin = can_admin %}
 <p class="breadcrumb"><a href="/scorecards">&larr; {{ scorecard.team.name }} scorecards</a></p>
 {{ page_header(scorecard.name, "Add measurable", "add-measurable-modal" if is_admin else None) }}
 <p class="text-muted scorecard-dates">

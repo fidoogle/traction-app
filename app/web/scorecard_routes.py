@@ -28,7 +28,6 @@ from app.models import (
     ScorecardEntry,
     Team,
     User,
-    UserRole,
 )
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.team_context import TeamContext, remember_team
@@ -41,11 +40,6 @@ legacy_router = APIRouter()
 @legacy_router.get("/scorecard")
 def legacy_scorecard_redirect():
     return RedirectResponse("/scorecards", status_code=307)
-
-
-def _require_admin(current_user: User) -> None:
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403)
 
 
 def _owner_choices(scorecard: Scorecard, measurable: Optional[Measurable] = None) -> list[User]:
@@ -93,8 +87,8 @@ def _get_measurable(
     return measurable
 
 
-def _can_edit_cells(current_user: User, measurable: Measurable) -> bool:
-    return current_user.role == UserRole.ADMIN or (
+def _can_edit_cells(current_user: User, can_admin: bool, measurable: Measurable) -> bool:
+    return can_admin or (
         measurable.owner_id is not None and measurable.owner_id == current_user.id
     )
 
@@ -116,6 +110,7 @@ def _cell(
     week: dict,
     entry: Optional[ScorecardEntry],
     current_user: User,
+    can_admin: bool,
     error: bool = False,
 ) -> dict:
     state = ""
@@ -131,26 +126,37 @@ def _cell(
         "text": text,
         "state": state,
         "error": error,
-        "can_edit": _can_edit_cells(current_user, measurable),
+        "can_edit": _can_edit_cells(current_user, can_admin, measurable),
     }
 
 
-def _row_context(scorecard: Scorecard, measurable: Measurable, current_user: User) -> dict:
+def _row_context(
+    scorecard: Scorecard, measurable: Measurable, current_user: User, can_admin: bool
+) -> dict:
     by_week = {e.week_number: e for e in measurable.scorecard_entries}
     return {
         "current_user": current_user,
+        "can_admin": can_admin,
         "scorecard": scorecard,
         "measurable": measurable,
         "cells": [
-            _cell(scorecard, measurable, w, by_week.get(w["n"]), current_user)
+            _cell(scorecard, measurable, w, by_week.get(w["n"]), current_user, can_admin)
             for w in _weeks(scorecard)
         ],
     }
 
 
-def _row_response(request: Request, scorecard: Scorecard, measurable: Measurable, user: User):
+def _row_response(
+    request: Request,
+    scorecard: Scorecard,
+    measurable: Measurable,
+    user: User,
+    team_ctx: TeamContext,
+):
     return templates.TemplateResponse(
-        request, "scorecard/_row.html", _row_context(scorecard, measurable, user)
+        request,
+        "scorecard/_row.html",
+        _row_context(scorecard, measurable, user, team_ctx.can_admin(scorecard.team_id)),
     )
 
 
@@ -229,7 +235,7 @@ def create_scorecard(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
+    team_ctx.require_admin(team_id)
     name = _clean_name(name)
     team = next((t for t in team_ctx.teams if t.id == team_id), None)
     if team is None:
@@ -273,8 +279,8 @@ def delete_scorecard(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    team_ctx.require_admin(scorecard.team_id)
     db.delete(scorecard)
     db.commit()
     return Response(status_code=200)
@@ -289,6 +295,7 @@ def view_scorecard(
     team_ctx: TeamContext = Depends(get_team_context),
 ):
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    can_admin = team_ctx.can_admin(scorecard.team_id)
     # Opening another of your teams' scorecards (say, from a link) switches
     # to that team, so the topbar matches what's on screen.
     switched = team_ctx.follow(scorecard.team_id)
@@ -299,7 +306,11 @@ def view_scorecard(
             "current_user": current_user,
             "scorecard": scorecard,
             "weeks": _weeks(scorecard),
-            "rows": [_row_context(scorecard, m, current_user) for m in scorecard.measurables],
+            "can_admin": can_admin,
+            "rows": [
+                _row_context(scorecard, m, current_user, can_admin)
+                for m in scorecard.measurables
+            ],
             "owner_choices": _owner_choices(scorecard),
             "units": list(MeasurableUnit),
             "directions": list(GoalDirection),
@@ -326,8 +337,8 @@ def create_measurable(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    team_ctx.require_admin(scorecard.team_id)
     _check_owner(scorecard, owner_id)
     measurable = Measurable(
         name=_clean_name(name),
@@ -342,7 +353,7 @@ def create_measurable(
     db.expire_all()
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
     measurable = _get_measurable(db, scorecard_id, measurable.id, team_ctx)
-    return _row_response(request, scorecard, measurable, current_user)
+    return _row_response(request, scorecard, measurable, current_user, team_ctx)
 
 
 @router.get("/{scorecard_id}/measurables/{measurable_id}/edit")
@@ -354,8 +365,8 @@ def edit_measurable_form(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    team_ctx.require_admin(scorecard.team_id)
     measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     return templates.TemplateResponse(
         request,
@@ -385,8 +396,8 @@ def update_measurable(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    team_ctx.require_admin(scorecard.team_id)
     measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     _check_owner(scorecard, owner_id, measurable)
     measurable.name = _clean_name(name)
@@ -398,7 +409,7 @@ def update_measurable(
     db.expire_all()
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
     measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
-    return _row_response(request, scorecard, measurable, current_user)
+    return _row_response(request, scorecard, measurable, current_user, team_ctx)
 
 
 @router.delete("/{scorecard_id}/measurables/{measurable_id}")
@@ -409,7 +420,8 @@ def delete_measurable(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    team_ctx.require_admin(scorecard.team_id)
     measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     db.delete(measurable)
     db.commit()
@@ -434,7 +446,7 @@ def set_cell(
         raise HTTPException(status_code=404)
     scorecard = _get_scorecard(db, scorecard_id, team_ctx)
     measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
-    if not _can_edit_cells(current_user, measurable):
+    if not _can_edit_cells(current_user, team_ctx.can_admin(scorecard.team_id), measurable):
         raise HTTPException(status_code=403)
 
     entry = next((e for e in measurable.scorecard_entries if e.week_number == week), None)
@@ -462,5 +474,8 @@ def set_cell(
     return templates.TemplateResponse(
         request,
         "scorecard/_cell.html",
-        {"c": _cell(scorecard, measurable, week_ctx, entry, current_user, error=error)},
+        {"c": _cell(
+                scorecard, measurable, week_ctx, entry, current_user,
+                team_ctx.can_admin(scorecard.team_id), error=error,
+            )},
     )

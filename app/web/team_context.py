@@ -50,6 +50,22 @@ class TeamContext:
         return self.current is not None and self.can_admin(self.current.id)
 
     @property
+    def can_admin_any(self) -> bool:
+        """Admin rights on at least one team (to show "add" buttons)."""
+        return bool(self.admin_team_ids)
+
+    @property
+    def admin_teams(self) -> list[Team]:
+        """The teams they can admin, by name - for a team picker on a form
+        only admins of that team may submit."""
+        return [t for t in self.teams if t.id in self.admin_team_ids]
+
+    def require_admin(self, team_id: Optional[uuid.UUID]) -> None:
+        """403 unless the user has admin rights on this team."""
+        if not self.can_admin(team_id):
+            raise HTTPException(status_code=403)
+
+    @property
     def scope_ids(self) -> list[uuid.UUID]:
         """Team ids a page should show: just the current team, or all of them."""
         if self.current is not None:

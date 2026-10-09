@@ -2,7 +2,7 @@
 {% block title %}Scorecards - Traction/EOS{% endblock %}
 {% block content %}
 {% from "_macros.html" import page_header, modal %}
-{% set is_admin = current_user.role.value == "admin" %}
+{% set is_admin = request.state.team_ctx.can_admin_any %}
 {% set current_team = team_ctx.current %}
 {% set show_team = current_team is none %}
 {{ page_header("Scorecards", "Add scorecard", "add-scorecard-modal" if is_admin else None) }}
@@ -10,14 +10,14 @@
 {% if is_admin %}
 {% call modal("add-scorecard-modal", "Start a new scorecard") %}
 <form hx-post="/scorecards" hx-swap="none">
-  {% if current_team %}
+  {% if current_team and team_ctx.can_admin(current_team.id) %}
   <input type="hidden" name="team_id" value="{{ current_team.id }}">
   <p class="field-hint">For <strong>{{ current_team.name }}</strong>. Switch teams in the top bar to start one for another team.</p>
   {% else %}
   <div class="field">
     <label for="sc-team">Team</label>
     <select id="sc-team" name="team_id" required>
-      {% for team in team_ctx.teams %}
+      {% for team in team_ctx.admin_teams %}
       <option value="{{ team.id }}">{{ team.name }}</option>
       {% endfor %}
     </select>
@@ -74,6 +74,7 @@
         <td><span class="badge {{ {'Current': 'on_track', 'Upcoming': 'scheduled', 'Past': 'dropped'}[item.status] }}">{{ item.status }}</span></td>
         {% if is_admin %}
         <td class="row-actions">
+          {% if team_ctx.can_admin(s.team_id) %}
           <button
             class="link-danger"
             hx-delete="/scorecards/{{ s.id }}"
@@ -83,6 +84,7 @@
           >
             Delete
           </button>
+          {% endif %}
         </td>
         {% endif %}
       </tr>

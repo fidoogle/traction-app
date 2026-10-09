@@ -97,11 +97,6 @@ def update_issue_status(
     )
 
 
-def _require_admin(current_user: User) -> None:
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403)
-
-
 def _get_issue(db: Session, issue_id: uuid.UUID, team_ctx: TeamContext) -> Issue:
     # Any of the user's teams, not just the current one (see scorecard_routes).
     issue = db.scalar(_issues_query(team_ctx.team_ids).where(Issue.id == issue_id))
@@ -137,15 +132,15 @@ def edit_issue_row(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     issue = _get_issue(db, issue_id, team_ctx)
+    team_ctx.require_admin(issue.team_id)
     return templates.TemplateResponse(
         request,
         "issues/_edit_row.html",
         {
             "current_user": current_user,
             "issue": issue,
-            "teams": team_ctx.teams,
+            "teams": team_ctx.admin_teams,
             "IssueStatus": IssueStatus,
         },
     )
@@ -163,8 +158,9 @@ def update_issue(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     issue = _get_issue(db, issue_id, team_ctx)
+    team_ctx.require_admin(issue.team_id)
+    team_ctx.require_admin(team_id)
     team = team_ctx.get_team(team_id)
     title = title.strip()
     if not title or len(title) > 255:
@@ -189,8 +185,8 @@ def delete_issue(
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
     issue = _get_issue(db, issue_id, team_ctx)
+    team_ctx.require_admin(issue.team_id)
     db.delete(issue)
     db.commit()
     return Response(status_code=200)

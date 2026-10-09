@@ -24,8 +24,9 @@
       </select>
     {% endif %}
   </td>
-  {% if current_user.role.value == "admin" %}
+  {% if request.state.team_ctx.can_admin_any %}
   <td class="row-actions">
+    {% if request.state.team_ctx.can_admin(issue.team_id) %}
     <button
       class="link"
       hx-get="/issues/{{ issue.id }}/edit"
@@ -43,6 +44,7 @@
     >
       Delete
     </button>
+    {% endif %}
   </td>
   {% endif %}
 </tr>

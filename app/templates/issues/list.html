@@ -37,7 +37,7 @@
     <thead>
       <tr>
         <th>Title</th><th>Team</th><th>Priority</th><th>Status</th>
-        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
+        {% if request.state.team_ctx.can_admin_any %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody id="issues-table-body">

@@ -52,7 +52,7 @@
     <thead>
       <tr>
         <th>Title</th><th>Owner</th><th>Team</th><th>Related issue</th><th>Due</th><th>Status</th>
-        {% if current_user.role.value == "admin" %}<th></th>{% endif %}
+        {% if request.state.team_ctx.can_admin_any %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody id="todos-table-body">

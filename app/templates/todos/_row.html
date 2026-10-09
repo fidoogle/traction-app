@@ -1,7 +1,8 @@
 {% from "_macros.html" import notes_indicator %}
 {# Admins can edit any to-do; members only their own. Governs both the status
    dropdown and notes. #}
-{% set can_edit = current_user.role.value == "admin" or (current_user.role.value == "member" and todo.owner_id == current_user.id) %}
+{% set is_team_admin = request.state.team_ctx.can_admin(todo.team_id) %}
+{% set can_edit = is_team_admin or (current_user.role.value == "member" and todo.owner_id == current_user.id) %}
 <tr id="todo-row-{{ todo.id }}"{% if todo.notes or can_edit %} data-notes-url="/todos/{{ todo.id }}/notes"{% endif %}>
   <td>{{ todo.title }} {{ notes_indicator("/todos/" ~ todo.id ~ "/notes", todo.notes, can_edit) }}</td>
   <td>{{ todo.owner.name }}</td>
@@ -28,8 +29,9 @@
       <span class="badge {{ todo.status.value }}">{{ todo.status.value }}</span>
     {% endif %}
   </td>
-  {% if current_user.role.value == "admin" %}
+  {% if request.state.team_ctx.can_admin_any %}
   <td class="row-actions">
+    {% if is_team_admin %}
     <button
       class="link"
       hx-get="/todos/{{ todo.id }}/edit"
@@ -47,6 +49,7 @@
     >
       Delete
     </button>
+    {% endif %}
   </td>
   {% endif %}
 </tr>
