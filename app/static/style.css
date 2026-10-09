@@ -334,16 +334,10 @@ textarea:focus-visible {
   .topbar > .topbar-left { flex-shrink: 1; }
 }
 
-.logout-form button {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 0.95rem;
-  padding: 0;
-}
+.logout-form { display: flex; margin: 0; }
 
-.logout-form button:hover { color: var(--text); }
+/* Same footprint as the theme toggle beside it. */
+.logout-form .icon-button { background: none; width: 34px; height: 34px; }
 
 .theme-toggle {
   display: inline-flex;
