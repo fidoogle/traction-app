@@ -82,7 +82,10 @@ queued.
       email notifications and a calendar exist, so everyone knows what's
       scheduled: `scheduled_date` is date-only and would need to become a real
       datetime (also required for the Google/Microsoft calendar sync below),
-      and "start meeting" should then pick the scheduled one.
+      and "start meeting" should then pick the scheduled one. The Meetings
+      page's "Schedule a meeting" form (and POST /meetings) was removed
+      until then; bring it back as part of that work. The page's + button
+      starts a meeting (same as the sidebar Play button) for now.
 - [ ] Live-meeting follow-ups: step lengths are fixed in
       app/core/meeting_session.py (make them per-team settings); only admins
       see the steps - members/viewers could get a read-only live view of the

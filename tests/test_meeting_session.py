@@ -230,3 +230,20 @@ def test_admins_can_delete_a_past_meeting_but_not_a_running_one(world, login, ad
     with SessionLocal() as db:
         assert db.get(Meeting, world["meeting_alpha"]) is None
         assert db.get(Meeting, running.id) is not None
+
+
+def test_meetings_page_has_a_plus_that_starts_a_meeting(world, login, admin, clock):
+    page = admin.get("/meetings").text
+    assert "Schedule a meeting" not in page
+    header = page.split('class="page-header"')[1].split("</div>")[0]
+    assert 'hx-post="/meetings/session/start"' in header and "disabled" not in header
+    assert "/meetings/session/start" not in login("mia").get("/meetings").text
+
+    admin.post("/meetings/session/start")
+    running = admin.get("/meetings").text.split('class="page-header"')[1].split("</div>")[0]
+    assert "disabled" in running and "A meeting is running" in running
+
+
+def test_plus_asks_all_teams_admins_to_pick_a_team(world, login):
+    header = login("admin").get("/meetings").text.split('class="page-header"')[1].split("</div>")[0]
+    assert "disabled" in header and "Pick a team first" in header

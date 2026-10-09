@@ -148,15 +148,12 @@ def test_viewer_cannot_change_things(world, login):
 # --- Creating things --------------------------------------------------------
 
 
-def test_member_can_log_issues_and_meetings_only_for_their_teams(world, login):
+def test_member_can_log_issues_only_for_their_teams(world, login):
     mia = login("mia")
     issue = {"title": "New one", "priority": 1}
     assert mia.post("/issues", data={**issue, "team_id": str(world["team_bravo"])}).status_code == 200
     assert mia.post("/issues", data={**issue, "team_id": str(world["team_charlie"])}).status_code == 404
     assert mia.post("/issues", data={**issue, "team_id": str(world["team_xray"])}).status_code == 404
-    meeting = {"scheduled_date": "2026-12-01"}
-    assert mia.post("/meetings", data={**meeting, "team_id": str(world["team_bravo"])}).status_code == 200
-    assert mia.post("/meetings", data={**meeting, "team_id": str(world["team_charlie"])}).status_code == 404
 
 
 def test_rock_owner_must_be_on_the_rocks_team(world, login):

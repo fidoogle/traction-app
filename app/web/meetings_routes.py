@@ -1,9 +1,8 @@
 import json
 import uuid
-from datetime import date
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -44,30 +43,6 @@ def list_meetings(
             "teams": team_ctx.teams,
             "default_team_id": default_team.id if default_team else None,
                     },
-    )
-
-
-@router.post("")
-def create_meeting(
-    request: Request,
-    team_id: uuid.UUID = Form(...),
-    scheduled_date: date = Form(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_web),
-    team_ctx: TeamContext = Depends(get_team_context),
-):
-    if current_user.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403)
-    team = team_ctx.get_team(team_id)
-
-    meeting = Meeting(team_id=team.id, scheduled_date=scheduled_date)
-    db.add(meeting)
-    db.commit()
-    db.refresh(meeting)
-    return templates.TemplateResponse(
-        request,
-        "meetings/_row.html",
-        {"current_user": current_user, "meeting": meeting},
     )
 
 
