@@ -126,6 +126,13 @@
       var toggle = evt.target.closest('#nav-toggle');
       var navClose = evt.target.closest('[data-nav-close]');
       if (!toggle && !navClose) return;
+      if (navClose) {
+        // On desktop the sidebar is permanent, so the title stays a normal
+        // link home; only the mobile drawer (X visible) treats it as close.
+        var x = document.querySelector('.sidebar-close');
+        if (x && getComputedStyle(x).display === 'none') return;
+        evt.preventDefault();
+      }
       var sidebar = document.getElementById('site-sidebar');
       var isOpen = navClose ? (sidebar.classList.remove('open'), false) : sidebar.classList.toggle('open');
       document.getElementById('nav-toggle').setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -200,7 +207,7 @@
   <div class="app-shell">
     <aside class="sidebar" id="site-sidebar">
       <div class="sidebar-brand">
-        <a class="brand" href="/">Traction/EOS</a>
+        <a class="brand" href="/" data-nav-close>SWBC Leader Board</a>
         <button type="button" class="sidebar-close" data-nav-close aria-label="Close navigation">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
         </button>
