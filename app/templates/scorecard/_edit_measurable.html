@@ -1,0 +1,10 @@
+{% set m = measurable %}
+<form hx-put="/scorecards/{{ scorecard_id }}/measurables/{{ m.id }}"
+      hx-target="#mrow-{{ m.id }}" hx-swap="outerHTML">
+  {% set fid = "em" %}
+  {% include "scorecard/_measurable_fields.html" %}
+  <div class="modal-actions">
+    <button type="button" class="secondary" data-modal-close>Cancel</button>
+    <button type="submit" class="primary">Save</button>
+  </div>
+</form>

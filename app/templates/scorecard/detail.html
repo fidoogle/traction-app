@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ scorecard.name }} - Scorecards - Traction/EOS{% endblock %}
+{% block content %}
+{% from "_macros.html" import page_header, modal %}
+{% set is_admin = current_user.role.value == "admin" %}
+<p class="breadcrumb"><a href="/scorecards">&larr; All scorecards</a></p>
+{{ page_header(scorecard.name, "Add measurable", "add-measurable-modal" if is_admin else None) }}
+<p class="text-muted scorecard-dates">
+  13 weeks, {{ scorecard.start_date.strftime("%b") }} {{ scorecard.start_date.day }}, {{ scorecard.start_date.year }}
+  &ndash; {{ scorecard.end_date.strftime("%b") }} {{ scorecard.end_date.day }}, {{ scorecard.end_date.year }}.
+  Weeks run Sunday to Saturday.
+  {% if not is_admin %}You can edit the rows you own.{% endif %}
+</p>
+
+{% if is_admin %}
+{% call modal("add-measurable-modal", "Add a measurable") %}
+<form hx-post="/scorecards/{{ scorecard.id }}/measurables" hx-target="#measurable-rows" hx-swap="beforeend"
+      hx-on::after-request="if(event.detail.successful) document.getElementById('measurables-empty')?.remove()">
+  {% set m = none %}{% set fid = "am" %}
+  {% include "scorecard/_measurable_fields.html" %}
+  <div class="modal-actions">
+    <button type="button" class="secondary" data-modal-close>Cancel</button>
+    <button type="submit" class="primary">Add measurable</button>
+  </div>
+</form>
+{% endcall %}
+
+{% call modal("edit-measurable-modal", "Edit measurable") %}
+<div id="edit-measurable-body"></div>
+{% endcall %}
+{% endif %}
+
+<div class="card">
+  <div class="table-scroll">
+  <table class="scorecard-grid">
+    <thead>
+      <tr>
+        <th>Who</th><th>Measurable</th><th>Goal</th>
+        {% for w in weeks %}
+        <th class="week-head{% if w.is_current %} current-week{% endif %}" title="Week of {{ w.start.strftime('%b') }} {{ w.start.day }}">
+          {{ w.n }}<span class="week-date">{{ w.start.strftime("%b") }} {{ w.start.day }}</span>
+        </th>
+        {% endfor %}
+        {% if is_admin %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody id="measurable-rows">
+      {% for row in rows %}
+        {% with measurable=row.measurable, cells=row.cells %}{% include "scorecard/_row.html" %}{% endwith %}
+      {% else %}
+      <tr id="measurables-empty"><td colspan="17">No measurables yet.{% if is_admin %} Use the + button to add one.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{# Shared fields for the add / edit measurable forms. `m` is the measurable
+   being edited, or undefined when adding; `fid` prefixes element ids. #}
+<div class="field">
+  <label for="{{ fid }}-name">Measurable</label>
+  <input type="text" id="{{ fid }}-name" name="name" required maxlength="255" value="{{ m.name if m else '' }}">
+</div>
+<div class="field">
+  <label for="{{ fid }}-owner">Owner</label>
+  <select id="{{ fid }}-owner" name="owner_id" required>
+    {% if m and not m.owner_id %}<option value="" selected disabled>— choose an owner —</option>{% endif %}
+    {% for user in org_users %}
+    <option value="{{ user.id }}" {% if m and m.owner_id == user.id %}selected{% endif %}>{{ user.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="field">
+  <label for="{{ fid }}-unit">Type of value</label>
+  <select id="{{ fid }}-unit" name="unit" required>
+    {% for u in units %}
+    <option value="{{ u.value }}" {% if m and m.unit == u.value %}selected{% endif %}>{{ {'number': 'Number', 'currency': 'Dollars ($)', 'percent': 'Percent (%)'}[u.value] }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="field">
+  <label for="{{ fid }}-direction">Goal is met when the value is</label>
+  <select id="{{ fid }}-direction" name="goal_direction" required>
+    {% for d in directions %}
+    <option value="{{ d.value }}" {% if m and m.goal_direction == d.value %}selected{% endif %}>{{ {'gte': 'at least the goal (≥)', 'lte': 'at most the goal (≤)', 'eq': 'exactly the goal (=)'}[d.value] }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="field">
+  <label for="{{ fid }}-goal">Goal</label>
+  <input type="text" id="{{ fid }}-goal" name="goal_value" required inputmode="decimal" value="{{ raw_value(m.goal_value) if m else '' }}" placeholder="e.g. 50, 75K, 80">
+</div>

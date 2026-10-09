@@ -1,0 +1,28 @@
+<tr id="mrow-{{ measurable.id }}">
+  <td class="who">{{ measurable.owner.name if measurable.owner else "—" }}</td>
+  <td class="measurable-name">{{ measurable.name }}</td>
+  <td class="goal">{{ format_goal(measurable.goal_value, measurable.unit, measurable.goal_direction) }}</td>
+  {% for c in cells %}{% include "scorecard/_cell.html" %}{% endfor %}
+  {% if current_user.role.value == "admin" %}
+  <td class="row-actions">
+    <button
+      class="link"
+      hx-get="/scorecards/{{ scorecard.id }}/measurables/{{ measurable.id }}/edit"
+      hx-target="#edit-measurable-body"
+      hx-swap="innerHTML"
+      hx-on::after-request="if(event.detail.successful) document.getElementById('edit-measurable-modal').showModal()"
+    >
+      Edit
+    </button>
+    <button
+      class="link-danger"
+      hx-delete="/scorecards/{{ scorecard.id }}/measurables/{{ measurable.id }}"
+      hx-target="#mrow-{{ measurable.id }}"
+      hx-swap="delete"
+      hx-confirm="Delete the measurable &quot;{{ measurable.name }}&quot; and all of its weekly values? This cannot be undone."
+    >
+      Delete
+    </button>
+  </td>
+  {% endif %}
+</tr>

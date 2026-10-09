@@ -70,11 +70,22 @@ queued.
 ## Web UI
 
 Done - all nine EOS tools have a page: Rocks, Issues, To-Dos, Teams,
-Users, Scorecard, Meetings, Seats/Accountability Chart, VTO, People
+Users, Scorecards, Meetings, Seats/Accountability Chart, VTO, People
 Analyzer. Nothing left on the original page list; next UI work is
 whatever the app actually needs in practice (polish, new workflows)
 rather than filling a gap.
 
+
+- [ ] Scorecards follow-ups: (1) edit a scorecard's name / start date
+      after creation (today a wrong start date means delete + recreate);
+      (2) reorder measurables (rows follow the order they were added);
+      (3) a Reports page with trend charts built from scorecard data (the
+      old sparklines were removed on purpose); (4) scorecards are
+      org-wide for now since there's one team - tie them to a team if
+      the app ever runs several; (5) the REST API's scorecard-entry
+      endpoints are admin-only, so owners can't use them to bypass the
+      "owner or admin" rule the web UI enforces - revisit if API access
+      for owners is ever needed.
 
 - [ ] Activity log follow-ups: filter the feed by type (Rocks, Issues, ...)
       or person; a "For you" view of changes to things you own or were

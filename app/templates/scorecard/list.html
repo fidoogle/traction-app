@@ -1,43 +1,76 @@
 {% extends "base.html" %}
-{% block title %}Scorecard - Traction/EOS{% endblock %}
+{% block title %}Scorecards - Traction/EOS{% endblock %}
 {% block content %}
-<h1>Scorecard</h1>
+{% from "_macros.html" import page_header, modal %}
+{% set is_admin = current_user.role.value == "admin" %}
+{{ page_header("Scorecards", "Add scorecard", "add-scorecard-modal" if is_admin else None) }}
 
-{% if current_user.role.value != "viewer" %}
-<div class="card">
-  <h2>Add a measurable</h2>
-  <form hx-post="/scorecard" hx-target="#scorecard-cards" hx-swap="afterbegin"
-        hx-on::after-request="if(event.detail.successful) this.reset()">
-    <div class="form-row">
-      <div class="field">
-        <label for="name">Name</label>
-        <input type="text" id="name" name="name" required>
-      </div>
-      <div class="field">
-        <label for="team_id">Team</label>
-        <select id="team_id" name="team_id" required>
-          {% for team in teams %}
-          <option value="{{ team.id }}">{{ team.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="field field-narrow">
-        <label for="goal_value">Goal</label>
-        <input type="number" step="any" id="goal_value" name="goal_value" required>
-      </div>
-      <button class="primary" type="submit">Add measurable</button>
-    </div>
-  </form>
-</div>
+{% if is_admin %}
+{% call modal("add-scorecard-modal", "Start a new scorecard") %}
+<form hx-post="/scorecards" hx-swap="none">
+  <div class="field">
+    <label for="sc-name">Name</label>
+    <input type="text" id="sc-name" name="name" required maxlength="255" placeholder="e.g. Q4 2026" autofocus>
+  </div>
+  <div class="field">
+    <label for="sc-start">Start date (a Sunday)</label>
+    <input type="date" id="sc-start" name="start_date" value="{{ default_start }}" required>
+    <div class="field-hint">Week 1 starts on this date; the scorecard runs 13 weeks.</div>
+  </div>
+  <div class="field">
+    <label for="sc-copy">Copy measurables from</label>
+    <select id="sc-copy" name="copy_from">
+      <option value="">— start empty —</option>
+      {% for item in scorecards %}
+      <option value="{{ item.scorecard.id }}" {% if loop.first %}selected{% endif %}>{{ item.scorecard.name }}</option>
+      {% endfor %}
+    </select>
+    <div class="field-hint">Copies each row's owner, goal and type; the weeks start blank.</div>
+  </div>
+  <div class="modal-actions">
+    <button type="button" class="secondary" data-modal-close>Cancel</button>
+    <button type="submit" class="primary">Create scorecard</button>
+  </div>
+</form>
+{% endcall %}
 {% endif %}
 
-<div id="scorecard-cards">
-  {% for item in cards %}
-    {% with measurable=item.measurable, chart=item.chart, latest_value=item.latest_value, latest_week=item.latest_week, default_week_ending=item.default_week_ending %}
-      {% include "scorecard/_card.html" %}
-    {% endwith %}
-  {% else %}
-  <div class="card">No measurables yet.</div>
-  {% endfor %}
+<div class="card">
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th><th>Weeks</th><th>Measurables</th><th>Status</th>
+        {% if is_admin %}<th></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody id="scorecards-table-body">
+      {% for item in scorecards %}
+      {% set s = item.scorecard %}
+      <tr id="scorecard-row-{{ s.id }}">
+        <td><a href="/scorecards/{{ s.id }}">{{ s.name }}</a></td>
+        <td>{{ s.start_date.strftime("%b") }} {{ s.start_date.day }}, {{ s.start_date.year }} &ndash; {{ s.end_date.strftime("%b") }} {{ s.end_date.day }}, {{ s.end_date.year }}</td>
+        <td>{{ s.measurables | length }}</td>
+        <td><span class="badge {{ {'Current': 'on_track', 'Upcoming': 'scheduled', 'Past': 'dropped'}[item.status] }}">{{ item.status }}</span></td>
+        {% if is_admin %}
+        <td class="row-actions">
+          <button
+            class="link-danger"
+            hx-delete="/scorecards/{{ s.id }}"
+            hx-target="#scorecard-row-{{ s.id }}"
+            hx-swap="delete"
+            hx-confirm="Delete the scorecard &quot;{{ s.name }}&quot;? All of its measurables and weekly values are deleted too. This cannot be undone."
+          >
+            Delete
+          </button>
+        </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No scorecards yet.{% if is_admin %} Use the + button to start one.{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
 </div>
 {% endblock %}

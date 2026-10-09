@@ -1,0 +1,13 @@
+{# One weekly cell. `c` comes from _cell() in scorecard_routes.py. #}
+<td id="cell-{{ c.measurable.id }}-{{ c.week.n }}"
+    class="week-cell {{ c.state }}{% if c.week.is_current %} current-week{% endif %}{% if c.error %} cell-error{% endif %}"
+    {% if c.error %}title="Couldn't read that value - it was not saved"{% endif %}>
+  {% if c.can_edit %}
+  <input type="text" class="cell-input" name="value" value="{{ c.text }}" inputmode="decimal" autocomplete="off"
+         aria-label="{{ c.measurable.name }}, week {{ c.week.n }}"
+         hx-put="/scorecards/{{ c.scorecard.id }}/measurables/{{ c.measurable.id }}/weeks/{{ c.week.n }}"
+         hx-trigger="change" hx-target="closest td" hx-swap="outerHTML">
+  {% else %}
+  {{ c.text or "" }}
+  {% endif %}
+</td>

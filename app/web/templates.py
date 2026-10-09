@@ -3,6 +3,8 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
+from app.core.scorecard_format import format_goal, format_value, raw_value
+
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -23,3 +25,6 @@ def static_version(filename: str) -> str:
 
 
 templates.env.globals["static_version"] = static_version
+templates.env.globals["format_value"] = format_value
+templates.env.globals["format_goal"] = format_goal
+templates.env.globals["raw_value"] = raw_value

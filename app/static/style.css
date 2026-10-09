@@ -673,30 +673,44 @@ select.status-select {
   border-left: 2px solid var(--border);
 }
 
-.measurable-card { padding: 1.25rem 1.5rem 1.5rem; }
+/* Scorecards: the 13-week editable grid. */
+.breadcrumb { margin: 0 0 0.5rem; font-size: 0.9rem; }
+.text-muted { color: var(--text-muted); }
+.scorecard-dates { margin: -0.5rem 0 1rem; font-size: 0.9rem; }
+.field-hint { margin-top: 0.3rem; font-size: 0.8rem; color: var(--text-faint); }
 
-.measurable-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.measurable-header h2 { margin: 0 0 0.15rem; }
-
-.measurable-latest { text-align: right; }
-.measurable-latest .value { font-size: 1.5rem; font-weight: 600; }
-.measurable-latest .label { color: var(--text-muted); font-size: 0.78rem; }
-
-svg.sparkline {
-  width: 100%;
-  height: 60px;
+.scorecard-grid th, .scorecard-grid td { padding: 0.35rem 0.4rem; }
+.scorecard-grid td.who, .scorecard-grid td.measurable-name { font-weight: 500; }
+.scorecard-grid td.goal { font-weight: 600; }
+.scorecard-grid .week-head { text-align: center; min-width: 5.5rem; }
+.scorecard-grid .week-date {
   display: block;
-  margin-bottom: 1rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text-faint);
 }
+.scorecard-grid td.week-cell { padding: 0; text-align: center; border-left: 1px solid var(--border); }
+.scorecard-grid td.week-cell:not(:has(input)) { padding: 0.35rem 0.4rem; }
+.scorecard-grid .current-week { box-shadow: inset 0 2px 0 var(--accent); }
+.scorecard-grid td.current-week { background: var(--surface-2); }
+.scorecard-grid td.week-cell.met { background: var(--on-track-bg); color: var(--on-track); }
+.scorecard-grid td.week-cell.missed { background: var(--off-track-bg); color: var(--off-track); }
+.scorecard-grid td.week-cell.cell-error { outline: 2px solid var(--off-track); outline-offset: -2px; }
 
-.trend-line { stroke: var(--brand); stroke-width: 2; }
-.goal-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.cell-input {
+  width: 100%;
+  min-width: 5.5rem;
+  padding: 0.45rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+.cell-input:hover { border-color: var(--border); }
+.cell-input:focus { border-color: var(--brand); background: var(--surface); color: var(--text); outline: none; }
 
 .saved-banner {
   background: var(--on-track-bg);
