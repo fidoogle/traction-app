@@ -206,8 +206,8 @@ textarea:focus-visible {
 }
 
 .sidebar-brand .brand-logo {
-  width: 2rem;
-  height: 2rem;
+  width: 1.875rem;
+  height: 1.875rem;
   flex: 0 0 auto;
   object-fit: contain;
 }
