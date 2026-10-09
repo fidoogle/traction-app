@@ -126,6 +126,8 @@ PEOPLE = [
     ("noah", "Noah Bennett", "youth-photo-logging", UserRole.MEMBER, "youth", [], False),
     ("tyler", "Tyler Reed", "youth-sports", UserRole.MEMBER, "youth", ["men"], False),
     ("elena", "Elena Ruiz", "youth-bible-study", UserRole.MEMBER, "youth", [], False),
+    # Read-only congregant, for testing the viewer role.
+    ("helen", "Helen Carter", "woman-viewer-congregant", UserRole.VIEWER, "women", [], False),
 ]
 
 TEAMS = [
