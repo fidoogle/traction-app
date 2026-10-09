@@ -9,9 +9,9 @@ from app.models.base import Base, UUIDPKMixin
 
 
 class VTO(UUIDPKMixin, Base):
-    """Vision/Traction Organizer: one current-state document per org.
+    """Vision/Traction Organizer: one current-state document per team.
 
-    Core values and the longer-range sections vary too much org to org to
+    Core values and the longer-range sections vary too much team to team to
     force into rigid columns, so they're stored as JSONB rather than
     normalized tables - the org edits this in place as their plan evolves.
     """
@@ -19,7 +19,10 @@ class VTO(UUIDPKMixin, Base):
     __tablename__ = "vtos"
 
     org_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, unique=True
+        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False, unique=True
     )
 
     # e.g. [{"name": "Integrity", "description": "..."}, ...]
@@ -35,4 +38,5 @@ class VTO(UUIDPKMixin, Base):
     # e.g. {"target_date": "...", "goals": ["...", "..."], ...}
     one_year_plan: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB)
 
-    organization: Mapped["Organization"] = relationship(back_populates="vto")
+    organization: Mapped["Organization"] = relationship(back_populates="vtos")
+    team: Mapped["Team"] = relationship(back_populates="vto")

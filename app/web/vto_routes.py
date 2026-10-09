@@ -5,8 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.models import User, UserRole, VTO
-from app.web.deps import get_current_user_web
+from app.models import Team, User, UserRole, VTO
+from app.web.deps import get_current_user_web, get_team_context
+from app.web.team_context import TeamContext
 from app.web.templates import templates
 
 router = APIRouter(prefix="/vto")
@@ -36,14 +37,15 @@ def _format_core_values(values: Optional[list[Any]]) -> str:
     return "\n".join(lines)
 
 
-def _get_vto(db: Session, org_id) -> Optional[VTO]:
-    return db.scalar(select(VTO).where(VTO.org_id == org_id))
+def _get_vto(db: Session, team_id) -> Optional[VTO]:
+    return db.scalar(select(VTO).where(VTO.team_id == team_id))
 
 
-def _vto_context(db: Session, current_user: User, saved: bool = False) -> dict:
-    vto = _get_vto(db, current_user.org_id)
+def _vto_context(db: Session, current_user: User, team: Team, saved: bool = False) -> dict:
+    vto = _get_vto(db, team.id)
     return {
         "current_user": current_user,
+        "team": team,
         "vto": vto,
         "core_values_text": _format_core_values(vto.core_values) if vto else "",
         "looks_like_text": "\n".join((vto.three_year_picture or {}).get("looks_like", []))
@@ -59,8 +61,17 @@ def get_vto_page(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    return templates.TemplateResponse(request, "vto/edit.html", _vto_context(db, current_user))
+    # Each team has its own VTO, so under an admin's "All teams" there's
+    # nothing to show yet - offer the teams to pick from instead.
+    if team_ctx.current is None:
+        return templates.TemplateResponse(
+            request, "vto/choose.html", {"current_user": current_user, "teams": team_ctx.teams}
+        )
+    return templates.TemplateResponse(
+        request, "vto/edit.html", _vto_context(db, current_user, team_ctx.current)
+    )
 
 
 @router.put("")
@@ -77,13 +88,17 @@ def save_vto(
     one_year_goals: str = Form(default=""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     if current_user.role == UserRole.VIEWER:
         raise HTTPException(status_code=403)
+    team = team_ctx.current
+    if team is None:
+        raise HTTPException(status_code=400, detail="Pick a team first")
 
-    vto = _get_vto(db, current_user.org_id)
+    vto = _get_vto(db, team.id)
     if vto is None:
-        vto = VTO(org_id=current_user.org_id)
+        vto = VTO(org_id=current_user.org_id, team_id=team.id)
         db.add(vto)
 
     vto.core_values = _parse_core_values(core_values)
@@ -109,5 +124,5 @@ def save_vto(
     db.commit()
     db.refresh(vto)
     return templates.TemplateResponse(
-        request, "vto/_form.html", _vto_context(db, current_user, saved=True)
+        request, "vto/_form.html", _vto_context(db, current_user, team, saved=True)
     )

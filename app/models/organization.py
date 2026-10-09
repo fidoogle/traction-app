@@ -21,6 +21,6 @@ class Organization(UUIDPKMixin, Base):
     scorecards: Mapped[List["Scorecard"]] = relationship(
         cascade="all, delete-orphan", order_by="Scorecard.start_date.desc()"
     )
-    vto: Mapped[Optional["VTO"]] = relationship(
-        back_populates="organization", cascade="all, delete-orphan", uselist=False
+    vtos: Mapped[List["VTO"]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
     )

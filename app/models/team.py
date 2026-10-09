@@ -47,3 +47,6 @@ class Team(UUIDPKMixin, Base):
     todos: Mapped[List["Todo"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
+    vto: Mapped[Optional["VTO"]] = relationship(
+        back_populates="team", cascade="all, delete-orphan", uselist=False
+    )

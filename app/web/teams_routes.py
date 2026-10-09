@@ -19,6 +19,7 @@ from app.models import (
     Todo,
     User,
     UserRole,
+    VTO,
 )
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.team_context import ALL_TEAMS, TeamContext, remember_team
@@ -28,7 +29,7 @@ router = APIRouter(prefix="/teams")
 
 # Everything a team owns. A team with any of it (or any members) can't be
 # deleted - that would silently take a whole team's history with it.
-_TEAM_CONTENT = (Rock, Issue, Meeting, Seat, Scorecard, Todo)
+_TEAM_CONTENT = (Rock, Issue, Meeting, Seat, Scorecard, Todo, VTO)
 
 
 def _require_admin(current_user: User) -> None:

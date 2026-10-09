@@ -238,7 +238,7 @@ def _changes(db: Session, obj: Any) -> list[str]:
 def _team_id_of(db: Session, obj: Any) -> Optional[uuid.UUID]:
     """The team a record belongs to (so the feed can follow the current team),
     or None for org-level records - users, teams and the organization."""
-    if isinstance(obj, (Rock, Issue, Todo, Meeting, Seat, Scorecard, TeamMembership)):
+    if isinstance(obj, (Rock, Issue, Todo, Meeting, Seat, Scorecard, TeamMembership, VTO)):
         return obj.team_id
     # Team entries (created / renamed / deleted) stay org-level: the log row can
     # be written before the team row exists, or after it's gone, so it can't

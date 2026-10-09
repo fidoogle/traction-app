@@ -47,7 +47,7 @@
   {% if current_user.role.value == "admin" %}
   <td>
     {% if team.id in in_use %}
-    <span class="text-muted" title="Only a team with no members and no rocks, issues, meetings, seats or scorecards can be deleted">In use</span>
+    <span class="text-muted" title="Only a team with no members and no rocks, issues, to-dos, meetings, seats, scorecards or VTO can be deleted">In use</span>
     {% else %}
     <button
       class="link-danger"

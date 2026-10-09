@@ -178,6 +178,7 @@ def main() -> None:
         # --- VTO ---
         vto = VTO(
             org_id=org.id,
+            team_id=leadership.id,
             core_values=[
                 {
                     "name": "Students First",

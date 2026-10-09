@@ -25,8 +25,8 @@ def _entries_query(team_ids: list[uuid.UUID]):
     )
 
 
-def _org_core_value_names(db: Session, org_id: uuid.UUID) -> list[str]:
-    vto = db.scalar(select(VTO).where(VTO.org_id == org_id))
+def _team_core_value_names(db: Session, team_id: uuid.UUID) -> list[str]:
+    vto = db.scalar(select(VTO).where(VTO.team_id == team_id))
     if vto is None:
         return []
     return [
@@ -46,7 +46,12 @@ def _list_context(db: Session, current_user: User, team_ctx: TeamContext) -> dic
         "entries": entries,
         "people": team_people(db, team_ctx),
         "org_seats": seats,
-        "core_value_names": _org_core_value_names(db, current_user.org_id),
+        # Core values are each team's own (on its VTO), so they can only be rated
+        # while one team is current.
+        "core_value_names": (
+            _team_core_value_names(db, team_ctx.current.id) if team_ctx.current else []
+        ),
+        "rate_core_values": team_ctx.current is not None,
         "today": date.today(),
     }
 
@@ -73,6 +78,7 @@ def create_entry(
     wants_it: bool = Form(default=False),
     has_capacity: bool = Form(default=False),
     core_value_names: list[str] = Form(default=[]),
+    rate_core_values: str = Form(default=""),
     notes: str = Form(default=""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
@@ -89,8 +95,14 @@ def create_entry(
     # You evaluate someone who is on the seat's team.
     require_member(seat.team, user_id)
 
-    org_core_values = _org_core_value_names(db, current_user.org_id)
-    ratings = {name: (name in core_value_names) for name in org_core_values}
+    # Rated against the seat's team's core values - and only if the form offered
+    # them, so an unchecked box means "no", not "wasn't asked".
+    ratings = {}
+    if rate_core_values == "1":
+        ratings = {
+            name: (name in core_value_names)
+            for name in _team_core_value_names(db, seat.team_id)
+        }
 
     entry = PeopleAnalyzerEntry(
         user_id=user_id,

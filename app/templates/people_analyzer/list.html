@@ -36,6 +36,7 @@
       <label class="checkbox-field"><input type="checkbox" name="has_capacity" value="true"> Has the capacity</label>
     </div>
 
+    {% if rate_core_values %}<input type="hidden" name="rate_core_values" value="1">{% endif %}
     {% if core_value_names %}
     <div class="form-row gwc-row">
       {% for name in core_value_names %}
@@ -44,9 +45,13 @@
       </label>
       {% endfor %}
     </div>
-    {% else %}
+    {% elif rate_core_values %}
     <p class="text-muted">
       No core values defined yet — set them on the <a href="/vto">VTO</a> page to rate against them here.
+    </p>
+    {% else %}
+    <p class="text-muted">
+      Core values belong to each team's <a href="/vto">VTO</a> - pick a team in the top bar to rate against them.
     </p>
     {% endif %}
 

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}VTO - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Vision/Traction Organizer</h1>
+<p class="page-intro">Each team keeps its own V/TO. Choose a team to open it.</p>
+
+<div class="card">
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>Team</th><th></th></tr></thead>
+    <tbody>
+      {% for team in teams %}
+      <tr>
+        <td>{{ team.name }}</td>
+        <td class="row-actions">
+          <button class="link" hx-post="/teams/current" hx-vals='{"team_id": "{{ team.id }}"}' hx-swap="none">Open</button>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2">No teams yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

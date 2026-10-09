@@ -109,10 +109,17 @@ def test_organizations_are_limited_to_your_own(world, login):
     assert admin.patch(f"/api/organizations/{world['org2']}", json={"name": "Mine now"}).status_code == 404
 
 
-def test_vto_is_limited_to_your_own_org(world, login):
+def test_vto_is_limited_to_teams_you_can_work_in(world, login):
+    body = {"core_focus_purpose": "new purpose", "core_focus_niche": "n"}
+    mia = login("mia")  # Alpha + Bravo
+    assert mia.get(f"/api/teams/{world['team_alpha']}/vto").json()["core_focus_purpose"] == "alpha purpose"
+    assert mia.get(f"/api/teams/{world['team_charlie']}/vto").status_code == 404
+    assert mia.put(f"/api/teams/{world['team_charlie']}/vto", json=body).status_code == 404
+    assert mia.put(f"/api/teams/{world['team_bravo']}/vto", json=body).status_code == 200
+    assert mia.delete(f"/api/teams/{world['team_bravo']}/vto").status_code == 403  # admins only
+    # Another org's team doesn't exist as far as you can tell.
     admin = login("admin")
-    assert admin.get(f"/api/organizations/{world['org2']}/vto").status_code == 404
-    assert admin.delete(f"/api/organizations/{world['org2']}/vto").status_code == 404
-    assert admin.get(f"/api/organizations/{world['org']}/vto").status_code == 404  # none set yet
-    body = {"core_focus_purpose": "p", "core_focus_niche": "n"}
-    assert admin.put(f"/api/organizations/{world['org2']}/vto", json=body).status_code == 404
+    assert admin.get(f"/api/teams/{world['team_xray']}/vto").status_code == 404
+    assert admin.put(f"/api/teams/{world['team_xray']}/vto", json=body).status_code == 404
+    assert admin.delete(f"/api/teams/{world['team_xray']}/vto").status_code == 404
+    assert admin.delete(f"/api/teams/{world['team_charlie']}/vto").status_code == 204

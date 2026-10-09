@@ -22,3 +22,4 @@ class VTORead(VTOBase):
 
     id: uuid.UUID
     org_id: uuid.UUID
+    team_id: uuid.UUID

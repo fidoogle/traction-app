@@ -87,6 +87,7 @@ def world(engine) -> World:
         Todo,
         User,
         UserRole,
+        VTO,
     )
     from datetime import date
 
@@ -165,12 +166,16 @@ def world(engine) -> World:
                 gets_it=True, wants_it=True, has_capacity=True, core_values_ratings={},
             )
             todo = Todo(team_id=team.id, owner_id=owner.id, issue_id=issue.id, title=f"{key} todo")
-            db.add_all([entry, review, todo])
+            vto = VTO(
+                org_id=team.org_id, team_id=team.id, core_focus_purpose=f"{key} purpose",
+                core_values=[{"name": f"{key} value", "description": ""}],
+            )
+            db.add_all([entry, review, todo, vto])
             db.flush()
             for kind, obj in (
                 ("rock", rock), ("issue", issue), ("meeting", meeting), ("seat", seat),
                 ("card", card), ("measurable", measurable), ("entry", entry),
-                ("review", review), ("todo", todo),
+                ("review", review), ("todo", todo), ("vto", vto),
             ):
                 ids[f"{kind}_{key}"] = obj.id
         db.commit()

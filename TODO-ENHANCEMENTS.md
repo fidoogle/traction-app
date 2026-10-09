@@ -8,11 +8,6 @@ queued.
 
 ## Authorization & Access Control
 
-- [ ] Team-scoped data access, mostly done: Rocks, Issues, To-Dos, Meetings,
-      Seats, People Analyzer, Scorecards and the JSON API are now limited to
-      your own teams (admins: every team in the org), as are the Dashboard
-      counts and the Activity feed. Still open: the VTO (Teams rollout
-      phase 4), which is still one per org.
 - [ ] Refresh tokens / session revocation. Access tokens are currently
       long-lived (24h) bearer JWTs with no server-side revocation — logging
       out or deactivating a user doesn't invalidate outstanding tokens.
@@ -41,18 +36,11 @@ queued.
 
 ## Data Model
 
-- [ ] Teams rollout (multi-team support), in progress. Done: Phase 0 -
-      `team_memberships` (people can be on several teams), the topbar
-      current-team switcher, member add/remove on the Teams page; Phase 1 -
-      each scorecard belongs to a team (list follows the current team,
-      owners must be team members, non-members get 404); Phase 2 - Rocks,
-      Issues, Meetings, Org Chart and People Analyzer follow the current
-      team and are limited to your own teams, and the JSON API got the same
-      scoping (app/api/scoping.py); Phase 3 - To-Dos belong to a team (owner
-      and related issue must be on it; an issue's to-dos move with it when
-      the issue changes team); Phase 5 - the Dashboard and the Activity feed
-      (and its unread badge) follow the current team. Next: (4) one VTO per
-      team.
+- [ ] Teams: a district-wide view. Everything is per team now (each with
+      its own VTO, rocks, scorecards, ...); there's no org-level VTO or
+      roll-up report across teams. EOS usually has a company-level VTO that
+      department teams' VTOs hang off - consider one that isn't tied to a
+      team (admin-edited, readable by all), or a cross-team dashboard.
 - [ ] Activity feed + teams: "last seen" is one timestamp per person, so
       opening the feed on one team marks every team's entries as read.
       Entries with no team (user/org changes, plus anything logged before
@@ -82,8 +70,8 @@ queued.
       per value. Real GWC/People Analyzer practice often uses a 3-state
       rating (+ / +- / -). Consider widening `core_values_ratings` if the
       simple boolean turns out to be too coarse in practice.
-- [ ] VTO versioning/history. VTO is currently a single current-state row
-      per org (upsert in place). EOS orgs revisit their VTO periodically
+- [ ] VTO versioning/history. Each team's VTO is currently a single
+      current-state row (upsert in place). EOS orgs revisit their VTO periodically
       (quarterly/annually) — consider keeping prior versions instead of
       overwriting.
 - [ ] Meeting model is bare-bones (date + status only). A real L10 meeting
