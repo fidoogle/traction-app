@@ -10,9 +10,9 @@ queued.
 
 - [ ] Team-scoped data access, mostly done: Rocks, Issues, To-Dos, Meetings,
       Seats, People Analyzer, Scorecards and the JSON API are now limited to
-      your own teams (admins: every team in the org). Still open: the VTO
-      (Teams rollout phase 4) and the Dashboard counts + Activity feed
-      (phase 5), which still cover the whole org.
+      your own teams (admins: every team in the org), as are the Dashboard
+      counts and the Activity feed. Still open: the VTO (Teams rollout
+      phase 4), which is still one per org.
 - [ ] Refresh tokens / session revocation. Access tokens are currently
       long-lived (24h) bearer JWTs with no server-side revocation — logging
       out or deactivating a user doesn't invalidate outstanding tokens.
@@ -50,8 +50,14 @@ queued.
       team and are limited to your own teams, and the JSON API got the same
       scoping (app/api/scoping.py); Phase 3 - To-Dos belong to a team (owner
       and related issue must be on it; an issue's to-dos move with it when
-      the issue changes team). Next: (4) one VTO per team; (5) Dashboard +
-      Activity follow the current team.
+      the issue changes team); Phase 5 - the Dashboard and the Activity feed
+      (and its unread badge) follow the current team. Next: (4) one VTO per
+      team.
+- [ ] Activity feed + teams: "last seen" is one timestamp per person, so
+      opening the feed on one team marks every team's entries as read.
+      Entries with no team (user/org changes, plus anything logged before
+      teams existed whose record has since been deleted) are shown to admins
+      under "All teams" only. A per-team "last seen" would need a small table.
 - [ ] JSON API scoping is by org/team only. The web UI is stricter in a few
       ways the API doesn't enforce: an owner/occupant must be a *member* of
       the row's team (the API only checks they're in the org); a seat's

@@ -2,6 +2,8 @@
 {% block title %}Dashboard - Traction/EOS{% endblock %}
 {% block content %}
 <h1>Welcome, {{ current_user.name }}</h1>
+{% set team = request.state.team_ctx.current %}
+<p class="text-muted">Showing {% if team %}<strong>{{ team.name }}</strong>{% else %}<strong>all teams</strong>{% endif %}. Use the team switcher above to change.</p>
 
 <div class="stat-row">
   <div class="stat">

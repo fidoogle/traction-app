@@ -146,7 +146,7 @@ def world(engine) -> World:
             owner = people[owners[key]]
             rock = Rock(team_id=team.id, owner_id=owner.id, title=f"{key} rock", quarter="2026-Q4")
             issue = Issue(team_id=team.id, title=f"{key} issue", priority=1)
-            meeting = Meeting(team_id=team.id, scheduled_date=date(2026, 11, 2))
+            meeting = Meeting(team_id=team.id, scheduled_date=date(2099, 1, 1))
             seat = Seat(team_id=team.id, user_id=owner.id, title=f"{key} seat")
             card = Scorecard(
                 org_id=team.org_id, team_id=team.id, name=f"{key} card", start_date=date(2026, 10, 5)

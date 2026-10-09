@@ -4,7 +4,8 @@
 <div class="page-header">
   <h1>Activity</h1>
 </div>
-<p class="page-intro">Additions, edits and deletions across your organization from the last {{ retention_days }} days, newest first.</p>
+{% set team = request.state.team_ctx.current %}
+<p class="page-intro">Additions, edits and deletions {% if team %}for <strong>{{ team.name }}</strong>{% else %}across your organization{% endif %} from the last {{ retention_days }} days, newest first.</p>
 
 <div class="card activity-card">
   <ol class="activity-feed">

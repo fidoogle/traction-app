@@ -235,10 +235,30 @@ def _changes(db: Session, obj: Any) -> list[str]:
     return lines
 
 
+def _team_id_of(db: Session, obj: Any) -> Optional[uuid.UUID]:
+    """The team a record belongs to (so the feed can follow the current team),
+    or None for org-level records - users and the organization."""
+    if isinstance(obj, (Rock, Issue, Todo, Meeting, Seat, Scorecard, TeamMembership)):
+        return obj.team_id
+    if isinstance(obj, Team):
+        return obj.id
+    if isinstance(obj, Measurable):
+        scorecard = db.get(Scorecard, obj.scorecard_id) if obj.scorecard_id else None
+        return scorecard.team_id if scorecard else None
+    if isinstance(obj, ScorecardEntry):
+        measurable = db.get(Measurable, obj.measurable_id) if obj.measurable_id else None
+        return _team_id_of(db, measurable) if measurable else None
+    if isinstance(obj, PeopleAnalyzerEntry):
+        seat = db.get(Seat, obj.seat_id) if obj.seat_id else None
+        return seat.team_id if seat else None
+    return None
+
+
 def _entry(db: Session, actor, action: str, obj: Any, changes: list[str]) -> ActivityLog:
     actor_id, org_id, actor_name = actor
     return ActivityLog(
         org_id=org_id,
+        team_id=_team_id_of(db, obj),
         actor_id=actor_id,
         actor_name=actor_name,
         action=action,
