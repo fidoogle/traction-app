@@ -177,6 +177,40 @@
       var err = evt.target.querySelector('[data-modal-error]');
       if (err) err.hidden = true;
     }, true);
+
+    // Team-aware forms: a team (or seat) picker carrying
+    // data-member-filter="#owner_id, #parent" narrows those selects to the
+    // options whose data-teams lists the picked team (options without
+    // data-teams, like "- vacant -", always stay). A seat picker names its
+    // team on the option as data-team-id. The server re-checks every choice.
+    function applyMemberFilter(source) {
+      var scope = source.closest('form, tr') || document;
+      var picked = source.selectedOptions && source.selectedOptions[0];
+      var team = (picked && picked.getAttribute('data-team-id')) || source.value;
+      scope.querySelectorAll(source.getAttribute('data-member-filter')).forEach(function (target) {
+        Array.prototype.forEach.call(target.options, function (o) {
+          var teams = o.getAttribute('data-teams');
+          var ok = teams === null || teams.split(' ').indexOf(team) !== -1;
+          o.hidden = !ok;
+          o.disabled = !ok;
+        });
+        if (!target.selectedOptions.length || target.selectedOptions[0].disabled) {
+          var first = Array.prototype.find.call(target.options, function (o) { return !o.disabled; });
+          target.value = first ? first.value : '';
+        }
+      });
+    }
+    function initMemberFilters(root) {
+      root.querySelectorAll('[data-member-filter]').forEach(applyMemberFilter);
+    }
+    document.addEventListener('change', function (evt) {
+      if (evt.target.matches && evt.target.matches('[data-member-filter]')) applyMemberFilter(evt.target);
+    });
+    // A form reset puts the selects back to their defaults; filter again after.
+    document.addEventListener('reset', function (evt) {
+      setTimeout(function () { initMemberFilters(evt.target); }, 0);
+    }, true);
+    if (window.htmx) htmx.onLoad(initMemberFilters);
   </script>
 </head>
 <body>

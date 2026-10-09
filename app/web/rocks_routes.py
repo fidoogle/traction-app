@@ -7,18 +7,18 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.models import Rock, RockStatus, Team, User, UserRole
-from app.web.deps import get_current_user_web
+from app.web.deps import get_current_user_web, get_team_context
 from app.web.notes import clean_notes, notes_form_response
+from app.web.team_context import TeamContext, require_member, team_people
 from app.web.templates import templates
 
 router = APIRouter(prefix="/rocks")
 
 
-def _org_rocks_query(org_id: uuid.UUID):
+def _rocks_query(team_ids: list[uuid.UUID]):
     return (
         select(Rock)
-        .join(Team, Rock.team_id == Team.id)
-        .where(Team.org_id == org_id)
+        .where(Rock.team_id.in_(team_ids))
         .options(joinedload(Rock.owner), joinedload(Rock.team))
         .order_by(Rock.quarter.desc(), Rock.title)
     )
@@ -29,16 +29,9 @@ def _current_quarter() -> str:
     return f"{today.year}-Q{(today.month - 1) // 3 + 1}"
 
 
-def _org_teams(db: Session, org_id: uuid.UUID):
-    return db.scalars(select(Team).where(Team.org_id == org_id).order_by(Team.name)).all()
-
-
-def _org_users(db: Session, org_id: uuid.UUID):
-    return db.scalars(select(User).where(User.org_id == org_id).order_by(User.name)).all()
-
-
-def _get_org_rock(db: Session, rock_id: uuid.UUID, org_id: uuid.UUID) -> Rock:
-    rock = db.scalar(_org_rocks_query(org_id).where(Rock.id == rock_id))
+def _get_rock(db: Session, rock_id: uuid.UUID, team_ctx: TeamContext) -> Rock:
+    # Any of the user's teams, not just the current one (see scorecard_routes).
+    rock = db.scalar(_rocks_query(team_ctx.team_ids).where(Rock.id == rock_id))
     if rock is None:
         raise HTTPException(status_code=404)
     return rock
@@ -50,19 +43,20 @@ def _require_admin(current_user: User) -> None:
 
 
 def _validate_fields(
-    db: Session, org_id: uuid.UUID, team_id: uuid.UUID, owner_id: uuid.UUID, title: str, quarter: str
-) -> tuple[str, str]:
-    team = db.get(Team, team_id)
-    if team is None or team.org_id != org_id:
-        raise HTTPException(status_code=404)
-    owner = db.get(User, owner_id)
-    if owner is None or owner.org_id != org_id:
-        raise HTTPException(status_code=404)
+    team_ctx: TeamContext,
+    team_id: uuid.UUID,
+    owner_id: uuid.UUID,
+    title: str,
+    quarter: str,
+    keep_owner: uuid.UUID | None = None,
+) -> tuple[Team, str, str]:
+    team = team_ctx.get_team(team_id)
+    require_member(team, owner_id, keep=keep_owner)
     title = title.strip()
     quarter = quarter.strip()
     if not title or len(title) > 255 or not quarter or len(quarter) > 10:
         raise HTTPException(status_code=422)
-    return title, quarter
+    return team, title, quarter
 
 
 def _row_response(request: Request, current_user: User, rock: Rock):
@@ -78,16 +72,19 @@ def list_rocks(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    rocks = db.scalars(_org_rocks_query(current_user.org_id)).unique().all()
+    rocks = db.scalars(_rocks_query(team_ctx.scope_ids)).unique().all()
+    default_team = team_ctx.default_team(current_user.team_id)
     return templates.TemplateResponse(
         request,
         "rocks/list.html",
         {
             "current_user": current_user,
             "rocks": rocks,
-            "teams": _org_teams(db, current_user.org_id),
-            "users": _org_users(db, current_user.org_id),
+            "teams": team_ctx.teams,
+            "default_team_id": default_team.id if default_team else None,
+            "users": team_people(db, team_ctx),
             "default_quarter": _current_quarter(),
             "RockStatus": RockStatus,
         },
@@ -104,14 +101,15 @@ def create_rock(
     status: RockStatus = Form(RockStatus.ON_TRACK),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    title, quarter = _validate_fields(db, current_user.org_id, team_id, owner_id, title, quarter)
+    team, title, quarter = _validate_fields(team_ctx, team_id, owner_id, title, quarter)
 
-    rock = Rock(team_id=team_id, owner_id=owner_id, title=title, quarter=quarter, status=status)
+    rock = Rock(team_id=team.id, owner_id=owner_id, title=title, quarter=quarter, status=status)
     db.add(rock)
     db.commit()
-    return _row_response(request, current_user, _get_org_rock(db, rock.id, current_user.org_id))
+    return _row_response(request, current_user, _get_rock(db, rock.id, team_ctx))
 
 
 @router.get("/{rock_id}")
@@ -120,8 +118,9 @@ def get_rock_row(
     rock_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    return _row_response(request, current_user, _get_org_rock(db, rock_id, current_user.org_id))
+    return _row_response(request, current_user, _get_rock(db, rock_id, team_ctx))
 
 
 @router.get("/{rock_id}/edit")
@@ -130,17 +129,18 @@ def edit_rock_row(
     rock_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    rock = _get_org_rock(db, rock_id, current_user.org_id)
+    rock = _get_rock(db, rock_id, team_ctx)
     return templates.TemplateResponse(
         request,
         "rocks/_edit_row.html",
         {
             "current_user": current_user,
             "rock": rock,
-            "teams": _org_teams(db, current_user.org_id),
-            "users": _org_users(db, current_user.org_id),
+            "teams": team_ctx.teams,
+            "users": team_people(db, team_ctx, keep_ids=[rock.owner_id]),
             "RockStatus": RockStatus,
         },
     )
@@ -157,19 +157,29 @@ def update_rock(
     status: RockStatus = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    rock = _get_org_rock(db, rock_id, current_user.org_id)
-    title, quarter = _validate_fields(db, current_user.org_id, team_id, owner_id, title, quarter)
+    rock = _get_rock(db, rock_id, team_ctx)
+    # The owner may stay even if they've left the rock's team - but not when
+    # moving the rock to another team, where they must be a member.
+    team, title, quarter = _validate_fields(
+        team_ctx,
+        team_id,
+        owner_id,
+        title,
+        quarter,
+        keep_owner=rock.owner_id if team_id == rock.team_id else None,
+    )
 
-    rock.team_id = team_id
+    rock.team_id = team.id
     rock.owner_id = owner_id
     rock.title = title
     rock.quarter = quarter
     rock.status = status
     db.commit()
     db.expire_all()
-    return _row_response(request, current_user, _get_org_rock(db, rock_id, current_user.org_id))
+    return _row_response(request, current_user, _get_rock(db, rock_id, team_ctx))
 
 
 @router.patch("/{rock_id}/status")
@@ -179,9 +189,10 @@ def update_rock_status(
     status: RockStatus = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    rock = _get_org_rock(db, rock_id, current_user.org_id)
+    rock = _get_rock(db, rock_id, team_ctx)
 
     rock.status = status
     db.commit()
@@ -194,9 +205,10 @@ def delete_rock(
     rock_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    rock = _get_org_rock(db, rock_id, current_user.org_id)
+    rock = _get_rock(db, rock_id, team_ctx)
     db.delete(rock)
     db.commit()
     return Response(status_code=200)
@@ -208,8 +220,9 @@ def get_rock_notes(
     rock_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    rock = _get_org_rock(db, rock_id, current_user.org_id)
+    rock = _get_rock(db, rock_id, team_ctx)
     return notes_form_response(
         request,
         subject=rock.title,
@@ -227,10 +240,11 @@ def update_rock_notes(
     notes: str = Form(default=""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    rock = _get_org_rock(db, rock_id, current_user.org_id)
+    rock = _get_rock(db, rock_id, team_ctx)
     rock.notes = clean_notes(notes)
     db.commit()
     db.expire_all()
-    return _row_response(request, current_user, _get_org_rock(db, rock_id, current_user.org_id))
+    return _row_response(request, current_user, _get_rock(db, rock_id, team_ctx))

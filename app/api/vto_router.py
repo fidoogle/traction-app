@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db, require_roles
 from app.models.enums import UserRole
 from app.models.organization import Organization
+from app.models.user import User
 from app.models.vto import VTO
 from app.schemas.vto import VTORead, VTOUpsert
 
@@ -18,8 +19,9 @@ write_dep = Depends(require_roles(UserRole.ADMIN, UserRole.MEMBER))
 admin_dep = Depends(require_roles(UserRole.ADMIN))
 
 
-def _get_org_or_404(db: Session, org_id: uuid.UUID) -> Organization:
-    org = db.get(Organization, org_id)
+def _get_org_or_404(db: Session, org_id: uuid.UUID, user: User) -> Organization:
+    # You can only reach your own organization's VTO.
+    org = db.get(Organization, org_id) if org_id == user.org_id else None
     if org is None:
         raise HTTPException(status_code=404, detail="Organization not found")
     return org
@@ -30,8 +32,12 @@ def _get_vto(db: Session, org_id: uuid.UUID) -> VTO | None:
 
 
 @router.get("", response_model=VTORead)
-def get_vto(org_id: uuid.UUID, db: Session = Depends(get_db)):
-    _get_org_or_404(db, org_id)
+def get_vto(
+    org_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _get_org_or_404(db, org_id, current_user)
     vto = _get_vto(db, org_id)
     if vto is None:
         raise HTTPException(status_code=404, detail="VTO not set for this organization yet")
@@ -39,8 +45,13 @@ def get_vto(org_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.put("", response_model=VTORead, dependencies=[write_dep])
-def upsert_vto(org_id: uuid.UUID, payload: VTOUpsert, db: Session = Depends(get_db)):
-    _get_org_or_404(db, org_id)
+def upsert_vto(
+    org_id: uuid.UUID,
+    payload: VTOUpsert,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _get_org_or_404(db, org_id, current_user)
     vto = _get_vto(db, org_id)
     if vto is None:
         vto = VTO(org_id=org_id, **payload.model_dump())
@@ -54,8 +65,12 @@ def upsert_vto(org_id: uuid.UUID, payload: VTOUpsert, db: Session = Depends(get_
 
 
 @router.delete("", status_code=204, dependencies=[admin_dep])
-def delete_vto(org_id: uuid.UUID, db: Session = Depends(get_db)):
-    _get_org_or_404(db, org_id)
+def delete_vto(
+    org_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _get_org_or_404(db, org_id, current_user)
     vto = _get_vto(db, org_id)
     if vto is None:
         raise HTTPException(status_code=404, detail="VTO not set for this organization yet")

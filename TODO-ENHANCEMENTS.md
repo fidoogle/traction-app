@@ -8,10 +8,11 @@ queued.
 
 ## Authorization & Access Control
 
-- [ ] Team-scoped data access: a `member`/`viewer` can currently read and
-      write EOS content (Rocks, Issues, Todos, Measurables, Meetings, ...)
-      belonging to *any* team in the org, not just their own team(s). Add
-      row-level scoping so non-admins are restricted to their own team(s).
+- [ ] Team-scoped data access, mostly done: Rocks, Issues, Meetings, Seats,
+      People Analyzer, Scorecards and the JSON API are now limited to your
+      own teams (admins: every team in the org). Still open: To-Dos (their
+      list isn't team-scoped yet - Teams rollout phase 3), the VTO (phase 4),
+      and the Dashboard counts + Activity feed (phase 5).
 - [ ] Refresh tokens / session revocation. Access tokens are currently
       long-lived (24h) bearer JWTs with no server-side revocation — logging
       out or deactivating a user doesn't invalidate outstanding tokens.
@@ -44,24 +45,31 @@ queued.
       `team_memberships` (people can be on several teams), the topbar
       current-team switcher, member add/remove on the Teams page; Phase 1 -
       each scorecard belongs to a team (list follows the current team,
-      owners must be team members, non-members get 404). Next:
-      (2) Rocks/Issues/Meetings/Org Chart filtered by the current team and
-      restricted to your own teams; (3) To-Dos get a team_id; (4) one VTO
-      per team; (5) Dashboard + Activity follow the current team.
-- [ ] The generic REST CRUD routers (app/api/routes.py - teams, rocks,
-      scorecards, measurables, ...) don't scope by org or team at all:
-      any signed-in API user can read every row, and admin writes accept
-      any team_id. Separate from the web UI, which now scopes scorecards by
-      team. Fold into the team-scoped access work (Phase 2).
+      owners must be team members, non-members get 404); Phase 2 - Rocks,
+      Issues, Meetings, Org Chart and People Analyzer follow the current
+      team and are limited to your own teams, and the JSON API got the same
+      scoping (app/api/scoping.py). Next: (3) To-Dos get a team_id;
+      (4) one VTO per team; (5) Dashboard + Activity follow the current team.
+- [ ] JSON API scoping is by org/team only. The web UI is stricter in three
+      ways the API doesn't enforce: an owner/occupant must be a *member* of
+      the row's team (the API only checks they're in the org); a seat's
+      parent must be on the same team; a measurable's owner must be on its
+      scorecard's team. Share one validation layer if the API is ever
+      used for real writes. To-Dos are scoped to the org only, until phase 3.
+- [ ] Rocks keep their owner when that person is removed from the team (a
+      rock must have an owner, unlike a seat or a scorecard row, which are
+      vacated/unowned). Consider letting a rock be unowned, or prompting to
+      reassign.
+- [ ] The accountability chart is per team: a seat can only report to a seat
+      on its own team, and one whose parent is elsewhere (older data) shows
+      at the top of its team's chart. EOS usually hangs department seats off
+      Leadership Team seats - add an org-wide "whole chart" view (e.g. under
+      All teams) that links seats across teams.
 - [ ] Home team (users.team_id) has no UI of its own: it's the first team
       ticked when a user is created, and moves to another of their teams if
       they're removed from it. It only decides which team a non-admin lands
       on before they've picked one. Either add a "home team" picker or drop
       the column once nothing else reads it.
-- [ ] The REST API's `POST /api/users` doesn't check that `team_id`
-      belongs to the caller's org (the web UI does). Admin-only, but worth
-      tightening alongside the team-scoping work.
-
 - [ ] People Analyzer: core values ratings are currently a simple boolean
       per value. Real GWC/People Analyzer practice often uses a 3-state
       rating (+ / +- / -). Consider widening `core_values_ratings` if the
@@ -121,11 +129,13 @@ rather than filling a gap.
 Done: Dockerfile + docker-compose now run the whole app (not just
 Postgres), with migrations applied automatically on container start.
 
-- [ ] Automated test suite (pytest). Started: `tests/` covers the
-      current-team rules (app/web/team_context.py) as pure unit tests and
-      runs in CI. Still missing: DB-backed route tests (needs a throwaway
-      Postgres fixture) - most verification is still manual curl runs /
-      browser clicks against a live container.
+- [ ] Automated test suite (pytest). `tests/` has unit tests for the
+      current-team rules plus DB-backed route and API tests (access control
+      across teams and orgs) that run against a throwaway Postgres database,
+      in CI too. Still missing: tests for the other pages' behaviour
+      (scorecard maths, notes, activity feed...), migration tests, and
+      browser tests - the dropdown-narrowing JS (base.html) is only checked
+      by hand.
 - [ ] CI pipeline: `.github/workflows/deploy.yml` now runs ruff (E9/F
       only), pytest and a Docker build on every push/PR, and auto-deploys
       `main` to the droplet over SSH. Still missing: type-check (mypy).

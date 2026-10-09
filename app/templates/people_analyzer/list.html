@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}People Analyzer - Traction/EOS{% endblock %}
 {% block content %}
+{% from "_macros.html" import people_options %}
 <h1>People Analyzer</h1>
 
 {% if current_user.role.value != "viewer" %}
@@ -12,16 +13,14 @@
       <div class="field">
         <label for="user_id">Person</label>
         <select id="user_id" name="user_id" required>
-          {% for u in org_users %}
-          <option value="{{ u.id }}">{{ u.name }}</option>
-          {% endfor %}
+          {{ people_options(people) }}
         </select>
       </div>
       <div class="field">
         <label for="seat_id">Seat</label>
-        <select id="seat_id" name="seat_id" required>
+        <select id="seat_id" name="seat_id" required data-member-filter="#user_id">
           {% for s in org_seats %}
-          <option value="{{ s.id }}">{{ s.title }}</option>
+          <option value="{{ s.id }}" data-team-id="{{ s.team_id }}">{{ s.title }}</option>
           {% endfor %}
         </select>
       </div>

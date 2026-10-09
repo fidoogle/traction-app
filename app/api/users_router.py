@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_roles
+from app.api.scoping import check_refs, team_ids_for, visible
 from app.core.security import hash_password
 from app.crud.base import CRUDBase
 from app.models.enums import UserRole
@@ -24,8 +25,13 @@ SELF_SERVICE_FIELDS = {"name", "email", "password"}
     status_code=201,
     dependencies=[Depends(require_roles(UserRole.ADMIN))],
 )
-def create_user(payload: UserCreate, db: Session = Depends(get_db)):
+def create_user(
+    payload: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     data = payload.model_dump(exclude={"password"})
+    check_refs(db, current_user, team_ids_for(db, current_user), data)
     user = User(
         **data,
         hashed_password=hash_password(payload.password),
@@ -38,13 +44,23 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[UserRead])
-def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_multi(db, skip=skip, limit=limit)
+def list_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    scope = visible(User, current_user, [])
+    return crud.get_multi(db, skip=skip, limit=limit, scope=scope)
 
 
 @router.get("/{user_id}", response_model=UserRead)
-def get_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
-    user = crud.get(db, user_id)
+def get_user(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    user = crud.get(db, user_id, visible(User, current_user, []))
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -57,7 +73,7 @@ def update_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user = crud.get(db, user_id)
+    user = crud.get(db, user_id, visible(User, current_user, []))
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -73,6 +89,7 @@ def update_user(
             )
 
     update_data = payload.model_dump(exclude_unset=True, exclude={"password"})
+    check_refs(db, current_user, team_ids_for(db, current_user), update_data)
     for field, value in update_data.items():
         setattr(user, field, value)
     if payload.password is not None:
@@ -99,6 +116,6 @@ def delete_user(
 ):
     if current_user.id == user_id:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
-    user = crud.remove(db, user_id)
+    user = crud.remove(db, user_id, visible(User, current_user, []))
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")

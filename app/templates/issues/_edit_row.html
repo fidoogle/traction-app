@@ -1,11 +1,8 @@
+{% from "_macros.html" import team_select %}
 <tr id="issue-row-{{ issue.id }}" class="row-edit">
   <td><input type="text" name="title" value="{{ issue.title }}" maxlength="255" required aria-label="Title"></td>
   <td>
-    <select name="team_id" aria-label="Team">
-      {% for team in teams %}
-      <option value="{{ team.id }}" {% if team.id == issue.team_id %}selected{% endif %}>{{ team.name }}</option>
-      {% endfor %}
-    </select>
+    {{ team_select(teams, issue.team_id, id="issue-team-" ~ issue.id) }}
   </td>
   <td><input type="number" name="priority" value="{{ issue.priority }}" required aria-label="Priority"></td>
   <td>

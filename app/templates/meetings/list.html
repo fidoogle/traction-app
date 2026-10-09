@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Meetings - Traction/EOS{% endblock %}
 {% block content %}
+{% from "_macros.html" import team_select %}
 <h1>Meetings</h1>
 
 {% if current_user.role.value != "viewer" %}
@@ -11,11 +12,7 @@
     <div class="form-row">
       <div class="field">
         <label for="team_id">Team</label>
-        <select id="team_id" name="team_id" required>
-          {% for team in teams %}
-          <option value="{{ team.id }}">{{ team.name }}</option>
-          {% endfor %}
-        </select>
+        {{ team_select(teams, default_team_id) }}
       </div>
       <div class="field field-narrow">
         <label for="scheduled_date">Date</label>

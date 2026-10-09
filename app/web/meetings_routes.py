@@ -6,18 +6,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
-from app.models import Meeting, MeetingStatus, Team, User, UserRole
-from app.web.deps import get_current_user_web
+from app.models import Meeting, MeetingStatus, User, UserRole
+from app.web.deps import get_current_user_web, get_team_context
+from app.web.team_context import TeamContext
 from app.web.templates import templates
 
 router = APIRouter(prefix="/meetings")
 
 
-def _org_meetings_query(org_id: uuid.UUID):
+def _meetings_query(team_ids: list[uuid.UUID]):
     return (
         select(Meeting)
-        .join(Team, Meeting.team_id == Team.id)
-        .where(Team.org_id == org_id)
+        .where(Meeting.team_id.in_(team_ids))
         .options(joinedload(Meeting.team))
         .order_by(Meeting.scheduled_date.desc())
     )
@@ -28,18 +28,18 @@ def list_meetings(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    meetings = db.scalars(_org_meetings_query(current_user.org_id)).unique().all()
-    teams = db.scalars(
-        select(Team).where(Team.org_id == current_user.org_id).order_by(Team.name)
-    ).all()
+    meetings = db.scalars(_meetings_query(team_ctx.scope_ids)).unique().all()
+    default_team = team_ctx.default_team(current_user.team_id)
     return templates.TemplateResponse(
         request,
         "meetings/list.html",
         {
             "current_user": current_user,
             "meetings": meetings,
-            "teams": teams,
+            "teams": team_ctx.teams,
+            "default_team_id": default_team.id if default_team else None,
             "MeetingStatus": MeetingStatus,
         },
     )
@@ -52,14 +52,13 @@ def create_meeting(
     scheduled_date: date = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     if current_user.role == UserRole.VIEWER:
         raise HTTPException(status_code=403)
-    team = db.get(Team, team_id)
-    if team is None or team.org_id != current_user.org_id:
-        raise HTTPException(status_code=404)
+    team = team_ctx.get_team(team_id)
 
-    meeting = Meeting(team_id=team_id, scheduled_date=scheduled_date)
+    meeting = Meeting(team_id=team.id, scheduled_date=scheduled_date)
     db.add(meeting)
     db.commit()
     db.refresh(meeting)
@@ -77,13 +76,10 @@ def update_meeting_status(
     status: MeetingStatus = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    meeting = db.scalar(
-        select(Meeting)
-        .join(Team, Meeting.team_id == Team.id)
-        .where(Meeting.id == meeting_id, Team.org_id == current_user.org_id)
-        .options(joinedload(Meeting.team))
-    )
+    # Any of the user's teams, not just the current one (see scorecard_routes).
+    meeting = db.scalar(_meetings_query(team_ctx.team_ids).where(Meeting.id == meeting_id))
     if meeting is None:
         raise HTTPException(status_code=404)
     if current_user.role == UserRole.VIEWER:

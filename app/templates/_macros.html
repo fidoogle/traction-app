@@ -34,6 +34,26 @@
 </dialog>
 {% endmacro %}
 
+{# <option>s for an owner / occupant dropdown. Each carries data-teams (the
+   teams that person is on) so a team picker with data-member-filter can narrow
+   the list - see base.html. `keep` is a person already attached to the thing
+   being edited; they stay choosable on `keep_team` even if they've left it. #}
+{% macro people_options(people, selected=none, keep=none, keep_team=none) %}
+{% for u in people %}
+<option value="{{ u.id }}" data-teams="{{ (u.teams | map(attribute='id') | list + ([keep_team] if keep and u.id == keep else [])) | join(' ') }}"{% if u.id == selected %} selected{% endif %}>{{ u.name }}</option>
+{% endfor %}
+{% endmacro %}
+
+{# A team <select> limited to the user's teams, defaulting to `selected_id`.
+   `filters` is the data-member-filter selector list, if it narrows other selects. #}
+{% macro team_select(teams, selected_id, id="team_id", filters=none, label="Team") %}
+<select id="{{ id }}" name="team_id" aria-label="{{ label }}" required{% if filters %} data-member-filter="{{ filters }}"{% endif %}>
+  {% for team in teams %}
+  <option value="{{ team.id }}"{% if team.id == selected_id %} selected{% endif %}>{{ team.name }}</option>
+  {% endfor %}
+</select>
+{% endmacro %}
+
 {% set icon_note %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><line x1="8" y1="9" x2="16" y2="9"></line><line x1="8" y1="13" x2="13" y2="13"></line></svg>{% endset %}
 
 {# Notes indicator for a table row's title cell. Shown when the row has notes;

@@ -14,7 +14,7 @@
     <label for="qa-issue-team">Team</label>
     <select id="qa-issue-team" name="team_id" required>
       {% for team in teams %}
-      <option value="{{ team.id }}" {% if team.id == current_user.team_id %}selected{% endif %}>{{ team.name }}</option>
+      <option value="{{ team.id }}" {% if team.id == default_team_id %}selected{% endif %}>{{ team.name }}</option>
       {% endfor %}
     </select>
   </div>

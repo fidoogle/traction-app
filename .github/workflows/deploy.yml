@@ -17,8 +17,26 @@ concurrency:
 
 jobs:
   ci:
-    name: Lint & build
+    name: Lint, test & build
     runs-on: ubuntu-latest
+    # A throwaway Postgres for the route/API tests (they make and drop their
+    # own database on it). Under CI they fail, rather than skip, without it.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: traction
+          POSTGRES_PASSWORD: traction
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U traction"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://traction:traction@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
 

@@ -11,14 +11,16 @@ Admins can see every team in the org (member or not) and can also pick
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Iterable, Optional
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, selectinload
 from starlette.responses import Response
 
 from app.config import settings
-from app.models import Team, User, UserRole
+from app.core.team_access import accessible_teams
+from app.models import Team, TeamMembership, User, UserRole
 
 TEAM_COOKIE_NAME = "current_team"
 TEAM_COOKIE_MAX_AGE = 365 * 24 * 60 * 60
@@ -49,6 +51,23 @@ class TeamContext:
         opened before switching): anything on any of your teams is fine.
         """
         return [t.id for t in self.teams]
+
+    def default_team(self, home_team_id: Optional[uuid.UUID] = None) -> Optional[Team]:
+        """The team a new item should default to: the current team, or under
+        "All teams" the user's home team (else the first by name)."""
+        if self.current is not None:
+            return self.current
+        return next((t for t in self.teams if t.id == home_team_id), None) or (
+            self.teams[0] if self.teams else None
+        )
+
+    def get_team(self, team_id: uuid.UUID) -> Team:
+        """One of the user's teams, for a form that picks a team. 404 for any
+        other team - including a real team they aren't on."""
+        team = next((t for t in self.teams if t.id == team_id), None)
+        if team is None:
+            raise HTTPException(status_code=404)
+        return team
 
     def follow(self, team_id: uuid.UUID) -> bool:
         """Make team_id current, e.g. on opening another team's scorecard.
@@ -104,14 +123,39 @@ def remember_team(response: Response, value: str) -> None:
 
 def build_team_context(db: Session, user: User, requested: Optional[str]) -> TeamContext:
     can_view_all = user.role == UserRole.ADMIN
-    if can_view_all:
-        teams = list(
-            db.scalars(select(Team).where(Team.org_id == user.org_id).order_by(Team.name))
-        )
-    else:
-        teams = list(user.teams)
+    teams = accessible_teams(db, user)
     return TeamContext(
         teams=teams,
         current=resolve_current_team(teams, can_view_all, user.team_id, requested),
         can_view_all=can_view_all,
+    )
+
+
+def require_member(
+    team: Team, user_id: uuid.UUID, *, keep: Optional[uuid.UUID] = None
+) -> None:
+    """404 unless user_id is on the team. `keep` is a person already attached to
+    the thing being edited, who stays allowed even if they've since left the team
+    (so editing a rock doesn't force reassigning its owner)."""
+    if user_id != keep and user_id not in {u.id for u in team.members}:
+        raise HTTPException(status_code=404)
+
+
+def team_people(
+    db: Session, team_ctx: TeamContext, keep_ids: Iterable[uuid.UUID] = ()
+) -> list[User]:
+    """People for an owner/occupant dropdown: everyone on any of the user's
+    teams (each with .teams loaded, for the dropdown's team filter), plus
+    `keep_ids` - people already attached to what's being edited, who stay
+    choosable even if they've since left the team."""
+    on_a_team = select(TeamMembership.user_id).where(
+        TeamMembership.team_id.in_(team_ctx.team_ids)
+    )
+    return list(
+        db.scalars(
+            select(User)
+            .where(or_(User.id.in_(on_a_team), User.id.in_(list(keep_ids))))
+            .options(selectinload(User.teams))
+            .order_by(User.name)
+        )
     )

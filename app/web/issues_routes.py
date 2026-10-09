@@ -5,19 +5,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
-from app.models import Issue, IssueStatus, Team, User, UserRole
-from app.web.deps import get_current_user_web
+from app.models import Issue, IssueStatus, User, UserRole
+from app.web.deps import get_current_user_web, get_team_context
 from app.web.notes import clean_notes, notes_form_response
+from app.web.team_context import TeamContext
 from app.web.templates import templates
 
 router = APIRouter(prefix="/issues")
 
 
-def _org_issues_query(org_id: uuid.UUID):
+def _issues_query(team_ids: list[uuid.UUID]):
     return (
         select(Issue)
-        .join(Team, Issue.team_id == Team.id)
-        .where(Team.org_id == org_id)
+        .where(Issue.team_id.in_(team_ids))
         .options(joinedload(Issue.team))
         .order_by(Issue.priority, Issue.title)
     )
@@ -28,18 +28,18 @@ def list_issues(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    issues = db.scalars(_org_issues_query(current_user.org_id)).unique().all()
-    teams = db.scalars(
-        select(Team).where(Team.org_id == current_user.org_id).order_by(Team.name)
-    ).all()
+    issues = db.scalars(_issues_query(team_ctx.scope_ids)).unique().all()
+    default_team = team_ctx.default_team(current_user.team_id)
     return templates.TemplateResponse(
         request,
         "issues/list.html",
         {
             "current_user": current_user,
             "issues": issues,
-            "teams": teams,
+            "teams": team_ctx.teams,
+            "default_team_id": default_team.id if default_team else None,
             "IssueStatus": IssueStatus,
         },
     )
@@ -53,18 +53,17 @@ def create_issue(
     priority: int = Form(0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     if current_user.role == UserRole.VIEWER:
         raise HTTPException(status_code=403)
-    team = db.get(Team, team_id)
-    if team is None or team.org_id != current_user.org_id:
-        raise HTTPException(status_code=404)
+    team = team_ctx.get_team(team_id)
 
     title = title.strip()
     if not title or len(title) > 255:
         raise HTTPException(status_code=422)
 
-    issue = Issue(team_id=team_id, title=title, priority=priority)
+    issue = Issue(team_id=team.id, title=title, priority=priority)
     db.add(issue)
     db.commit()
     db.refresh(issue)
@@ -82,15 +81,9 @@ def update_issue_status(
     status: IssueStatus = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    issue = db.scalar(
-        select(Issue)
-        .join(Team, Issue.team_id == Team.id)
-        .where(Issue.id == issue_id, Team.org_id == current_user.org_id)
-        .options(joinedload(Issue.team))
-    )
-    if issue is None:
-        raise HTTPException(status_code=404)
+    issue = _get_issue(db, issue_id, team_ctx)
     if current_user.role == UserRole.VIEWER:
         raise HTTPException(status_code=403)
 
@@ -109,15 +102,12 @@ def _require_admin(current_user: User) -> None:
         raise HTTPException(status_code=403)
 
 
-def _get_org_issue(db: Session, issue_id: uuid.UUID, org_id: uuid.UUID) -> Issue:
-    issue = db.scalar(_org_issues_query(org_id).where(Issue.id == issue_id))
+def _get_issue(db: Session, issue_id: uuid.UUID, team_ctx: TeamContext) -> Issue:
+    # Any of the user's teams, not just the current one (see scorecard_routes).
+    issue = db.scalar(_issues_query(team_ctx.team_ids).where(Issue.id == issue_id))
     if issue is None:
         raise HTTPException(status_code=404)
     return issue
-
-
-def _org_teams(db: Session, org_id: uuid.UUID):
-    return db.scalars(select(Team).where(Team.org_id == org_id).order_by(Team.name)).all()
 
 
 def _row_response(request: Request, current_user: User, issue: Issue):
@@ -134,8 +124,9 @@ def get_issue_row(
     issue_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    return _row_response(request, current_user, _get_org_issue(db, issue_id, current_user.org_id))
+    return _row_response(request, current_user, _get_issue(db, issue_id, team_ctx))
 
 
 @router.get("/{issue_id}/edit")
@@ -144,16 +135,17 @@ def edit_issue_row(
     issue_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    issue = _get_org_issue(db, issue_id, current_user.org_id)
+    issue = _get_issue(db, issue_id, team_ctx)
     return templates.TemplateResponse(
         request,
         "issues/_edit_row.html",
         {
             "current_user": current_user,
             "issue": issue,
-            "teams": _org_teams(db, current_user.org_id),
+            "teams": team_ctx.teams,
             "IssueStatus": IssueStatus,
         },
     )
@@ -169,23 +161,22 @@ def update_issue(
     status: IssueStatus = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    issue = _get_org_issue(db, issue_id, current_user.org_id)
-    team = db.get(Team, team_id)
-    if team is None or team.org_id != current_user.org_id:
-        raise HTTPException(status_code=404)
+    issue = _get_issue(db, issue_id, team_ctx)
+    team = team_ctx.get_team(team_id)
     title = title.strip()
     if not title or len(title) > 255:
         raise HTTPException(status_code=422)
 
-    issue.team_id = team_id
+    issue.team_id = team.id
     issue.title = title
     issue.priority = priority
     issue.status = status
     db.commit()
     db.expire_all()
-    return _row_response(request, current_user, _get_org_issue(db, issue_id, current_user.org_id))
+    return _row_response(request, current_user, _get_issue(db, issue_id, team_ctx))
 
 
 @router.delete("/{issue_id}")
@@ -193,9 +184,10 @@ def delete_issue(
     issue_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    issue = _get_org_issue(db, issue_id, current_user.org_id)
+    issue = _get_issue(db, issue_id, team_ctx)
     db.delete(issue)
     db.commit()
     return Response(status_code=200)
@@ -213,8 +205,9 @@ def get_issue_notes(
     issue_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    issue = _get_org_issue(db, issue_id, current_user.org_id)
+    issue = _get_issue(db, issue_id, team_ctx)
     return notes_form_response(
         request,
         subject=issue.title,
@@ -232,10 +225,11 @@ def update_issue_notes(
     notes: str = Form(default=""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_notes_editor(current_user)
-    issue = _get_org_issue(db, issue_id, current_user.org_id)
+    issue = _get_issue(db, issue_id, team_ctx)
     issue.notes = clean_notes(notes)
     db.commit()
     db.expire_all()
-    return _row_response(request, current_user, _get_org_issue(db, issue_id, current_user.org_id))
+    return _row_response(request, current_user, _get_issue(db, issue_id, team_ctx))

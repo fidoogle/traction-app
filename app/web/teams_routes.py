@@ -205,7 +205,11 @@ def remove_member(
         raise HTTPException(status_code=400, detail="Everyone must belong to at least one team")
     if user.team_id == team_id:
         user.team_id = others[0].team_id
-    # Their rows on this team's scorecards stay, unowned, for an admin to reassign.
+    # Seats they held on this team become vacant, and their rows on its
+    # scorecards stay, unowned, for an admin to reassign. (Their rocks keep
+    # them as owner - a rock must have one.)
+    for seat in db.scalars(select(Seat).where(Seat.team_id == team_id, Seat.user_id == user.id)):
+        seat.user_id = None
     for measurable in db.scalars(
         select(Measurable)
         .join(Scorecard, Measurable.scorecard_id == Scorecard.id)

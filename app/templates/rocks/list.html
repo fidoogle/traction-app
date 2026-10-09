@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Rocks - Traction/EOS{% endblock %}
 {% block content %}
-{% from "_macros.html" import page_header, modal, notes_modal %}
+{% from "_macros.html" import page_header, modal, notes_modal, people_options, team_select %}
 {% set is_admin = current_user.role.value == "admin" %}
 {{ page_header("Rocks", "Add rock", "add-rock-modal" if is_admin else None) }}
 
@@ -16,18 +16,12 @@
   <div class="field">
     <label for="owner_id">Owner</label>
     <select id="owner_id" name="owner_id" required>
-      {% for user in users %}
-      <option value="{{ user.id }}">{{ user.name }}</option>
-      {% endfor %}
+      {{ people_options(users) }}
     </select>
   </div>
   <div class="field">
     <label for="team_id">Team</label>
-    <select id="team_id" name="team_id" required>
-      {% for team in teams %}
-      <option value="{{ team.id }}">{{ team.name }}</option>
-      {% endfor %}
-    </select>
+    {{ team_select(teams, default_team_id, filters="#owner_id") }}
   </div>
   <div class="field">
     <label for="quarter">Quarter</label>

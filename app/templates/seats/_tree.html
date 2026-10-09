@@ -1,4 +1,4 @@
-{% macro render_seat(seat, tree, current_user, org_users) %}
+{% macro render_seat(seat, tree, current_user, occupant_choices) %}
 <div class="seat-node">
   <div class="seat-box">
     <div class="seat-title">{{ seat.title }}</div>
@@ -14,7 +14,7 @@
         hx-trigger="change"
       >
         <option value="" {% if not seat.user_id %}selected{% endif %}>— vacant —</option>
-        {% for u in org_users %}
+        {% for u in occupant_choices[seat.id] %}
         <option value="{{ u.id }}" {% if seat.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
         {% endfor %}
       </select>
@@ -49,7 +49,7 @@
   {% if children %}
   <div class="seat-children">
     {% for child in children %}
-      {{ render_seat(child, tree, current_user, org_users) }}
+      {{ render_seat(child, tree, current_user, occupant_choices) }}
     {% endfor %}
   </div>
   {% endif %}
@@ -58,7 +58,7 @@
 
 <div id="seat-tree-container" class="seat-tree">
   {% for root in roots %}
-    {{ render_seat(root, tree, current_user, org_users) }}
+    {{ render_seat(root, tree, current_user, occupant_choices) }}
   {% else %}
   <div class="card">No seats yet.</div>
   {% endfor %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Accountability Chart - Traction/EOS{% endblock %}
 {% block content %}
+{% from "_macros.html" import people_options, team_select %}
 <h1>Accountability Chart</h1>
 
 {% if current_user.role.value != "viewer" %}
@@ -15,18 +16,14 @@
       </div>
       <div class="field">
         <label for="team_id">Team</label>
-        <select id="team_id" name="team_id" required>
-          {% for team in teams %}
-          <option value="{{ team.id }}">{{ team.name }}</option>
-          {% endfor %}
-        </select>
+        {{ team_select(teams, default_team_id, filters="#parent_seat_id, #user_id") }}
       </div>
       <div class="field">
         <label for="parent_seat_id">Reports to</label>
         <select id="parent_seat_id" name="parent_seat_id">
           <option value="">— top level —</option>
-          {% for s in seats %}
-          <option value="{{ s.id }}">{{ s.title }}</option>
+          {% for s in parent_choices %}
+          <option value="{{ s.id }}" data-teams="{{ s.team_id }}">{{ s.title }}</option>
           {% endfor %}
         </select>
       </div>
@@ -34,9 +31,7 @@
         <label for="user_id">Occupant</label>
         <select id="user_id" name="user_id">
           <option value="">— vacant —</option>
-          {% for u in org_users %}
-          <option value="{{ u.id }}">{{ u.name }}</option>
-          {% endfor %}
+          {{ people_options(people) }}
         </select>
       </div>
       <div class="field field-full">

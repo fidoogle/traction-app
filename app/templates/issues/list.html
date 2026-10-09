@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Issues - Traction/EOS{% endblock %}
 {% block content %}
-{% from "_macros.html" import page_header, modal, notes_modal %}
+{% from "_macros.html" import page_header, modal, notes_modal, team_select %}
 {% set can_add = current_user.role.value != "viewer" %}
 {{ page_header("Issues", "Log issue", "add-issue-modal" if can_add else None) }}
 
@@ -15,11 +15,7 @@
   </div>
   <div class="field">
     <label for="team_id">Team</label>
-    <select id="team_id" name="team_id" required>
-      {% for team in teams %}
-      <option value="{{ team.id }}">{{ team.name }}</option>
-      {% endfor %}
-    </select>
+    {{ team_select(teams, default_team_id) }}
   </div>
   <div class="field">
     <label for="priority">Priority</label>
