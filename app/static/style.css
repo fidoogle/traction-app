@@ -200,6 +200,16 @@ textarea:focus-visible {
   font-size: 1.05rem;
   text-decoration: none;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-brand .brand-logo {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .sidebar-nav {
