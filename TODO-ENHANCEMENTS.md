@@ -13,6 +13,14 @@ queued.
       out or deactivating a user doesn't invalidate outstanding tokens.
 - [ ] Password reset / forgot-password flow (currently only an admin, or
       the user themself via their existing password, can change it).
+- [ ] Team admins in the JSON API. The web UI lets a member flagged
+      `team_memberships.is_team_admin` do admin-level work on that one team
+      (rocks, issues, to-dos, scorecards, meetings, the team's roster, new
+      accounts on it). The API (app/api/crud_router.py, routes.py,
+      users_router.py, vto_router.py) still treats those writes as org
+      Admin only and doesn't know about team admins. Teach `write_roles` /
+      `edit_roles` and app/api/scoping.py a per-team check if the API is
+      ever used for real writes.
 - [ ] Long-term audit trail. The Activity log (app/core/activity.py) now
       records every add/edit/delete with who + when, including role changes
       and deletes - but it's pruned after ACTIVITY_RETENTION_DAYS (90) and
@@ -45,7 +53,8 @@ queued.
       opening the feed on one team marks every team's entries as read.
       Entries with no team (user/org changes, plus anything logged before
       teams existed whose record has since been deleted) are shown to admins
-      under "All teams" only. A per-team "last seen" would need a small table.
+      under "All teams" only - so a team admin never sees the "user created"
+      entries for accounts they added to their team. A per-team "last seen" would need a small table.
 - [ ] JSON API scoping is by org/team only. The web UI is stricter in a few
       ways the API doesn't enforce: an owner/occupant must be a *member* of
       the row's team (the API only checks they're in the org); a seat's
@@ -76,7 +85,7 @@ queued.
       overwriting.
 - [ ] Meetings are run live, not scheduled. Today nobody schedules a meeting
       in the app: the admin tells the team and everyone meets in a room, and
-      pressing Play (sidebar, admin only) creates - or reuses a meeting
+      pressing Play (sidebar; admins and the team's team admins) creates - or reuses a meeting
       scheduled for today - and times its six steps (Segue 5, Rocks 5,
       Scorecard 5, Issues 60, To-Dos 10, Closing 5 min). That will change once
       email notifications and a calendar exist, so everyone knows what's
@@ -88,7 +97,7 @@ queued.
       starts a meeting (same as the sidebar Play button) for now.
 - [ ] Live-meeting follow-ups: step lengths are fixed in
       app/core/meeting_session.py (make them per-team settings); only admins
-      see the steps - members/viewers could get a read-only live view of the
+      (and that team's team admins) see the steps - members/viewers could get a read-only live view of the
       current step; a Meetings-page report of step times over several
       meetings (which step runs over, and by how much); "today" is the
       server's date, not the district's time zone.
