@@ -102,3 +102,30 @@ def test_plain_member_still_has_no_admin_rights(world, login):
     mia = login("mia")
     assert mia.get(f"/rocks/{world['rock_bravo']}/edit").status_code == 403
     assert mia.delete(f"/issues/{world['issue_bravo']}").status_code == 403
+
+
+def test_team_admin_runs_meetings_for_their_team_only(world, mia_admin_of_bravo):
+    mia = mia_admin_of_bravo
+    mia.switch_team(world["team_alpha"])
+    assert 'class="nav-play"' not in mia.get("/").text
+    assert mia.post("/meetings/session/start").status_code == 403
+
+    mia.switch_team(world["team_bravo"])
+    assert 'class="nav-play"' in mia.get("/").text
+    assert mia.post("/meetings/session/start").status_code == 200
+    assert "meeting-panel" in mia.get("/").text
+    assert mia.post("/meetings/session/steps/0/stop").status_code == 200
+    assert mia.post("/meetings/session/stop").status_code == 200
+    assert mia.post("/meetings/session/finish").status_code == 200
+
+
+def test_team_admin_deletes_only_their_teams_meetings(world, mia_admin_of_bravo):
+    mia = mia_admin_of_bravo
+    assert mia.delete(f"/meetings/{world['meeting_alpha']}").status_code == 403
+    assert mia.delete(f"/meetings/{world['meeting_bravo']}").status_code == 200
+
+
+def test_plain_member_cannot_start_a_meeting(world, login):
+    mia = login("mia")
+    mia.switch_team(world["team_bravo"])
+    assert mia.post("/meetings/session/start").status_code == 403

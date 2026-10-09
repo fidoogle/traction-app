@@ -2,13 +2,13 @@
 {% block title %}Meetings - Traction/EOS{% endblock %}
 {% block content %}
 {% from "_macros.html" import icon_plus %}
-{% set can_start = current_user.role.value == "admin" %}
 {% set team = request.state.team_ctx.current %}
+{% set can_start = request.state.team_ctx.can_admin_any %}
 <div class="page-header">
   <h1>Meetings</h1>
   {# Same as the Play button beside Meetings in the left rail (see _nav.html). #}
   {% if can_start %}
-  {% set blocked = "A meeting is running" if request.state.meeting_session else ("Pick a team first" if not team else None) %}
+  {% set blocked = "A meeting is running" if request.state.meeting_session else ("Pick a team first" if not team else (None if request.state.team_ctx.can_admin_current else "You administer another team")) %}
   <button type="button" class="icon-button primary-icon"
           {% if blocked %}disabled title="{{ blocked }}"{% else %}
           hx-post="/meetings/session/start" hx-target="#site-nav" hx-swap="outerHTML" title="Start a meeting"{% endif %}
@@ -22,7 +22,7 @@
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Team</th><th>Date</th><th>Time</th>{% if current_user.role.value == "admin" %}<th></th>{% endif %}</tr>
+      <tr><th>Team</th><th>Date</th><th>Time</th>{% if request.state.team_ctx.can_admin_any %}<th></th>{% endif %}</tr>
     </thead>
     <tbody id="meetings-table-body">
       {% for meeting in meetings %}
