@@ -211,3 +211,22 @@ def test_finish_needs_a_stop_first(world, admin, clock):
     assert "disabled" not in stopped.text.split('class="meeting-finish"')[1].split(">")[0]
     assert admin.post("/meetings/session/finish").status_code == 200
     assert meeting_of(world["team_alpha"]).status == MeetingStatus.COMPLETED
+
+
+def test_admins_can_delete_a_past_meeting_but_not_a_running_one(world, login, admin, clock):
+    page = admin.get("/meetings").text
+    assert "Status" not in page and "status-select" not in page
+    assert f"/meetings/{world['meeting_alpha']}" in page  # the Delete button
+
+    assert login("mia").delete(f"/meetings/{world['meeting_alpha']}").status_code == 403
+    assert login("vic").delete(f"/meetings/{world['meeting_alpha']}").status_code == 403
+    assert "hx-delete" not in login("mia").get("/meetings").text
+
+    admin.post("/meetings/session/start")
+    running = meeting_of(world["team_alpha"])
+    assert admin.delete(f"/meetings/{running.id}").status_code == 409
+
+    assert admin.delete(f"/meetings/{world['meeting_alpha']}").status_code == 200
+    with SessionLocal() as db:
+        assert db.get(Meeting, world["meeting_alpha"]) is None
+        assert db.get(Meeting, running.id) is not None

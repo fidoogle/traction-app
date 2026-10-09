@@ -74,7 +74,6 @@ MEMBER_ACTIONS = [
     ("PATCH", "/issues/{issue}/status", {"status": "resolved"}),
     ("GET", "/issues/{issue}/notes", {}),
     ("PUT", "/issues/{issue}/notes", {"notes": "hello"}),
-    ("PATCH", "/meetings/{meeting}/status", {"status": "completed"}),
     ("PATCH", "/seats/{seat}/occupant", {"user_id": ""}),
     ("DELETE", "/seats/{seat}", {}),
     ("GET", "/scorecards/{card}", {}),
@@ -91,6 +90,7 @@ ADMIN_ACTIONS = MEMBER_ACTIONS + [
     ("DELETE", "/rocks/{rock}", {}),
     ("GET", "/issues/{issue}/edit", {}),
     ("DELETE", "/issues/{issue}", {}),
+    ("DELETE", "/meetings/{meeting}", {}),
     ("DELETE", "/scorecards/{card}", {}),
     ("GET", "/scorecards/{card}/measurables/{measurable}/edit", {}),
     ("DELETE", "/scorecards/{card}/measurables/{measurable}", {}),
@@ -128,8 +128,6 @@ def test_admin_of_another_org_gets_404_for_everything(world, login, method, temp
 def test_member_can_reach_items_on_any_of_their_teams_not_just_the_current_one(world, login):
     mia = login("mia")  # current team: Alpha
     resp = mia.patch(f"/issues/{world['issue_bravo']}/status", data={"status": "resolved"})
-    assert resp.status_code == 200
-    resp = mia.patch(f"/meetings/{world['meeting_bravo']}/status", data={"status": "completed"})
     assert resp.status_code == 200
 
 

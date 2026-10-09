@@ -3,7 +3,7 @@ import uuid
 from datetime import date
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -43,8 +43,7 @@ def list_meetings(
             "meetings": meetings,
             "teams": team_ctx.teams,
             "default_team_id": default_team.id if default_team else None,
-            "MeetingStatus": MeetingStatus,
-        },
+                    },
     )
 
 
@@ -68,34 +67,28 @@ def create_meeting(
     return templates.TemplateResponse(
         request,
         "meetings/_row.html",
-        {"current_user": current_user, "meeting": meeting, "MeetingStatus": MeetingStatus},
+        {"current_user": current_user, "meeting": meeting},
     )
 
 
-@router.patch("/{meeting_id}/status")
-def update_meeting_status(
-    request: Request,
+@router.delete("/{meeting_id}")
+def delete_meeting(
     meeting_id: uuid.UUID,
-    status: MeetingStatus = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
 ):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403)
     # Any of the user's teams, not just the current one (see scorecard_routes).
     meeting = db.scalar(_meetings_query(team_ctx.team_ids).where(Meeting.id == meeting_id))
     if meeting is None:
         raise HTTPException(status_code=404)
-    if current_user.role == UserRole.VIEWER:
-        raise HTTPException(status_code=403)
-
-    meeting.status = status
+    if meeting.status == MeetingStatus.IN_PROGRESS:
+        raise HTTPException(status_code=409, detail="Finish the running meeting first.")
+    db.delete(meeting)
     db.commit()
-    db.refresh(meeting)
-    return templates.TemplateResponse(
-        request,
-        "meetings/_row.html",
-        {"current_user": current_user, "meeting": meeting, "MeetingStatus": MeetingStatus},
-    )
+    return Response(status_code=200)
 
 
 # --- Running a meeting from the sidebar --------------------------------------

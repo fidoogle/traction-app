@@ -2,26 +2,6 @@
   <td>{{ meeting.team.name }}</td>
   <td>{{ meeting.scheduled_date }}</td>
   <td>
-    {% if current_user.role.value == "viewer" %}
-      <span class="badge {{ meeting.status.value }}">{{ meeting.status.value.replace("_", " ") }}</span>
-    {% else %}
-      <select
-        class="status-select"
-        name="status"
-        hx-patch="/meetings/{{ meeting.id }}/status"
-        hx-target="#meeting-row-{{ meeting.id }}"
-        hx-swap="outerHTML"
-        hx-trigger="change"
-      >
-        {% for choice in MeetingStatus %}
-        <option value="{{ choice.value }}" {% if choice == meeting.status %}selected{% endif %}>
-          {{ choice.value.replace("_", " ") }}
-        </option>
-        {% endfor %}
-      </select>
-    {% endif %}
-  </td>
-  <td>
     {% if meeting.started_at %}
     <strong>{{ step_clock(meeting.step_seconds | sum) }}</strong>
     <div class="step-times">
@@ -32,4 +12,17 @@
     </div>
     {% endif %}
   </td>
+  {% if current_user.role.value == "admin" %}
+  <td class="row-actions">
+    <button
+      class="link-danger"
+      hx-delete="/meetings/{{ meeting.id }}"
+      hx-target="#meeting-row-{{ meeting.id }}"
+      hx-swap="delete"
+      hx-confirm="Delete the {{ meeting.team.name }} meeting from {{ meeting.scheduled_date }}? This cannot be undone."
+    >
+      Delete
+    </button>
+  </td>
+  {% endif %}
 </tr>

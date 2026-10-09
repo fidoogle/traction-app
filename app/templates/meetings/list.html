@@ -28,7 +28,7 @@
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Team</th><th>Date</th><th>Status</th><th>Time</th></tr>
+      <tr><th>Team</th><th>Date</th><th>Time</th>{% if current_user.role.value == "admin" %}<th></th>{% endif %}</tr>
     </thead>
     <tbody id="meetings-table-body">
       {% for meeting in meetings %}
