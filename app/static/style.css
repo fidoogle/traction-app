@@ -323,7 +323,15 @@ textarea:focus-visible {
 @media (max-width: 640px) {
   .team-switcher-label,
   .topbar .user-info { display: none; }
-  .team-switcher select { max-width: 10rem; }
+  /* Tighter bar; the team switcher gives way (shrinks) so the hamburger and
+     the right-hand controls never push the page wider than the screen. */
+  .topbar { padding: 0.6rem 0.75rem; gap: 0.5rem; }
+  .topbar-left { flex: 1 1 0; min-width: 0; gap: 0.5rem; }
+  .topbar-left .nav-toggle { flex-shrink: 0; }
+  .team-switcher { flex: 1 1 0; }
+  .team-switcher select { width: 100%; max-width: none; min-width: 0; }
+  .topbar > * { flex-shrink: 0; }
+  .topbar > .topbar-left { flex-shrink: 1; }
 }
 
 .logout-form button {
