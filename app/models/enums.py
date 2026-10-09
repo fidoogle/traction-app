@@ -30,3 +30,15 @@ class UserRole(StrEnum):
     ADMIN = "admin"
     MEMBER = "member"
     VIEWER = "viewer"
+
+
+class GoalDirection(StrEnum):
+    AT_LEAST = "gte"
+    AT_MOST = "lte"
+    EXACTLY = "eq"
+
+
+class MeasurableUnit(StrEnum):
+    NUMBER = "number"
+    CURRENCY = "currency"
+    PERCENT = "percent"

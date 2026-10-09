@@ -1,13 +1,12 @@
 import uuid
-from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ScorecardEntryBase(BaseModel):
     measurable_id: uuid.UUID
-    week_ending: date
+    week_number: int = Field(ge=1, le=13)
     actual_value: float
 
 
@@ -17,7 +16,7 @@ class ScorecardEntryCreate(ScorecardEntryBase):
 
 class ScorecardEntryUpdate(BaseModel):
     measurable_id: Optional[uuid.UUID] = None
-    week_ending: Optional[date] = None
+    week_number: Optional[int] = Field(default=None, ge=1, le=13)
     actual_value: Optional[float] = None
 
 

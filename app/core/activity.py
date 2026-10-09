@@ -24,12 +24,14 @@ from app.models import (
     Organization,
     PeopleAnalyzerEntry,
     Rock,
+    Scorecard,
     ScorecardEntry,
     Seat,
     Team,
     Todo,
     User,
 )
+from app.core.scorecard_format import format_goal, format_value
 from app.models.base import Base
 
 ACTOR_KEY = "activity_actor"
@@ -39,8 +41,9 @@ ENTITY_TYPES: dict[str, tuple[str, Optional[str]]] = {
     "rock": ("rock", "/rocks"),
     "issue": ("issue", "/issues"),
     "todo": ("to-do", "/todos"),
-    "measurable": ("measurable", "/scorecard"),
-    "scorecard_entry": ("scorecard entry", "/scorecard"),
+    "scorecard": ("scorecard", "/scorecards"),
+    "measurable": ("measurable", "/scorecards"),
+    "scorecard_entry": ("scorecard entry", "/scorecards"),
     "meeting": ("meeting", "/meetings"),
     "seat": ("seat", "/seats"),
     "vto": ("VTO", "/vto"),
@@ -54,6 +57,7 @@ _MODEL_TYPES: dict[type, str] = {
     Rock: "rock",
     Issue: "issue",
     Todo: "todo",
+    Scorecard: "scorecard",
     Measurable: "measurable",
     ScorecardEntry: "scorecard_entry",
     Meeting: "meeting",
@@ -79,7 +83,9 @@ _FIELD_NAMES = {
     "seat_id": "Seat",
     "parent_seat_id": "Reports to",
     "goal_value": "Goal",
-    "actual_value": "Actual",
+    "actual_value": "Value",
+    "week_number": "Week",
+    "goal_direction": "Goal type",
     "hashed_password": "Password",
     "gets_it": "Gets it",
     "wants_it": "Wants it",
@@ -112,7 +118,7 @@ def _fmt_date(d: date) -> str:
 def _label(db: Session, obj: Any) -> str:
     if isinstance(obj, (Rock, Issue, Todo, Seat)):
         return obj.title
-    if isinstance(obj, (Team, User, Measurable, Organization)):
+    if isinstance(obj, (Team, User, Measurable, Organization, Scorecard)):
         return obj.name
     if isinstance(obj, Meeting):
         team = db.get(Team, obj.team_id) if obj.team_id else None
@@ -121,7 +127,7 @@ def _label(db: Session, obj: Any) -> str:
     if isinstance(obj, ScorecardEntry):
         measurable = db.get(Measurable, obj.measurable_id) if obj.measurable_id else None
         name = measurable.name if measurable else "Scorecard"
-        return f"{name}, week ending {_fmt_date(obj.week_ending)}" if obj.week_ending else name
+        return f"{name}, week {obj.week_number}" if obj.week_number else name
     if isinstance(obj, PeopleAnalyzerEntry):
         person = db.get(User, obj.user_id) if obj.user_id else None
         seat = db.get(Seat, obj.seat_id) if obj.seat_id else None
@@ -161,6 +167,28 @@ def _fmt_value(db: Session, column, value: Any) -> Optional[str]:
     return None  # lists / dicts (JSONB) - just say the field changed
 
 
+def _unit_of(db: Session, obj: Any) -> Optional[str]:
+    """The display unit for a scorecard value, or None for other models."""
+    if isinstance(obj, Measurable):
+        return obj.unit
+    if isinstance(obj, ScorecardEntry):
+        measurable = db.get(Measurable, obj.measurable_id) if obj.measurable_id else None
+        return measurable.unit if measurable else None
+    return None
+
+
+def _created_details(db: Session, obj: Any) -> list[str]:
+    """What to show on a 'created' item, where the label alone isn't enough."""
+    if isinstance(obj, ScorecardEntry):
+        unit = _unit_of(db, obj)
+        return [f"Value: {format_value(obj.actual_value, unit)}"] if unit else []
+    if isinstance(obj, Measurable):
+        return [f"Goal: {format_goal(obj.goal_value, obj.unit, obj.goal_direction)}"]
+    if isinstance(obj, Scorecard):
+        return [f"Starts {_fmt_date(obj.start_date)}"]
+    return []
+
+
 def _changes(db: Session, obj: Any) -> list[str]:
     state = inspect(obj)
     lines = []
@@ -178,6 +206,13 @@ def _changes(db: Session, obj: Any) -> list[str]:
         name = _field_name(key)
         if key in _SECRET_FIELDS:
             lines.append(f"{name} changed")
+        elif key in ("actual_value", "goal_value") and _unit_of(db, obj):
+            unit = _unit_of(db, obj)
+            new_text = format_value(new, unit) if new is not None else "none"
+            if history.deleted and old is not None:
+                lines.append(f"{name}: {format_value(old, unit)} → {new_text}")
+            else:
+                lines.append(f"{name}: {new_text}")
         elif key == "notes":
             lines.append("Notes cleared" if not new else ("Notes added" if not old else "Notes edited"))
         else:
@@ -207,24 +242,38 @@ def _entry(db: Session, actor, action: str, obj: Any, changes: list[str]) -> Act
     )
 
 
+def _removed_with_parent(db: Session, obj: Any) -> bool:
+    """A cell or measurable deleted only because its row/scorecard was is noise."""
+    if isinstance(obj, ScorecardEntry):
+        return obj.measurable is not None and obj.measurable in db.deleted
+    if isinstance(obj, Measurable):
+        return obj.scorecard is not None and obj.scorecard in db.deleted
+    return False
+
+
+def _added_with_parent(db: Session, obj: Any) -> bool:
+    """Measurables copied into a brand-new scorecard are part of its creation."""
+    return isinstance(obj, Measurable) and obj.scorecard is not None and obj.scorecard in db.new
+
+
 def _before_flush(db: Session, flush_context, instances) -> None:
     actor = db.info.get(ACTOR_KEY)
     if actor is None:
         return
     entries = []
     for obj in db.new:
-        if type(obj) in _MODEL_TYPES:
+        if type(obj) in _MODEL_TYPES and not _added_with_parent(db, obj):
             if obj.id is None:
                 # Normally assigned at INSERT time; needed now for entity_id.
                 obj.id = uuid.uuid4()
-            entries.append(_entry(db, actor, "created", obj, []))
+            entries.append(_entry(db, actor, "created", obj, _created_details(db, obj)))
     for obj in db.dirty:
         if type(obj) in _MODEL_TYPES and db.is_modified(obj, include_collections=False):
             changes = _changes(db, obj)
             if changes:
                 entries.append(_entry(db, actor, "updated", obj, changes))
     for obj in db.deleted:
-        if type(obj) in _MODEL_TYPES:
+        if type(obj) in _MODEL_TYPES and not _removed_with_parent(db, obj):
             entries.append(_entry(db, actor, "deleted", obj, []))
     db.add_all(entries)
 

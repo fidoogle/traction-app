@@ -1,12 +1,21 @@
 from app.models.activity import ActivityLog
 from app.models.base import Base
-from app.models.enums import IssueStatus, MeetingStatus, RockStatus, TodoStatus, UserRole
+from app.models.enums import (
+    GoalDirection,
+    IssueStatus,
+    MeasurableUnit,
+    MeetingStatus,
+    RockStatus,
+    TodoStatus,
+    UserRole,
+)
 from app.models.issue import Issue
 from app.models.measurable import Measurable
 from app.models.meeting import Meeting
 from app.models.organization import Organization
 from app.models.people_analyzer import PeopleAnalyzerEntry
 from app.models.rock import Rock
+from app.models.scorecard import SCORECARD_WEEKS, Scorecard
 from app.models.scorecard_entry import ScorecardEntry
 from app.models.seat import Seat
 from app.models.team import Team
@@ -20,6 +29,7 @@ __all__ = [
     "Team",
     "User",
     "Rock",
+    "Scorecard",
     "Measurable",
     "ScorecardEntry",
     "Issue",
@@ -34,4 +44,7 @@ __all__ = [
     "TodoStatus",
     "MeetingStatus",
     "UserRole",
+    "GoalDirection",
+    "MeasurableUnit",
+    "SCORECARD_WEEKS",
 ]

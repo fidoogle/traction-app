@@ -4,7 +4,7 @@ UI work.
 Not for production use - this creates a fake school district (Cedar Valley
 USD) with multiple teams, users across all three roles, an accountability
 chart (including a deliberately vacant seat), a VTO, rocks, several weeks
-of scorecard history, issues/to-dos, meetings, and People Analyzer entries,
+of 13-week scorecard, issues/to-dos, meetings, and People Analyzer entries,
 so there's something real to look at while building the UI.
 
 Usage:
@@ -14,7 +14,6 @@ Usage:
 against a local/dev database, never a database with real district data.
 """
 import argparse
-import random
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -35,6 +34,7 @@ from app.models import (  # noqa: E402
     PeopleAnalyzerEntry,
     Rock,
     RockStatus,
+    Scorecard,
     ScorecardEntry,
     Seat,
     Team,
@@ -53,6 +53,7 @@ DEMO_TABLES = [
     "issues",
     "scorecard_entries",
     "measurables",
+    "scorecards",
     "rocks",
     "meetings",
     "users",
@@ -240,31 +241,44 @@ def main() -> None:
             ]
         )
 
-        # --- Measurables + weekly scorecard history ---
-        measurables = [
-            Measurable(team_id=leadership.id, name="Weekly cash on hand ($M)", goal_value=5.0),
-            Measurable(
-                team_id=curriculum.id, name="Chronic absenteeism rate (%)", goal_value=8.0
-            ),
-            Measurable(team_id=ops.id, name="Open maintenance tickets", goal_value=15.0),
-        ]
-        db.add_all(measurables)
-        db.flush()
-
-        random.seed(42)
+        # --- Scorecard: 13 weeks starting on a Sunday, 6 weeks filled in ---
         today = date.today()
-        this_friday = today - timedelta(days=today.weekday()) + timedelta(days=4)
-        for measurable in measurables:
-            for weeks_ago in range(12, 0, -1):
-                week_ending = this_friday - timedelta(weeks=weeks_ago)
-                drift = random.uniform(-0.15, 0.15) * measurable.goal_value
-                db.add(
-                    ScorecardEntry(
-                        measurable_id=measurable.id,
-                        week_ending=week_ending,
-                        actual_value=round(measurable.goal_value + drift, 1),
+        start = today - timedelta(days=(today.weekday() + 1) % 7) - timedelta(weeks=5)
+        scorecard = Scorecard(
+            org_id=org.id, name="Current quarter scorecard", start_date=start
+        )
+        db.add(scorecard)
+        db.flush()
+        rows = [
+            # (owner, name, unit, goal, direction, weekly values; None = blank week)
+            (cfo, "Cash on hand", "currency", 5_000_000, "gte",
+             [5.4e6, 5.1e6, 4.8e6, 5.2e6, 5.6e6, 5.3e6]),
+            (curriculum_dir, "Chronic absenteeism rate", "percent", 8, "lte",
+             [7.5, 8.4, 9.1, None, 7.9, 7.2]),
+            (ops_dir, "Open maintenance tickets", "number", 15, "lte",
+             [12, 17, 14, 16, 13, 11]),
+            (ops_dir, "Safety incidents", "number", 0, "eq",
+             [0, 0, 1, 0, 0, 0]),
+        ]
+        for position, (owner, name, unit, goal, direction, values) in enumerate(rows, start=1):
+            measurable = Measurable(
+                scorecard_id=scorecard.id,
+                owner_id=owner.id,
+                name=name,
+                unit=unit,
+                goal_value=goal,
+                goal_direction=direction,
+                position=position,
+            )
+            db.add(measurable)
+            db.flush()
+            for week, value in enumerate(values, start=1):
+                if value is not None:
+                    db.add(
+                        ScorecardEntry(
+                            measurable_id=measurable.id, week_number=week, actual_value=value
+                        )
                     )
-                )
 
         # --- Issues + to-dos ---
         issue1 = Issue(

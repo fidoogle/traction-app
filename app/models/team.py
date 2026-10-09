@@ -24,9 +24,6 @@ class Team(UUIDPKMixin, Base):
     rocks: Mapped[List["Rock"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
-    measurables: Mapped[List["Measurable"]] = relationship(
-        back_populates="team", cascade="all, delete-orphan"
-    )
     issues: Mapped[List["Issue"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )

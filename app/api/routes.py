@@ -11,6 +11,7 @@ from app.models import (
     Organization,
     PeopleAnalyzerEntry,
     Rock,
+    Scorecard,
     ScorecardEntry,
     Seat,
     Team,
@@ -27,6 +28,7 @@ from app.schemas.people_analyzer import (
     PeopleAnalyzerEntryUpdate,
 )
 from app.schemas.rock import RockCreate, RockRead, RockUpdate
+from app.schemas.scorecard import ScorecardCreate, ScorecardRead, ScorecardUpdate
 from app.schemas.scorecard_entry import ScorecardEntryCreate, ScorecardEntryRead, ScorecardEntryUpdate
 from app.schemas.seat import SeatCreate, SeatRead, SeatUpdate
 from app.schemas.team import TeamCreate, TeamRead, TeamUpdate
@@ -73,12 +75,24 @@ api_router.include_router(
 )
 api_router.include_router(
     build_crud_router(
+        model=Scorecard,
+        create_schema=ScorecardCreate,
+        update_schema=ScorecardUpdate,
+        read_schema=ScorecardRead,
+        prefix="/scorecards",
+        tags=["scorecards"],
+        write_roles=frozenset({UserRole.ADMIN}),
+    )
+)
+api_router.include_router(
+    build_crud_router(
         model=Measurable,
         create_schema=MeasurableCreate,
         update_schema=MeasurableUpdate,
         read_schema=MeasurableRead,
         prefix="/measurables",
         tags=["measurables"],
+        write_roles=frozenset({UserRole.ADMIN}),
     )
 )
 api_router.include_router(
@@ -89,6 +103,7 @@ api_router.include_router(
         read_schema=ScorecardEntryRead,
         prefix="/scorecard-entries",
         tags=["scorecard-entries"],
+        write_roles=frozenset({UserRole.ADMIN}),
     )
 )
 api_router.include_router(
