@@ -1,7 +1,7 @@
 <tr id="user-row-{{ user.id }}">
   <td>{{ user.name }}</td>
   <td>{{ user.email }}</td>
-  <td>{{ user.teams | map(attribute="name") | join(", ") }}</td>
+  <td>{% for m in user.memberships | sort(attribute="team.name") %}{{ m.team.name }}{% if m.is_team_admin %} (team admin){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</td>
   <td>
     {% if current_user.role.value == "admin" %}
       <select

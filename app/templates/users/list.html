@@ -3,7 +3,9 @@
 {% block content %}
 <h1>Users</h1>
 
-{% if current_user.role.value == "admin" %}
+{% set is_admin = current_user.role.value == "admin" %}
+{% set admin_teams = request.state.team_ctx.admin_teams %}
+{% if is_admin or admin_teams %}
 <div class="card">
   <h2>Add a user</h2>
   <form hx-post="/users" hx-target="#users-table-body" hx-swap="afterbegin"
@@ -18,6 +20,10 @@
         <input type="email" id="email" name="email" required>
       </div>
       {% set current_team = request.state.team_ctx.current %}
+      {% if not is_admin %}
+      <input type="hidden" name="team_ids" value="{{ admin_teams[0].id }}">
+      <p class="field-hint field-full">Added to <strong>{{ admin_teams[0].name }}</strong>, the team you administer.</p>
+      {% else %}
       <fieldset class="field field-full team-checkboxes">
         <legend>Teams</legend>
         <div class="team-checkbox-list">
@@ -30,10 +36,11 @@
         {% endfor %}
         </div>
       </fieldset>
+      {% endif %}
       <div class="field">
         <label for="role">Role</label>
         <select id="role" name="role" required>
-          {% for choice in UserRole %}
+          {% for choice in UserRole if is_admin or choice.value != "admin" %}
           <option value="{{ choice.value }}" {% if choice.value == "member" %}selected{% endif %}>
             {{ choice.value }}
           </option>

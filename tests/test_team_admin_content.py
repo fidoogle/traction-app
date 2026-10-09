@@ -201,3 +201,54 @@ def test_teams_page_shows_roster_controls_only_where_allowed(world, mia_admin_of
     assert f'hx-post="/teams/{world["team_bravo"]}/members"' in html
     assert f'hx-post="/teams/{world["team_alpha"]}/members"' not in html
     assert "make admin" not in html  # only an admin hands out the role
+
+
+# --- Users page ----------------------------------------------------------------
+
+
+def _new_user(world, **over):
+    return {
+        "name": "New Person", "email": "new@example.com", "password": "longenough",
+        "role": "member", "team_ids": str(world["team_charlie"]), **over,
+    }
+
+
+def test_team_admin_creates_users_on_their_own_team_only(world, mia_admin_of_bravo):
+    from app.models import User
+
+    mia = mia_admin_of_bravo
+    # The team they ask for is ignored: it's always the team they administer.
+    assert mia.post("/users", data=_new_user(world)).status_code == 200
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == "new@example.com"))
+        assert [t.id for t in user.teams] == [world["team_bravo"]]
+        assert user.team_id == world["team_bravo"]
+    assert mia.post("/users", data=_new_user(world, email="v@example.com", role="viewer")).status_code == 200
+    assert mia.post("/users", data=_new_user(world, email="a@example.com", role="admin")).status_code == 403
+
+
+def test_team_admin_cannot_change_roles_or_delete_users(world, mia_admin_of_bravo):
+    mia = mia_admin_of_bravo
+    assert mia.patch(f"/users/{world['max']}/role", data={"role": "admin"}).status_code == 403
+    assert mia.delete(f"/users/{world['max']}").status_code == 403
+
+
+def test_plain_member_cannot_create_users(world, login):
+    assert login("mia").post("/users", data=_new_user(world)).status_code == 403
+
+
+def test_users_page_form_for_a_team_admin(world, login, mia_admin_of_bravo):
+    html = mia_admin_of_bravo.get("/users").text
+    assert 'hx-post="/users"' in html
+    assert 'name="team_ids" value="%s"' % world["team_bravo"] in html
+    assert '<option value="admin"' not in html
+    assert 'hx-post="/users"' not in login("max").get("/users").text
+
+
+def test_changing_the_role_clears_team_admin(world, login, mia_admin_of_bravo):
+    admin = login("admin")
+    assert "(team admin)" in admin.get("/users").text
+    assert admin.patch(f"/users/{world['mia']}/role", data={"role": "viewer"}).status_code == 200
+    assert not _is_team_admin(world["mia"], world["team_bravo"])
+    assert admin.patch(f"/users/{world['mia']}/role", data={"role": "member"}).status_code == 200
+    assert not _is_team_admin(world["mia"], world["team_bravo"])

@@ -94,6 +94,10 @@ def update_user(
         setattr(user, field, value)
     if payload.password is not None:
         user.hashed_password = hash_password(payload.password)
+    if user.role != UserRole.MEMBER:
+        # Team admin is member-only; see web/users_routes.update_user_role.
+        for membership in user.memberships:
+            membership.is_team_admin = False
     # A new home team is also a team they're on.
     if "team_id" in update_data and all(m.team_id != user.team_id for m in user.memberships):
         user.memberships.append(TeamMembership(team_id=user.team_id))

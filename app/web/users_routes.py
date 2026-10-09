@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.deps import get_db
 from app.core.security import hash_password
 from app.models import Team, TeamMembership, User, UserRole
-from app.web.deps import get_current_user_web
+from app.web.deps import get_current_user_web, get_team_context
+from app.web.team_context import TeamContext
 from app.web.templates import templates
 
 router = APIRouter(prefix="/users")
@@ -27,7 +28,7 @@ def list_users(
     users = db.scalars(
         select(User)
         .where(User.org_id == current_user.org_id)
-        .options(selectinload(User.teams))
+        .options(selectinload(User.memberships).selectinload(TeamMembership.team))
         .order_by(User.name)
     ).all()
     teams = db.scalars(
@@ -55,8 +56,14 @@ def create_user(
     password: str = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
+    if current_user.role != UserRole.ADMIN:
+        # A team admin adds people to their own team, as members or viewers.
+        admin_team_id = next(iter(team_ctx.admin_team_ids), None)
+        if admin_team_id is None or role == UserRole.ADMIN:
+            raise HTTPException(status_code=403)
+        team_ids = [admin_team_id]
     team_ids = list(dict.fromkeys(team_ids))
     teams = db.scalars(
         select(Team).where(Team.id.in_(team_ids), Team.org_id == current_user.org_id)
@@ -104,6 +111,11 @@ def update_user_role(
         raise HTTPException(status_code=404)
 
     user.role = role
+    if user.role != UserRole.MEMBER:
+        # Team admin is a member-only role; it doesn't survive becoming
+        # something else (or coming back later as a member).
+        for membership in user.memberships:
+            membership.is_team_admin = False
     db.commit()
     db.refresh(user)
     return templates.TemplateResponse(
