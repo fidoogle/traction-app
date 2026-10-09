@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}To-Dos - Traction/EOS{% endblock %}
 {% block content %}
-{% from "_macros.html" import page_header, modal, notes_modal %}
+{% from "_macros.html" import page_header, modal, notes_modal, people_options, team_select %}
 {% set can_add = current_user.role.value != "viewer" %}
 {{ page_header("To-Dos", "Add to-do", "add-todo-modal" if can_add else None) }}
 
@@ -14,13 +14,13 @@
     <input type="text" id="title" name="title" required autofocus>
   </div>
   <div class="field">
+    <label for="team_id">Team</label>
+    {{ team_select(teams, default_team_id, filters="#owner_id, #issue_id") }}
+  </div>
+  <div class="field">
     <label for="owner_id">Owner</label>
     <select id="owner_id" name="owner_id" required>
-      {% for user in org_users %}
-      <option value="{{ user.id }}" {% if user.id == current_user.id %}selected{% endif %}>
-        {{ user.name }}
-      </option>
-      {% endfor %}
+      {{ people_options(people, selected=current_user.id) }}
     </select>
   </div>
   <div class="field">
@@ -28,7 +28,7 @@
     <select id="issue_id" name="issue_id">
       <option value="">— none —</option>
       {% for issue in org_issues %}
-      <option value="{{ issue.id }}">{{ issue.title }}</option>
+      <option value="{{ issue.id }}" data-teams="{{ issue.team_id }}">{{ issue.title }}</option>
       {% endfor %}
     </select>
   </div>
@@ -51,7 +51,7 @@
   <table>
     <thead>
       <tr>
-        <th>Title</th><th>Owner</th><th>Related issue</th><th>Due</th><th>Status</th>
+        <th>Title</th><th>Owner</th><th>Team</th><th>Related issue</th><th>Due</th><th>Status</th>
         {% if current_user.role.value == "admin" %}<th></th>{% endif %}
       </tr>
     </thead>
@@ -59,7 +59,7 @@
       {% for todo in todos %}
         {% include "todos/_row.html" %}
       {% else %}
-      <tr id="todos-empty"><td colspan="6">No to-dos yet.</td></tr>
+      <tr id="todos-empty"><td colspan="7">No to-dos yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

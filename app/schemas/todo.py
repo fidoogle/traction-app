@@ -8,6 +8,7 @@ from app.models.enums import TodoStatus
 
 
 class TodoBase(BaseModel):
+    team_id: uuid.UUID
     owner_id: uuid.UUID
     issue_id: Optional[uuid.UUID] = None
     title: str
@@ -21,6 +22,7 @@ class TodoCreate(TodoBase):
 
 
 class TodoUpdate(BaseModel):
+    team_id: Optional[uuid.UUID] = None
     owner_id: Optional[uuid.UUID] = None
     issue_id: Optional[uuid.UUID] = None
     title: Optional[str] = None

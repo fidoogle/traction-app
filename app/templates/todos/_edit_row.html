@@ -1,17 +1,19 @@
+{% from "_macros.html" import people_options, team_select %}
 <tr id="todo-row-{{ todo.id }}" class="row-edit">
   <td><input type="text" name="title" value="{{ todo.title }}" maxlength="255" required aria-label="Title"></td>
   <td>
     <select name="owner_id" aria-label="Owner">
-      {% for user in org_users %}
-      <option value="{{ user.id }}" {% if user.id == todo.owner_id %}selected{% endif %}>{{ user.name }}</option>
-      {% endfor %}
+      {{ people_options(people, selected=todo.owner_id, keep=todo.owner_id, keep_team=todo.team_id) }}
     </select>
+  </td>
+  <td>
+    {{ team_select(teams, todo.team_id, id="todo-team-" ~ todo.id, filters='select[name="owner_id"], select[name="issue_id"]') }}
   </td>
   <td>
     <select name="issue_id" aria-label="Related issue">
       <option value="">— none —</option>
       {% for issue in org_issues %}
-      <option value="{{ issue.id }}" {% if issue.id == todo.issue_id %}selected{% endif %}>{{ issue.title }}</option>
+      <option value="{{ issue.id }}" data-teams="{{ issue.team_id }}" {% if issue.id == todo.issue_id %}selected{% endif %}>{{ issue.title }}</option>
       {% endfor %}
     </select>
   </td>

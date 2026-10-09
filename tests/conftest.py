@@ -164,7 +164,7 @@ def world(engine) -> World:
                 user_id=owner.id, seat_id=seat.id, evaluated_at=date(2026, 10, 1),
                 gets_it=True, wants_it=True, has_capacity=True, core_values_ratings={},
             )
-            todo = Todo(owner_id=owner.id, issue_id=issue.id, title=f"{key} todo")
+            todo = Todo(team_id=team.id, owner_id=owner.id, issue_id=issue.id, title=f"{key} todo")
             db.add_all([entry, review, todo])
             db.flush()
             for kind, obj in (

@@ -44,3 +44,6 @@ class Team(UUIDPKMixin, Base):
     scorecards: Mapped[List["Scorecard"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
+    todos: Mapped[List["Todo"]] = relationship(
+        back_populates="team", cascade="all, delete-orphan"
+    )

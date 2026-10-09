@@ -10,6 +10,7 @@ LISTS = {
     "/issues": ("issue", 'id="issues-table-body"'),
     "/seats": ("seat", 'id="seat-tree-container"'),
     "/scorecards": ("card", 'id="scorecards-table-body"'),
+    "/todos": ("todo", 'id="todos-table-body"'),
     "/people-analyzer": ("seat", 'id="pae-table-body"'),
 }
 
@@ -78,6 +79,10 @@ MEMBER_ACTIONS = [
     ("DELETE", "/seats/{seat}", {}),
     ("GET", "/scorecards/{card}", {}),
     ("PUT", "/scorecards/{card}/measurables/{measurable}/weeks/1", {"value": "9"}),
+    ("GET", "/todos/{todo}", {}),
+    ("PATCH", "/todos/{todo}/status", {"status": "done"}),
+    ("GET", "/todos/{todo}/notes", {}),
+    ("PUT", "/todos/{todo}/notes", {"notes": "hello"}),
 ]
 # What an admin may additionally do.
 ADMIN_ACTIONS = MEMBER_ACTIONS + [
@@ -89,6 +94,8 @@ ADMIN_ACTIONS = MEMBER_ACTIONS + [
     ("DELETE", "/scorecards/{card}", {}),
     ("GET", "/scorecards/{card}/measurables/{measurable}/edit", {}),
     ("DELETE", "/scorecards/{card}/measurables/{measurable}", {}),
+    ("GET", "/todos/{todo}/edit", {}),
+    ("DELETE", "/todos/{todo}", {}),
 ]
 
 
@@ -100,6 +107,7 @@ def item_paths(world, team, template):
         seat=world[f"seat_{team}"],
         card=world[f"card_{team}"],
         measurable=world[f"measurable_{team}"],
+        todo=world[f"todo_{team}"],
     )
 
 
@@ -207,11 +215,37 @@ def test_quick_add_only_offers_your_teams_and_their_issues(world, login):
     assert "Charlie" not in html
 
 
-def test_todos_can_only_link_to_issues_on_your_teams(world, login):
+def test_todos_belong_to_a_team_with_member_owners_and_issues_from_that_team(world, login):
     mia = login("mia")
-    todo = {"title": "Do it", "owner_id": str(world["mia"])}
-    assert mia.post("/todos", data={**todo, "issue_id": str(world["issue_charlie"])}).status_code == 404
-    assert mia.post("/todos", data={**todo, "issue_id": str(world["issue_bravo"])}).status_code == 200
+    base = {"title": "Do it", "owner_id": str(world["mia"])}
+    bravo = {**base, "team_id": str(world["team_bravo"])}
+    assert mia.post("/todos", data={**bravo, "issue_id": str(world["issue_bravo"])}).status_code == 200
+    assert mia.post("/todos", data=bravo).status_code == 200  # no issue is fine
+    # An issue on a team she isn't on, and one on her other team, are both refused.
+    assert mia.post("/todos", data={**bravo, "issue_id": str(world["issue_charlie"])}).status_code == 404
+    assert mia.post("/todos", data={**bravo, "issue_id": str(world["issue_alpha"])}).status_code == 404
+    assert mia.post("/todos", data={**base, "team_id": str(world["team_charlie"])}).status_code == 404
+    assert mia.post("/todos", data={**bravo, "owner_id": str(world["max"])}).status_code == 404  # not on Bravo
+
+
+def test_moving_a_todo_needs_an_owner_and_issue_from_the_new_team(world, login):
+    admin = login("admin")
+    url = f"/todos/{world['todo_alpha']}"  # owned by Mia, about Alpha's issue
+    move = {"title": "Moved", "status": "open", "team_id": str(world["team_bravo"]),
+            "owner_id": str(world["mia"])}
+    assert admin.put(url, data={**move, "issue_id": str(world["issue_alpha"])}).status_code == 404
+    assert admin.put(url, data={**move, "owner_id": str(world["max"])}).status_code == 404
+    assert admin.put(url, data=move).status_code == 200
+
+
+def test_moving_an_issue_moves_its_todos_with_it(world, login):
+    from app.db import SessionLocal
+    from app.models import Todo
+
+    form = {"title": "Same issue", "priority": 1, "status": "open", "team_id": str(world["team_bravo"])}
+    assert login("admin").put(f"/issues/{world['issue_alpha']}", data=form).status_code == 200
+    with SessionLocal() as db:
+        assert db.get(Todo, world["todo_alpha"]).team_id == world["team_bravo"]
 
 
 # --- Org chart and team membership -----------------------------------------

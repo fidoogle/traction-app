@@ -324,6 +324,7 @@ def main() -> None:
         db.add_all(
             [
                 Todo(
+                    team_id=issue1.team_id,
                     owner_id=superintendent.id,
                     issue_id=issue1.id,
                     title="Draft substitute pay increase proposal",
@@ -331,6 +332,7 @@ def main() -> None:
                     status=TodoStatus.OPEN,
                 ),
                 Todo(
+                    team_id=issue2.team_id,
                     owner_id=ops_dir.id,
                     issue_id=issue2.id,
                     title="Get quotes for 3 replacement buses",
@@ -338,6 +340,7 @@ def main() -> None:
                     status=TodoStatus.OPEN,
                 ),
                 Todo(
+                    team_id=issue3.team_id,
                     owner_id=curriculum_dir.id,
                     issue_id=issue3.id,
                     title="Confirm delivery date with vendor",

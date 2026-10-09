@@ -13,6 +13,9 @@ from app.models.enums import TodoStatus
 class Todo(UUIDPKMixin, Base):
     __tablename__ = "todos"
 
+    team_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False, index=True
+    )
     owner_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
@@ -31,5 +34,6 @@ class Todo(UUIDPKMixin, Base):
 
     notes: Mapped[Optional[str]] = mapped_column(Text)
 
+    team: Mapped["Team"] = relationship(back_populates="todos")
     owner: Mapped["User"] = relationship(back_populates="todos")
     issue: Mapped[Optional["Issue"]] = relationship(back_populates="todos")

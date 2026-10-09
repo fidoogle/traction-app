@@ -37,7 +37,7 @@ from app.models import (
 from app.models.base import Base
 
 # Models that carry their own team_id.
-_TEAM_OWNED = (Rock, Issue, Meeting, Seat, Scorecard)
+_TEAM_OWNED = (Rock, Issue, Meeting, Seat, Scorecard, Todo)
 
 # Payload field -> the model it points at.
 REF_FIELDS: dict[str, type[Base]] = {
@@ -77,9 +77,6 @@ def visible(model: type[Base], user: User, team_ids: list[uuid.UUID]) -> ColumnE
     if model is PeopleAnalyzerEntry:
         seats = select(Seat.id).where(Seat.team_id.in_(team_ids))
         return PeopleAnalyzerEntry.seat_id.in_(seats)
-    if model is Todo:
-        # To-dos aren't team-owned yet: scoped to the org via their owner.
-        return Todo.owner_id.in_(select(User.id).where(User.org_id == user.org_id))
     # Fail closed: a model added to the API without a rule here is a bug.
     raise NotImplementedError(f"No API scoping rule for {model.__name__}")
 

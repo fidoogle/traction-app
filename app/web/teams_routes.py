@@ -16,6 +16,7 @@ from app.models import (
     Seat,
     Team,
     TeamMembership,
+    Todo,
     User,
     UserRole,
 )
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/teams")
 
 # Everything a team owns. A team with any of it (or any members) can't be
 # deleted - that would silently take a whole team's history with it.
-_TEAM_CONTENT = (Rock, Issue, Meeting, Seat, Scorecard)
+_TEAM_CONTENT = (Rock, Issue, Meeting, Seat, Scorecard, Todo)
 
 
 def _require_admin(current_user: User) -> None:

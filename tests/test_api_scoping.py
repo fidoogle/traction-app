@@ -7,6 +7,7 @@ ENDPOINTS = {
     "/api/teams/": "team",
     "/api/rocks/": "rock",
     "/api/issues/": "issue",
+    "/api/todos/": "todo",
     "/api/meetings/": "meeting",
     "/api/seats/": "seat",
     "/api/scorecards/": "card",
@@ -70,9 +71,11 @@ def test_cannot_point_a_row_at_someone_elses_data(world, login):
     resp = admin.patch(f"/api/issues/{world['issue_alpha']}", json={"team_id": str(world["team_xray"])})
     assert resp.status_code == 404
     # Make a to-do about another org's issue, owned by another org's user.
-    todo = {"title": "x", "owner_id": str(world["admin"])}
+    todo = {"title": "x", "owner_id": str(world["admin"]), "team_id": str(world["team_alpha"])}
     assert admin.post("/api/todos/", json={**todo, "issue_id": str(world["issue_xray"])}).status_code == 404
     assert admin.post("/api/todos/", json={**todo, "owner_id": str(world["other"])}).status_code == 404
+    assert admin.post("/api/todos/", json={**todo, "team_id": str(world["team_xray"])}).status_code == 404
+    assert admin.post("/api/todos/", json=todo).status_code == 201
     # Add a measurable to a scorecard on a team you're not on.
     measurable = {"owner_id": str(world["mia"]), "name": "m", "unit": "number", "goal_value": 1,
                   "goal_direction": "gte", "position": 1}

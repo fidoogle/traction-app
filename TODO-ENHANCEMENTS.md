@@ -8,11 +8,11 @@ queued.
 
 ## Authorization & Access Control
 
-- [ ] Team-scoped data access, mostly done: Rocks, Issues, Meetings, Seats,
-      People Analyzer, Scorecards and the JSON API are now limited to your
-      own teams (admins: every team in the org). Still open: To-Dos (their
-      list isn't team-scoped yet - Teams rollout phase 3), the VTO (phase 4),
-      and the Dashboard counts + Activity feed (phase 5).
+- [ ] Team-scoped data access, mostly done: Rocks, Issues, To-Dos, Meetings,
+      Seats, People Analyzer, Scorecards and the JSON API are now limited to
+      your own teams (admins: every team in the org). Still open: the VTO
+      (Teams rollout phase 4) and the Dashboard counts + Activity feed
+      (phase 5), which still cover the whole org.
 - [ ] Refresh tokens / session revocation. Access tokens are currently
       long-lived (24h) bearer JWTs with no server-side revocation — logging
       out or deactivating a user doesn't invalidate outstanding tokens.
@@ -48,17 +48,19 @@ queued.
       owners must be team members, non-members get 404); Phase 2 - Rocks,
       Issues, Meetings, Org Chart and People Analyzer follow the current
       team and are limited to your own teams, and the JSON API got the same
-      scoping (app/api/scoping.py). Next: (3) To-Dos get a team_id;
-      (4) one VTO per team; (5) Dashboard + Activity follow the current team.
-- [ ] JSON API scoping is by org/team only. The web UI is stricter in three
+      scoping (app/api/scoping.py); Phase 3 - To-Dos belong to a team (owner
+      and related issue must be on it; an issue's to-dos move with it when
+      the issue changes team). Next: (4) one VTO per team; (5) Dashboard +
+      Activity follow the current team.
+- [ ] JSON API scoping is by org/team only. The web UI is stricter in a few
       ways the API doesn't enforce: an owner/occupant must be a *member* of
       the row's team (the API only checks they're in the org); a seat's
       parent must be on the same team; a measurable's owner must be on its
-      scorecard's team. Share one validation layer if the API is ever
-      used for real writes. To-Dos are scoped to the org only, until phase 3.
-- [ ] Rocks keep their owner when that person is removed from the team (a
-      rock must have an owner, unlike a seat or a scorecard row, which are
-      vacated/unowned). Consider letting a rock be unowned, or prompting to
+      scorecard's team; a to-do's related issue must be on the to-do's team.
+      Share one validation layer if the API is ever used for real writes.
+- [ ] Rocks and To-Dos keep their owner when that person is removed from the
+      team (they must have an owner, unlike a seat or a scorecard row, which
+      are vacated/unowned). Consider letting them be unowned, or prompting to
       reassign.
 - [ ] The accountability chart is per team: a seat can only report to a seat
       on its own team, and one whose parent is elsewhere (older data) shows

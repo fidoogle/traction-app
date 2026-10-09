@@ -171,6 +171,9 @@ def update_issue(
         raise HTTPException(status_code=422)
 
     issue.team_id = team.id
+    # To-dos about this issue belong to the issue's team, so they move with it.
+    for todo in issue.todos:
+        todo.team_id = team.id
     issue.title = title
     issue.priority = priority
     issue.status = status

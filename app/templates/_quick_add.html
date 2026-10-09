@@ -1,5 +1,6 @@
 {# Body of the global quick-add modal (see base.html). Ids are prefixed qa- so
    they can't collide with the add forms on the Issues / To-Dos pages. #}
+{% from "_macros.html" import people_options %}
 <div class="segmented" role="tablist">
   <button type="button" role="tab" class="active" aria-selected="true" data-qa-tab="issue">Issue</button>
   <button type="button" role="tab" aria-selected="false" data-qa-tab="todo">To-Do</button>
@@ -34,11 +35,17 @@
     <input type="text" id="qa-todo-title" name="title" required maxlength="255">
   </div>
   <div class="field">
+    <label for="qa-todo-team">Team</label>
+    <select id="qa-todo-team" name="team_id" required data-member-filter="#qa-todo-owner, #qa-todo-issue">
+      {% for team in teams %}
+      <option value="{{ team.id }}" {% if team.id == default_team_id %}selected{% endif %}>{{ team.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
     <label for="qa-todo-owner">Owner</label>
     <select id="qa-todo-owner" name="owner_id" required>
-      {% for user in org_users %}
-      <option value="{{ user.id }}" {% if user.id == current_user.id %}selected{% endif %}>{{ user.name }}</option>
-      {% endfor %}
+      {{ people_options(people, selected=current_user.id) }}
     </select>
   </div>
   <div class="field">
@@ -46,7 +53,7 @@
     <select id="qa-todo-issue" name="issue_id">
       <option value="">— none —</option>
       {% for issue in org_issues %}
-      <option value="{{ issue.id }}">{{ issue.title }}</option>
+      <option value="{{ issue.id }}" data-teams="{{ issue.team_id }}">{{ issue.title }}</option>
       {% endfor %}
     </select>
   </div>
