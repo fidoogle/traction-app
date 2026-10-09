@@ -31,7 +31,6 @@ _BACKFILL = {
     'meeting': 'SELECT id, team_id FROM meetings',
     'seat': 'SELECT id, team_id FROM seats',
     'scorecard': 'SELECT id, team_id FROM scorecards',
-    'team': 'SELECT id, id FROM teams',
     'team_membership': 'SELECT id, team_id FROM team_memberships',
     'measurable': (
         'SELECT m.id, s.team_id FROM measurables m JOIN scorecards s ON s.id = m.scorecard_id'
