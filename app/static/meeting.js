@@ -51,7 +51,7 @@
   }
 
   function markActive(url) {
-    document.querySelectorAll('#site-nav > a, #site-nav .nav-row > a').forEach(function (a) {
+    document.querySelectorAll('#site-nav a[href]').forEach(function (a) {
       var href = a.getAttribute('href');
       var on = href === '/' ? url === '/' : url.indexOf(href) === 0;
       a.classList.toggle('active', on);
@@ -73,6 +73,22 @@
     evt.preventDefault();
     open(link.getAttribute('href'));
   });
+
+  // Keep the "More pages" fold as the admin left it, across the nav being
+  // re-rendered after every click (and across page loads).
+  function moreOpen() {
+    try { return sessionStorage.getItem('navMoreOpen') === '1'; } catch (e) { return false; }
+  }
+  function restoreMore() {
+    var d = document.querySelector('.nav-more');
+    if (d && d.open !== moreOpen()) d.open = moreOpen();
+  }
+  document.addEventListener('toggle', function (evt) {
+    if (!evt.target.matches || !evt.target.matches('.nav-more')) return;
+    try { sessionStorage.setItem('navMoreOpen', evt.target.open ? '1' : '0'); } catch (e) {}
+  }, true);
+  document.addEventListener('htmx:afterSwap', restoreMore);
+  document.addEventListener('DOMContentLoaded', restoreMore);
 
   window.addEventListener('popstate', function () { window.location.reload(); });
   document.addEventListener('htmx:afterSwap', tick);

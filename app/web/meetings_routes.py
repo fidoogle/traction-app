@@ -206,6 +206,23 @@ def stop_session(
     return _session_response(request, db, current_user, meeting)
 
 
+@router.post("/session/resume")
+def resume_session(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
+):
+    meeting = _admin_session(db, current_user, team_ctx)
+    try:
+        step = meeting_session.resume(meeting, meeting_session.now_utc())
+    except meeting_session.SessionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    db.commit()
+    db.refresh(meeting)
+    return _session_response(request, db, current_user, meeting, go_to_step=step)
+
+
 @router.post("/session/finish")
 def finish_session(
     request: Request,

@@ -1225,3 +1225,17 @@ tr:hover .note-btn.empty,
 /* Per-step times on the Meetings page. */
 .step-times { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; font-size: 0.85rem; color: var(--text-muted); }
 .step-times .over { color: #d33; }
+
+/* The folded-away menu while a meeting runs. */
+.nav-more { margin: 0.25rem 0 0 0.75rem; }
+.nav-more > summary {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+.nav-more > summary::-webkit-details-marker { display: none; }
+.nav-more > summary::before { content: "\25B8"; display: inline-block; width: 1rem; }
+.nav-more[open] > summary::before { content: "\25BE"; }
+.nav-more > summary:hover { color: var(--text); }

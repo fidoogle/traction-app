@@ -70,12 +70,15 @@ def test_starting_collapses_the_menu_and_starts_segue(admin, clock):
     assert resp.status_code == 200 and navigate_to(resp) == "/"
     for label in ("Segue", "Rocks", "Scorecard", "Issues", "To-Dos", "Closing", "Stop", "Finish"):
         assert f">{label}" in resp.text or f"<span>{label}</span>" in resp.text
-    assert 'href="/rocks"' not in resp.text and 'href="/users"' not in resp.text
+    # The other pages are folded away (closed by default), not gone.
+    details = resp.text.index('<details class="nav-more">')
+    assert details < resp.text.index('href="/users"')
+    assert 'href="/users"' not in resp.text[:details]
     assert 'class="nav-play"' not in resp.text
     # The sidebar on any later page load keeps showing it.
     page = admin.get("/rocks").text
     assert "meeting-panel" in page
-    assert 'href="/users"' not in page
+    assert page.index('<details class="nav-more">') < page.index('href="/users"')
 
 
 def test_steps_run_in_order(admin, clock):
@@ -115,7 +118,8 @@ def test_finish_restores_the_menu_and_the_times_show_on_the_meetings_page(admin,
     admin.post("/meetings/session/start")
     clock(310)
     done = admin.post("/meetings/session/finish")
-    assert 'href="/users"' in done.text and "meeting-panel" not in done.text
+    assert 'href="/users"' in done.text and "nav-more" not in done.text
+    assert "meeting-panel" not in done.text
     assert 'class="nav-play"' in done.text
     page = admin.get("/meetings").text
     assert "Segue 5:10" in page and 'class="over"' in page
@@ -156,3 +160,37 @@ def test_timer_bookkeeping_is_not_logged_as_activity(world, admin, clock):
             for line in entry.changes
         ]
     assert not any("step" in line.lower() or "running" in line.lower() for line in lines)
+
+
+def test_stop_can_be_undone_until_finish(world, admin, clock):
+    admin.post("/meetings/session/start")
+    clock(60)
+    admin.post("/meetings/session/steps/0/stop")  # Rocks running
+    clock(100)
+    stopped = admin.post("/meetings/session/stop")
+    assert "<span>Resume</span>" in stopped.text
+    clock(500)  # frozen
+    assert admin.post("/meetings/session/steps/1/toggle").status_code == 409
+    assert admin.post("/meetings/session/stop").status_code == 200  # harmless repeat
+
+    resumed = admin.post("/meetings/session/resume")
+    assert navigate_to(resumed) == "/rocks"
+    assert "<span>Stop</span>" in resumed.text
+    clock(40)
+    admin.post("/meetings/session/finish")
+    meeting = meeting_of(world["team_alpha"])
+    assert meeting.step_seconds == [60, 140, 0, 0, 0, 0]
+    assert admin.post("/meetings/session/resume").status_code == 409  # nothing running now
+
+
+def test_resume_while_paused_leaves_the_step_paused(world, admin, clock):
+    admin.post("/meetings/session/start")
+    clock(30)
+    admin.post("/meetings/session/steps/0/toggle")  # pause Segue
+    admin.post("/meetings/session/stop")
+    clock(100)
+    resumed = admin.post("/meetings/session/resume")
+    assert navigate_to(resumed) is None
+    clock(100)
+    admin.post("/meetings/session/finish")
+    assert meeting_of(world["team_alpha"]).step_seconds[0] == 30

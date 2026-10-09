@@ -98,7 +98,7 @@ def toggle(meeting: Meeting, step: int, now: datetime) -> bool:
     """Pause the step if it's running, otherwise (re)start it. True if it's
     now running."""
     _check_open(meeting, step)
-    if meeting.running_step == step:
+    if meeting.running_step == step and meeting.running_since is not None:
         _bank(meeting, now)
         return False
     _bank(meeting, now)
@@ -121,14 +121,30 @@ def stop_step(meeting: Meeting, step: int, now: datetime) -> Optional[int]:
 
 
 def stop(meeting: Meeting, now: datetime) -> None:
-    """The final Stop: freeze every counter."""
+    """The final Stop: freeze every counter. The step that was running stays
+    marked (with its clock stopped) so resume() can pick it up again."""
     if meeting.stopped_at is None:
+        step = meeting.running_step
         _bank(meeting, now)
+        meeting.running_step = step
         meeting.stopped_at = now
+
+
+def resume(meeting: Meeting, now: datetime) -> Optional[int]:
+    """Undo Stop (until Finish): restart the step that was running. Returns its
+    index, or None if nothing was running when the meeting was stopped."""
+    if meeting.stopped_at is None:
+        raise SessionError("The meeting isn't stopped.")
+    meeting.stopped_at = None
+    if meeting.running_step is None:
+        return None
+    meeting.running_since = now
+    return meeting.running_step
 
 
 def finish(meeting: Meeting, now: datetime) -> None:
     stop(meeting, now)
+    meeting.running_step = None
     meeting.finished_at = now
     meeting.status = MeetingStatus.COMPLETED
 
@@ -156,7 +172,7 @@ def view(meeting: Meeting, now: datetime) -> dict[str, Any]:
     frozen = meeting.stopped_at is not None
     steps = []
     for i, (label, url, minutes) in enumerate(STEPS):
-        running = meeting.running_step == i
+        running = meeting.running_step == i and meeting.running_since is not None
         steps.append(
             {
                 "index": i,

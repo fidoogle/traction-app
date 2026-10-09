@@ -33,6 +33,18 @@
 {% macro session_post(path) -%}
   hx-post="/meetings/session/{{ path }}" hx-target="#site-nav" hx-swap="outerHTML"
 {%- endmacro %}
+{% macro other_links() %}
+  {{ navlink('/activity', 'Activity', icon_activity, activity_badge) }}
+  {{ navlink('/rocks', 'Rocks', icon_rocks) }}
+  {{ navlink('/scorecards', 'Scorecards', icon_scorecard) }}
+  {{ navlink('/issues', 'Issues', icon_issues) }}
+  {{ navlink('/todos', 'To-Dos', icon_todos) }}
+  {{ navlink('/seats', 'Org Chart', icon_orgchart) }}
+  {{ navlink('/vto', 'VTO', icon_vto) }}
+  {{ navlink('/people-analyzer', 'People Analyzer', icon_people_analyzer) }}
+  {{ navlink('/teams', 'Teams', icon_teams) }}
+  {{ navlink('/users', 'Users', icon_users) }}
+{% endmacro %}
 <nav class="sidebar-nav" id="site-nav">
   {{ navlink('/', 'Dashboard', icon_dashboard) }}
   <div class="nav-row">
@@ -70,25 +82,28 @@
       {% endfor %}
     </ol>
     <div class="meeting-actions">
-      <button type="button" class="meeting-stop" {{ session_post('stop') }}{% if ms.stopped %} disabled{% endif %}>
-        {{ icon_stop | safe }}<span>{{ 'Stopped' if ms.stopped else 'Stop' }}</span>
+      {% if ms.stopped %}
+      <button type="button" class="meeting-stop" {{ session_post('resume') }}>
+        {{ icon_play | safe }}<span>Resume</span>
       </button>
+      {% else %}
+      <button type="button" class="meeting-stop" {{ session_post('stop') }}>
+        {{ icon_stop | safe }}<span>Stop</span>
+      </button>
+      {% endif %}
       <button type="button" class="meeting-finish" {{ session_post('finish') }}>
         {{ icon_check | safe }}<span>Finish</span>
       </button>
     </div>
   </div>
   {% endif %}
-  {% if not meeting_session %}
-  {{ navlink('/activity', 'Activity', icon_activity, activity_badge) }}
-  {{ navlink('/rocks', 'Rocks', icon_rocks) }}
-  {{ navlink('/scorecards', 'Scorecards', icon_scorecard) }}
-  {{ navlink('/issues', 'Issues', icon_issues) }}
-  {{ navlink('/todos', 'To-Dos', icon_todos) }}
-  {{ navlink('/seats', 'Org Chart', icon_orgchart) }}
-  {{ navlink('/vto', 'VTO', icon_vto) }}
-  {{ navlink('/people-analyzer', 'People Analyzer', icon_people_analyzer) }}
-  {{ navlink('/teams', 'Teams', icon_teams) }}
-  {{ navlink('/users', 'Users', icon_users) }}
+  {% if meeting_session %}
+  {# The rest of the menu stays one click away, folded up while the meeting runs. #}
+  <details class="nav-more">
+    <summary>More pages</summary>
+    {{ other_links() }}
+  </details>
+  {% else %}
+  {{ other_links() }}
   {% endif %}
 </nav>
