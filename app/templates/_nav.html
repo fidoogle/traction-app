@@ -1,0 +1,94 @@
+{# The sidebar nav. Included by base.html, and rendered on its own by the
+   meeting-session endpoints (app/web/meetings_routes.py), which htmx swaps in
+   place of #site-nav so the rail updates without a page load. #}
+{% set current_path = nav_path or request.url.path %}
+{% set is_admin = current_user.role.value == "admin" %}
+{% set meeting_session = request.state.meeting_session %}
+{% macro navlink(href, label, icon, extra='') %}
+  {%- set active = (current_path == href) if href == '/' else current_path.startswith(href) -%}
+  <a href="{{ href }}"{% if active %} class="active" aria-current="page"{% endif %}>
+    <span class="nav-icon">{{ icon | safe }}</span>
+    <span class="nav-label">{{ label }}</span>
+    {{- extra | safe }}
+  </a>
+{%- endmacro %}
+{% set icon_dashboard %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>{% endset %}
+{% set icon_activity %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>{% endset %}
+{# Filled in (and kept fresh) by /activity/badge. #}
+{% set activity_badge %}<span class="nav-badge" hx-get="/activity/badge" hx-trigger="load, every 60s" hx-swap="outerHTML"></span>{% endset %}
+{% set icon_rocks %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20L9 8l4 6 3-5 5 11H3z"></path></svg>{% endset %}
+{% set icon_scorecard %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>{% endset %}
+{% set icon_issues %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>{% endset %}
+{% set icon_todos %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>{% endset %}
+{% set icon_meetings %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>{% endset %}
+{% set icon_orgchart %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>{% endset %}
+{% set icon_vto %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>{% endset %}
+{% set icon_people_analyzer %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>{% endset %}
+{% set icon_teams %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>{% endset %}
+{% set icon_users %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>{% endset %}
+{% set icon_play %}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="7 4 20 12 7 20 7 4"></polygon></svg>{% endset %}
+{% set icon_pause %}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>{% endset %}
+{% set icon_stop %}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="1"></rect></svg>{% endset %}
+{% set icon_check %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 12 10 18 20 6"></polyline></svg>{% endset %}
+{% macro session_post(path) -%}
+  hx-post="/meetings/session/{{ path }}" hx-target="#site-nav" hx-swap="outerHTML"
+{%- endmacro %}
+<nav class="sidebar-nav" id="site-nav">
+  {{ navlink('/', 'Dashboard', icon_dashboard) }}
+  <div class="nav-row">
+    {{ navlink('/meetings', 'Meetings', icon_meetings) }}
+    {% if is_admin and not meeting_session and request.state.team_ctx.current %}
+    <button type="button" class="nav-play" {{ session_post('start') }}
+            title="Start the meeting" aria-label="Start the meeting">{{ icon_play | safe }}</button>
+    {% endif %}
+  </div>
+  {% if meeting_session %}
+  {% set ms = meeting_session %}
+  <div class="meeting-panel" data-server-now="{{ ms.now_ms }}" data-total-allotted="{{ ms.total_allotted }}"
+       data-total-base="{{ ms.total_elapsed }}">
+    <div class="meeting-total" title="Time used of the 90-minute meeting">
+      <span class="meeting-total-used" data-total-used>0:00</span>
+      <span class="meeting-total-left"><span data-total-left>0:00</span> left</span>
+    </div>
+    <ol class="meeting-steps">
+      {% for s in ms.steps %}
+      <li class="meeting-step{% if s.running %} running{% endif %}{% if s.current %} current{% endif %}{% if s.done %} done{% endif %}"
+          data-allotted="{{ s.allotted }}" data-base="{{ s.base }}"{% if s.since_ms %} data-since="{{ s.since_ms }}"{% endif %}>
+        <button type="button" class="step-toggle" {{ session_post('steps/%d/toggle' % s.index) }}
+                {% if not s.enabled %}disabled{% endif %}
+                aria-label="{{ 'Pause' if s.running else 'Start' }} {{ s.label }}">
+          {{ (icon_pause if s.running else icon_play) | safe }}
+        </button>
+        <button type="button" class="step-title" {{ session_post('steps/%d/toggle' % s.index) }}
+                {% if not s.enabled %}disabled{% endif %}>{{ s.label }}</button>
+        {% if s.can_advance %}
+        <button type="button" class="step-stop" {{ session_post('steps/%d/stop' % s.index) }}
+                title="Done - start {{ ms.steps[s.index + 1].label }}" aria-label="Finish {{ s.label }} and start {{ ms.steps[s.index + 1].label }}">{{ icon_stop | safe }}</button>
+        {% endif %}
+        <span class="step-time" data-step-time></span>
+      </li>
+      {% endfor %}
+    </ol>
+    <div class="meeting-actions">
+      <button type="button" class="meeting-stop" {{ session_post('stop') }}{% if ms.stopped %} disabled{% endif %}>
+        {{ icon_stop | safe }}<span>{{ 'Stopped' if ms.stopped else 'Stop' }}</span>
+      </button>
+      <button type="button" class="meeting-finish" {{ session_post('finish') }}>
+        {{ icon_check | safe }}<span>Finish</span>
+      </button>
+    </div>
+  </div>
+  {% endif %}
+  {% if not meeting_session %}
+  {{ navlink('/activity', 'Activity', icon_activity, activity_badge) }}
+  {{ navlink('/rocks', 'Rocks', icon_rocks) }}
+  {{ navlink('/scorecards', 'Scorecards', icon_scorecard) }}
+  {{ navlink('/issues', 'Issues', icon_issues) }}
+  {{ navlink('/todos', 'To-Dos', icon_todos) }}
+  {{ navlink('/seats', 'Org Chart', icon_orgchart) }}
+  {{ navlink('/vto', 'VTO', icon_vto) }}
+  {{ navlink('/people-analyzer', 'People Analyzer', icon_people_analyzer) }}
+  {{ navlink('/teams', 'Teams', icon_teams) }}
+  {{ navlink('/users', 'Users', icon_users) }}
+  {% endif %}
+</nav>

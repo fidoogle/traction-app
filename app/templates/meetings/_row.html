@@ -21,4 +21,15 @@
       </select>
     {% endif %}
   </td>
+  <td>
+    {% if meeting.started_at %}
+    <strong>{{ step_clock(meeting.step_seconds | sum) }}</strong>
+    <div class="step-times">
+      {% for label, allotted in meeting_steps %}
+      {% set secs = meeting.step_seconds[loop.index0] if loop.index0 < meeting.step_seconds | length else 0 %}
+      {% if secs %}<span{% if secs > allotted %} class="over"{% endif %}>{{ label }} {{ step_clock(secs) }}</span>{% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </td>
 </tr>

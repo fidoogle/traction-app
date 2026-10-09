@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
+from app.core import meeting_session
 from app.core.scorecard_format import format_goal, format_value, raw_value
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -28,3 +29,12 @@ templates.env.globals["static_version"] = static_version
 templates.env.globals["format_value"] = format_value
 templates.env.globals["format_goal"] = format_goal
 templates.env.globals["raw_value"] = raw_value
+
+
+def step_clock(seconds: int) -> str:
+    m, s = divmod(int(seconds), 60)
+    return f"{m}:{s:02d}"
+
+
+templates.env.globals["step_clock"] = step_clock
+templates.env.globals["meeting_steps"] = [(label, minutes * 60) for label, _, minutes in meeting_session.STEPS]

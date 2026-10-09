@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.core.activity import set_actor
 from app.core.security import ACCESS_TOKEN_COOKIE_NAME, decode_access_token
+from app.core import meeting_session
+from app.models import UserRole
 from app.models.user import User
 from app.web.team_context import TEAM_COOKIE_NAME, TeamContext, build_team_context
 
@@ -19,6 +21,15 @@ class RedirectToLogin(Exception):
     /login - either a real redirect for normal navigation, or an
     HX-Redirect for requests htmx made mid-page.
     """
+
+
+def _meeting_session_view(db: Session, user: User, team_ctx) -> Optional[dict]:
+    """The live meeting the sidebar should show: only admins run one, and only
+    on a single team (not under "All teams")."""
+    if user.role != UserRole.ADMIN or team_ctx.current is None:
+        return None
+    meeting = meeting_session.active_meeting(db, team_ctx.current.id)
+    return meeting_session.view(meeting, meeting_session.now_utc()) if meeting else None
 
 
 def get_current_user_web(
@@ -43,6 +54,7 @@ def get_current_user_web(
         raise RedirectToLogin()
     set_actor(db, user)
     request.state.team_ctx = build_team_context(db, user, request.cookies.get(TEAM_COOKIE_NAME))
+    request.state.meeting_session = _meeting_session_view(db, user, request.state.team_ctx)
     return user
 
 

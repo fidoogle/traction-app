@@ -1,11 +1,14 @@
+import json
 import uuid
 from datetime import date
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
+from app.core import meeting_session
 from app.models import Meeting, MeetingStatus, User, UserRole
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.team_context import TeamContext
@@ -93,3 +96,125 @@ def update_meeting_status(
         "meetings/_row.html",
         {"current_user": current_user, "meeting": meeting, "MeetingStatus": MeetingStatus},
     )
+
+
+# --- Running a meeting from the sidebar --------------------------------------
+# Admin-only. Each endpoint answers with the re-rendered sidebar nav (which
+# htmx swaps over #site-nav); when a step was started it also asks the browser
+# to open that step's page (see static/meeting.js), leaving the rail in place.
+
+def _session_response(
+    request: Request,
+    db: Session,
+    current_user: User,
+    meeting,
+    go_to_step: int | None = None,
+):
+    now = meeting_session.now_utc()
+    request.state.meeting_session = (
+        meeting_session.view(meeting, now) if meeting.status == MeetingStatus.IN_PROGRESS else None
+    )
+    current_url = request.headers.get("HX-Current-URL", "")
+    response = templates.TemplateResponse(
+        request,
+        "_nav.html",
+        {"current_user": current_user, "nav_path": urlparse(current_url).path or "/"},
+    )
+    if go_to_step is not None:
+        response.headers["HX-Trigger"] = json.dumps(
+            {"meetingNavigate": meeting_session.step_url(go_to_step)}
+        )
+    return response
+
+
+def _admin_session(db: Session, current_user: User, team_ctx: TeamContext):
+    """The team's running meeting, for an admin acting on it."""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403)
+    if team_ctx.current is None:
+        raise HTTPException(status_code=400, detail="Pick a team first.")
+    meeting = meeting_session.active_meeting(db, team_ctx.current.id)
+    if meeting is None:
+        raise HTTPException(status_code=409, detail="No meeting is running.")
+    return meeting
+
+
+@router.post("/session/start")
+def start_session(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403)
+    if team_ctx.current is None:
+        raise HTTPException(status_code=400, detail="Pick a team first.")
+    meeting = meeting_session.start(db, team_ctx.current.id, meeting_session.now_utc())
+    db.commit()
+    db.refresh(meeting)
+    return _session_response(request, db, current_user, meeting, go_to_step=meeting.running_step)
+
+
+def _step_action(action, request, step, db, current_user, team_ctx):
+    meeting = _admin_session(db, current_user, team_ctx)
+    try:
+        started = action(meeting, step, meeting_session.now_utc())
+    except meeting_session.SessionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    db.commit()
+    db.refresh(meeting)
+    return _session_response(request, db, current_user, meeting, go_to_step=started)
+
+
+@router.post("/session/steps/{step}/toggle")
+def toggle_step(
+    request: Request,
+    step: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
+):
+    def action(meeting, step, now):
+        return step if meeting_session.toggle(meeting, step, now) else None
+
+    return _step_action(action, request, step, db, current_user, team_ctx)
+
+
+@router.post("/session/steps/{step}/stop")
+def stop_step(
+    request: Request,
+    step: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
+):
+    return _step_action(meeting_session.stop_step, request, step, db, current_user, team_ctx)
+
+
+@router.post("/session/stop")
+def stop_session(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
+):
+    meeting = _admin_session(db, current_user, team_ctx)
+    meeting_session.stop(meeting, meeting_session.now_utc())
+    db.commit()
+    db.refresh(meeting)
+    return _session_response(request, db, current_user, meeting)
+
+
+@router.post("/session/finish")
+def finish_session(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
+):
+    meeting = _admin_session(db, current_user, team_ctx)
+    meeting_session.finish(meeting, meeting_session.now_utc())
+    db.commit()
+    db.refresh(meeting)
+    return _session_response(request, db, current_user, meeting)

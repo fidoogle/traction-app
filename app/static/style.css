@@ -1141,3 +1141,87 @@ tr:hover .note-btn.empty,
 }
 
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Meetings link: the admin's play button sits at the end of the row. */
+.sidebar-nav .nav-row { display: flex; align-items: center; gap: 0.25rem; }
+.sidebar-nav .nav-row > a { flex: 1; min-width: 0; }
+
+.nav-play,
+.step-toggle,
+.step-stop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+}
+.nav-play { width: 1.9rem; height: 1.9rem; }
+.step-toggle, .step-stop { width: 1.6rem; height: 1.6rem; }
+.nav-play svg, .step-toggle svg, .step-stop svg { width: 0.7rem; height: 0.7rem; display: block; }
+.nav-play:hover, .step-toggle:hover:not(:disabled), .step-stop:hover { background: var(--surface-2); }
+.step-stop { color: var(--text-muted); }
+.step-toggle:disabled, .step-title:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* The running meeting, shown under the Meetings link. */
+.meeting-panel {
+  margin: 0.25rem 0 0.25rem 0.75rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.meeting-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.meeting-total-used { font-weight: 600; color: var(--text); }
+.meeting-total-left.over, .step-time.over { color: #d33; font-weight: 600; }
+.meeting-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.meeting-step { display: flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0.25rem; border-radius: 6px; }
+.meeting-step.current { background: var(--surface-2); }
+.meeting-step.running .step-toggle { background: var(--accent); color: #fff; border-color: var(--accent); }
+.step-title {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.meeting-step.current .step-title, .meeting-step.running .step-title { color: var(--text); font-weight: 600; }
+.step-time { font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--text-muted); min-width: 3.2rem; text-align: right; }
+.meeting-actions { display: flex; gap: 0.4rem; padding: 0.35rem 0.25rem 0.1rem; }
+.meeting-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.82rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.meeting-actions button svg { width: 0.7rem; height: 0.7rem; }
+.meeting-actions button:disabled { opacity: 0.5; cursor: default; }
+.meeting-actions .meeting-finish { color: var(--accent); }
+
+/* Per-step times on the Meetings page. */
+.step-times { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; font-size: 0.85rem; color: var(--text-muted); }
+.step-times .over { color: #d33; }

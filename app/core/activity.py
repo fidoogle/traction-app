@@ -73,7 +73,19 @@ _MODEL_TYPES: dict[type, str] = {
 }
 
 # Bookkeeping, not something anyone "did" - a change to only these isn't logged.
-_IGNORED_FIELDS = {"id", "activity_last_seen_at"}
+_IGNORED_FIELDS = {
+    "id",
+    "activity_last_seen_at",
+    # A live meeting's timer bookkeeping changes every few clicks (its status
+    # change is what gets logged).
+    "started_at",
+    "finished_at",
+    "stopped_at",
+    "current_step",
+    "running_step",
+    "running_since",
+    "step_seconds",
+}
 # Logged as changed, but the value itself is never written to the log.
 _SECRET_FIELDS = {"hashed_password"}
 

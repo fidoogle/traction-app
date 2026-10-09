@@ -74,12 +74,21 @@ queued.
       current-state row (upsert in place). EOS orgs revisit their VTO periodically
       (quarterly/annually) — consider keeping prior versions instead of
       overwriting.
-- [ ] Meeting model is bare-bones (date + status only). A real L10 meeting
-      has a standard agenda (segue, scorecard review, rock review, IDS,
-      to-do review, conclude) — consider a MeetingSegment or agenda concept.
-      `scheduled_date` is also date-only (no time-of-day) - this would need
-      to become a real datetime before Meeting could sync to an actual
-      calendar slot (see Google/Microsoft calendar integration below).
+- [ ] Meetings are run live, not scheduled. Today nobody schedules a meeting
+      in the app: the admin tells the team and everyone meets in a room, and
+      pressing Play (sidebar, admin only) creates - or reuses a meeting
+      scheduled for today - and times its six steps (Segue 5, Rocks 5,
+      Scorecard 5, Issues 60, To-Dos 10, Closing 5 min). That will change once
+      email notifications and a calendar exist, so everyone knows what's
+      scheduled: `scheduled_date` is date-only and would need to become a real
+      datetime (also required for the Google/Microsoft calendar sync below),
+      and "start meeting" should then pick the scheduled one.
+- [ ] Live-meeting follow-ups: step lengths are fixed in
+      app/core/meeting_session.py (make them per-team settings); only admins
+      see the steps - members/viewers could get a read-only live view of the
+      current step; a Meetings-page report of step times over several
+      meetings (which step runs over, and by how much); "today" is the
+      server's date, not the district's time zone.
 - [ ] Seat vacancy reporting — a quick endpoint/view listing seats with no
       current `user_id`, useful for accountability-chart gap analysis.
 - [ ] Google/Microsoft calendar integration (planned for later). Should be
