@@ -8,10 +8,11 @@
   <label for="{{ fid }}-owner">Owner</label>
   <select id="{{ fid }}-owner" name="owner_id" required>
     {% if m and not m.owner_id %}<option value="" selected disabled>— choose an owner —</option>{% endif %}
-    {% for user in org_users %}
+    {% for user in owner_choices %}
     <option value="{{ user.id }}" {% if m and m.owner_id == user.id %}selected{% endif %}>{{ user.name }}</option>
     {% endfor %}
   </select>
+  <div class="field-hint">Owners are members of this scorecard's team{% if not owner_choices %} - it has none yet; add some on the <a href="/teams">Teams</a> page{% endif %}.</div>
 </div>
 <div class="field">
   <label for="{{ fid }}-unit">Type of value</label>

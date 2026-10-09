@@ -47,6 +47,29 @@ def test_admin_can_pick_a_team_or_all():
     assert resolve_current_team(MINE, True, LEADERSHIP.id, ALL_TEAMS) is None
 
 
+def test_follow_switches_to_another_of_your_teams():
+    ctx = TeamContext(teams=MINE, current=LEADERSHIP)
+    assert ctx.follow(OPS.id) is True
+    assert ctx.current is OPS
+    assert ctx.follow(OPS.id) is False
+
+
+def test_follow_ignores_teams_you_are_not_on():
+    ctx = TeamContext(teams=MINE, current=LEADERSHIP)
+    assert ctx.follow(OTHER.id) is False
+    assert ctx.current is LEADERSHIP
+
+
+def test_follow_leaves_all_teams_alone():
+    ctx = TeamContext(teams=MINE, current=None, can_view_all=True)
+    assert ctx.follow(OPS.id) is False
+    assert ctx.current is None
+
+
+def test_team_ids_ignores_current_team():
+    assert TeamContext(teams=MINE, current=OPS).team_ids == [LEADERSHIP.id, OPS.id]
+
+
 def test_scope_ids_is_current_team_or_every_team():
     assert TeamContext(teams=MINE, current=OPS).scope_ids == [OPS.id]
     assert TeamContext(teams=MINE, current=None).scope_ids == [LEADERSHIP.id, OPS.id]

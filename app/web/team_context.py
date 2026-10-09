@@ -15,10 +15,13 @@ from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.responses import Response
 
+from app.config import settings
 from app.models import Team, User, UserRole
 
 TEAM_COOKIE_NAME = "current_team"
+TEAM_COOKIE_MAX_AGE = 365 * 24 * 60 * 60
 ALL_TEAMS = "all"
 
 
@@ -39,8 +42,28 @@ class TeamContext:
         return [t.id for t in self.teams]
 
     @property
-    def cookie_value(self) -> str:
-        return str(self.current.id) if self.current is not None else ALL_TEAMS
+    def team_ids(self) -> list[uuid.UUID]:
+        """Every team this user may work in, whatever the current team is.
+
+        For looking up one record by id (a link, an htmx edit from a tab
+        opened before switching): anything on any of your teams is fine.
+        """
+        return [t.id for t in self.teams]
+
+    def follow(self, team_id: uuid.UUID) -> bool:
+        """Make team_id current, e.g. on opening another team's scorecard.
+
+        Returns True if that changed the current team (so the caller should
+        remember_team() on its response). "All teams" is left alone - it
+        already covers every team.
+        """
+        if self.current is None or self.current.id == team_id:
+            return False
+        team = next((t for t in self.teams if t.id == team_id), None)
+        if team is None:
+            return False
+        self.current = team
+        return True
 
 
 def resolve_current_team(
@@ -64,6 +87,19 @@ def resolve_current_team(
     if home_team_id is not None and str(home_team_id) in by_id:
         return by_id[str(home_team_id)]
     return teams[0] if teams else None
+
+
+def remember_team(response: Response, value: str) -> None:
+    """Save the current team choice (a team id, or ALL_TEAMS) on the browser."""
+    response.set_cookie(
+        key=TEAM_COOKIE_NAME,
+        value=value,
+        httponly=True,
+        samesite="lax",
+        secure=settings.cookie_secure,
+        max_age=TEAM_COOKIE_MAX_AGE,
+        path="/",
+    )
 
 
 def build_team_context(db: Session, user: User, requested: Optional[str]) -> TeamContext:

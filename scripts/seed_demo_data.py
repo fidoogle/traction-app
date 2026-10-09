@@ -112,15 +112,17 @@ def main() -> None:
         superintendent = make_user(
             "Dana Admin", "admin@school.example", leadership, UserRole.ADMIN
         )
-        # On two teams, to exercise the topbar team switcher.
+        # Several people are on two teams - the usual EOS shape, where a
+        # department head sits on the Leadership Team and also runs their
+        # own team - which also exercises the topbar team switcher.
         cfo = make_user(
             "Marcus Member", "member1@school.example", leadership, UserRole.MEMBER, (ops,)
         )
         curriculum_dir = make_user(
-            "Priya Member", "member2@school.example", curriculum, UserRole.MEMBER
+            "Priya Member", "member2@school.example", curriculum, UserRole.MEMBER, (leadership,)
         )
         ops_dir = make_user(
-            "Sam Member", "member3@school.example", ops, UserRole.MEMBER
+            "Sam Member", "member3@school.example", ops, UserRole.MEMBER, (leadership,)
         )
         board_liaison = make_user(
             "Ellis Viewer", "viewer@school.example", leadership, UserRole.VIEWER
@@ -247,16 +249,38 @@ def main() -> None:
             ]
         )
 
-        # --- Scorecard: 13 weeks, the first 6 filled in ---
+        # --- Scorecards: one per team that runs one; 13 weeks, the first 6 filled in ---
         today = date.today()
         start = today - timedelta(days=(today.weekday() + 1) % 7) - timedelta(weeks=5)
-        scorecard = Scorecard(
-            org_id=org.id, name="Current quarter scorecard", start_date=start
-        )
-        db.add(scorecard)
-        db.flush()
-        rows = [
-            # (owner, name, unit, goal, direction, weekly values; None = blank week)
+
+        def make_scorecard(team: Team, name: str, rows) -> None:
+            scorecard = Scorecard(org_id=org.id, team_id=team.id, name=name, start_date=start)
+            db.add(scorecard)
+            db.flush()
+            for position, (owner, m_name, unit, goal, direction, values) in enumerate(
+                rows, start=1
+            ):
+                measurable = Measurable(
+                    scorecard_id=scorecard.id,
+                    owner_id=owner.id,
+                    name=m_name,
+                    unit=unit,
+                    goal_value=goal,
+                    goal_direction=direction,
+                    position=position,
+                )
+                db.add(measurable)
+                db.flush()
+                for week, value in enumerate(values, start=1):
+                    if value is not None:
+                        db.add(
+                            ScorecardEntry(
+                                measurable_id=measurable.id, week_number=week, actual_value=value
+                            )
+                        )
+
+        # (owner, name, unit, goal, direction, weekly values; None = blank week)
+        make_scorecard(leadership, "Current quarter scorecard", [
             (cfo, "Cash on hand", "currency", 5_000_000, "gte",
              [5.4e6, 5.1e6, 4.8e6, 5.2e6, 5.6e6, 5.3e6]),
             (curriculum_dir, "Chronic absenteeism rate", "percent", 8, "lte",
@@ -265,26 +289,15 @@ def main() -> None:
              [12, 17, 14, 16, 13, 11]),
             (ops_dir, "Safety incidents", "number", 0, "eq",
              [0, 0, 1, 0, 0, 0]),
-        ]
-        for position, (owner, name, unit, goal, direction, values) in enumerate(rows, start=1):
-            measurable = Measurable(
-                scorecard_id=scorecard.id,
-                owner_id=owner.id,
-                name=name,
-                unit=unit,
-                goal_value=goal,
-                goal_direction=direction,
-                position=position,
-            )
-            db.add(measurable)
-            db.flush()
-            for week, value in enumerate(values, start=1):
-                if value is not None:
-                    db.add(
-                        ScorecardEntry(
-                            measurable_id=measurable.id, week_number=week, actual_value=value
-                        )
-                    )
+        ])
+        make_scorecard(ops, "Operations scorecard", [
+            (ops_dir, "Work orders closed", "number", 40, "gte",
+             [42, 38, 45, 41, 36, 44]),
+            (ops_dir, "Bus on-time arrival", "percent", 95, "gte",
+             [96, 94.5, 97, 95.5, 93, 96.5]),
+            (cfo, "Utilities spend", "currency", 120_000, "lte",
+             [118_000, 124_500, 119_200, 121_800, 116_400, 117_900]),
+        ])
 
         # --- Issues + to-dos ---
         issue1 = Issue(

@@ -3,9 +3,10 @@
 {% block content %}
 {% from "_macros.html" import page_header, modal %}
 {% set is_admin = current_user.role.value == "admin" %}
-<p class="breadcrumb"><a href="/scorecards">&larr; All scorecards</a></p>
+<p class="breadcrumb"><a href="/scorecards">&larr; {{ scorecard.team.name }} scorecards</a></p>
 {{ page_header(scorecard.name, "Add measurable", "add-measurable-modal" if is_admin else None) }}
 <p class="text-muted scorecard-dates">
+  <strong>{{ scorecard.team.name }}</strong> &middot;
   Started {{ scorecard.start_date.strftime("%A, %b") }} {{ scorecard.start_date.day }}, {{ scorecard.start_date.year }}
   &middot; ends {{ scorecard.end_date.strftime("%A, %b") }} {{ scorecard.end_date.day }}, {{ scorecard.end_date.year }}.
   Each week begins on a <strong>{{ scorecard.start_date.strftime("%A") }}</strong>.

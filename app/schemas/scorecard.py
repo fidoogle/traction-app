@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 class ScorecardBase(BaseModel):
     org_id: uuid.UUID
+    team_id: uuid.UUID
     name: str
     start_date: date
 
@@ -17,6 +18,7 @@ class ScorecardCreate(ScorecardBase):
 
 class ScorecardUpdate(BaseModel):
     org_id: Optional[uuid.UUID] = None
+    team_id: Optional[uuid.UUID] = None
     name: Optional[str] = None
     start_date: Optional[date] = None
 

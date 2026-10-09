@@ -3,19 +3,31 @@ import uuid
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
-from sqlalchemy import select
+from sqlalchemy import select, union
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db
-from app.config import settings
-from app.models import Team, TeamMembership, User, UserRole
+from app.models import (
+    Issue,
+    Measurable,
+    Meeting,
+    Rock,
+    Scorecard,
+    Seat,
+    Team,
+    TeamMembership,
+    User,
+    UserRole,
+)
 from app.web.deps import get_current_user_web, get_team_context
-from app.web.team_context import ALL_TEAMS, TEAM_COOKIE_NAME, TeamContext
+from app.web.team_context import ALL_TEAMS, TeamContext, remember_team
 from app.web.templates import templates
 
 router = APIRouter(prefix="/teams")
 
-TEAM_COOKIE_MAX_AGE = 365 * 24 * 60 * 60
+# Everything a team owns. A team with any of it (or any members) can't be
+# deleted - that would silently take a whole team's history with it.
+_TEAM_CONTENT = (Rock, Issue, Meeting, Seat, Scorecard)
 
 
 def _require_admin(current_user: User) -> None:
@@ -34,6 +46,16 @@ def _get_team(db: Session, team_id: uuid.UUID, org_id: uuid.UUID) -> Team:
     return team
 
 
+def _teams_in_use(db: Session, team_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+    """Which of these teams have members or content."""
+    if not team_ids:
+        return set()
+    owners = [TeamMembership, *_TEAM_CONTENT]
+    return set(
+        db.scalars(union(*(select(m.team_id).where(m.team_id.in_(team_ids)) for m in owners)))
+    )
+
+
 def _org_users(db: Session, org_id: uuid.UUID):
     return db.scalars(select(User).where(User.org_id == org_id).order_by(User.name)).all()
 
@@ -47,6 +69,7 @@ def _row_response(request: Request, db: Session, current_user: User, team_id: uu
             "current_user": current_user,
             "team": _get_team(db, team_id, current_user.org_id),
             "org_users": _org_users(db, current_user.org_id),
+            "in_use": _teams_in_use(db, [team_id]),
         },
     )
 
@@ -70,6 +93,7 @@ def list_teams(
             "current_user": current_user,
             "teams": teams,
             "org_users": _org_users(db, current_user.org_id),
+            "in_use": _teams_in_use(db, [t.id for t in teams]),
         },
     )
 
@@ -113,15 +137,7 @@ def switch_team(
     if team_id not in allowed:
         raise HTTPException(status_code=404)
     response = Response(status_code=204, headers={"HX-Redirect": _section_url(request)})
-    response.set_cookie(
-        key=TEAM_COOKIE_NAME,
-        value=team_id,
-        httponly=True,
-        samesite="lax",
-        secure=settings.cookie_secure,
-        max_age=TEAM_COOKIE_MAX_AGE,
-        path="/",
-    )
+    remember_team(response, team_id)
     return response
 
 
@@ -133,9 +149,10 @@ def delete_team(
 ):
     _require_admin(current_user)
     team = _get_team(db, team_id, current_user.org_id)
-    if team.members:
-        # Members' home team would dangle; move them off the team first.
-        raise HTTPException(status_code=400, detail="Remove the team's members first")
+    if _teams_in_use(db, [team.id]):
+        raise HTTPException(
+            status_code=400, detail="Only a team with no members and no content can be deleted"
+        )
     db.delete(team)
     db.commit()
     return Response(status_code=200)
@@ -188,6 +205,13 @@ def remove_member(
         raise HTTPException(status_code=400, detail="Everyone must belong to at least one team")
     if user.team_id == team_id:
         user.team_id = others[0].team_id
+    # Their rows on this team's scorecards stay, unowned, for an admin to reassign.
+    for measurable in db.scalars(
+        select(Measurable)
+        .join(Scorecard, Measurable.scorecard_id == Scorecard.id)
+        .where(Scorecard.team_id == team_id, Measurable.owner_id == user.id)
+    ):
+        measurable.owner_id = None
     db.delete(membership)
     db.commit()
     return _row_response(request, db, current_user, team_id)

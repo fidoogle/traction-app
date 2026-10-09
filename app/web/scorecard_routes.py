@@ -1,8 +1,11 @@
 """Scorecards: 13-week grids of measurables, starting on any date the admin picks.
 
-Admins create/delete scorecards and add/edit/delete measurables (assigning
-each an owner). A measurable's owner - or an admin - types values into its
-weekly cells; everyone else, viewers included, sees them read-only.
+Each scorecard belongs to a team. The list shows the current team's (see
+app/web/team_context.py); a scorecard on any of your teams can be opened by
+link, which makes its team current. Admins create/delete scorecards and
+add/edit/delete measurables, owned by members of that team. A measurable's
+owner - or an admin - types values into its weekly cells; everyone else,
+viewers included, sees them read-only.
 """
 
 import uuid
@@ -23,10 +26,12 @@ from app.models import (
     MeasurableUnit,
     Scorecard,
     ScorecardEntry,
+    Team,
     User,
     UserRole,
 )
-from app.web.deps import get_current_user_web
+from app.web.deps import get_current_user_web, get_team_context
+from app.web.team_context import TeamContext, remember_team
 from app.web.templates import templates
 
 router = APIRouter(prefix="/scorecards")
@@ -43,15 +48,24 @@ def _require_admin(current_user: User) -> None:
         raise HTTPException(status_code=403)
 
 
-def _org_users(db: Session, org_id: uuid.UUID):
-    return db.scalars(select(User).where(User.org_id == org_id).order_by(User.name)).all()
+def _owner_choices(scorecard: Scorecard, measurable: Optional[Measurable] = None) -> list[User]:
+    """Who can own a row: the scorecard team's members (plus the row's
+    current owner, if they've since left the team, so editing it doesn't
+    silently reassign it)."""
+    choices = list(scorecard.team.members)
+    if measurable is not None and measurable.owner is not None and measurable.owner not in choices:
+        choices = sorted([*choices, measurable.owner], key=lambda u: u.name)
+    return choices
 
 
-def _get_scorecard(db: Session, scorecard_id: uuid.UUID, org_id: uuid.UUID) -> Scorecard:
+def _get_scorecard(db: Session, scorecard_id: uuid.UUID, team_ctx: TeamContext) -> Scorecard:
+    # Any of the user's teams, not just the current one: a link, or an
+    # htmx edit from a tab opened before switching, should still work.
     scorecard = db.scalar(
         select(Scorecard)
-        .where(Scorecard.id == scorecard_id, Scorecard.org_id == org_id)
+        .where(Scorecard.id == scorecard_id, Scorecard.team_id.in_(team_ctx.team_ids))
         .options(
+            selectinload(Scorecard.team).selectinload(Team.members),
             selectinload(Scorecard.measurables).selectinload(Measurable.owner),
             selectinload(Scorecard.measurables).selectinload(Measurable.scorecard_entries),
         )
@@ -62,7 +76,7 @@ def _get_scorecard(db: Session, scorecard_id: uuid.UUID, org_id: uuid.UUID) -> S
 
 
 def _get_measurable(
-    db: Session, scorecard_id: uuid.UUID, measurable_id: uuid.UUID, org_id: uuid.UUID
+    db: Session, scorecard_id: uuid.UUID, measurable_id: uuid.UUID, team_ctx: TeamContext
 ) -> Measurable:
     measurable = db.scalar(
         select(Measurable)
@@ -70,7 +84,7 @@ def _get_measurable(
         .where(
             Measurable.id == measurable_id,
             Scorecard.id == scorecard_id,
-            Scorecard.org_id == org_id,
+            Scorecard.team_id.in_(team_ctx.team_ids),
         )
         .options(selectinload(Measurable.owner), selectinload(Measurable.scorecard_entries))
     )
@@ -154,9 +168,10 @@ def _parse_goal(text: str) -> float:
         raise HTTPException(status_code=422)
 
 
-def _check_owner(db: Session, owner_id: uuid.UUID, org_id: uuid.UUID) -> None:
-    owner = db.get(User, owner_id)
-    if owner is None or owner.org_id != org_id:
+def _check_owner(
+    scorecard: Scorecard, owner_id: uuid.UUID, measurable: Optional[Measurable] = None
+) -> None:
+    if owner_id not in {u.id for u in _owner_choices(scorecard, measurable)}:
         raise HTTPException(status_code=404)
 
 
@@ -176,22 +191,29 @@ def list_scorecards(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    scorecards = db.scalars(
-        select(Scorecard)
-        .where(Scorecard.org_id == current_user.org_id)
-        .options(selectinload(Scorecard.measurables))
-        .order_by(Scorecard.start_date.desc(), Scorecard.name)
-    ).all()
+    def query(team_ids):
+        return db.scalars(
+            select(Scorecard)
+            .where(Scorecard.team_id.in_(team_ids))
+            .options(selectinload(Scorecard.measurables), selectinload(Scorecard.team))
+            .order_by(Scorecard.start_date.desc(), Scorecard.name)
+        ).all()
+
+    scorecards = query(team_ctx.scope_ids)
     today = date.today()
     return templates.TemplateResponse(
         request,
         "scorecard/list.html",
         {
             "current_user": current_user,
+            "team_ctx": team_ctx,
             "scorecards": [
                 {"scorecard": s, "status": _scorecard_status(s, today)} for s in scorecards
             ],
+            # "Copy measurables from" can start from any team's scorecard.
+            "copy_sources": query(team_ctx.team_ids),
             "default_start": date.today(),
         },
     )
@@ -201,12 +223,17 @@ def list_scorecards(
 def create_scorecard(
     name: str = Form(...),
     start_date: date = Form(...),
+    team_id: uuid.UUID = Form(...),
     copy_from: str = Form(""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
     name = _clean_name(name)
+    team = next((t for t in team_ctx.teams if t.id == team_id), None)
+    if team is None:
+        raise HTTPException(status_code=404)
 
     source = None
     if copy_from.strip():
@@ -214,15 +241,19 @@ def create_scorecard(
             source_id = uuid.UUID(copy_from)
         except ValueError:
             raise HTTPException(status_code=422)
-        source = _get_scorecard(db, source_id, current_user.org_id)
+        source = _get_scorecard(db, source_id, team_ctx)
 
-    scorecard = Scorecard(org_id=current_user.org_id, name=name, start_date=start_date)
+    scorecard = Scorecard(
+        org_id=current_user.org_id, team_id=team.id, name=name, start_date=start_date
+    )
     if source is not None:
-        # Same rows (owners, goals, units), empty weeks.
+        # Same rows (owners, goals, units), empty weeks. Owners who aren't on
+        # this team - copying another team's scorecard - are left blank.
+        member_ids = {u.id for u in team.members}
         for m in source.measurables:
             scorecard.measurables.append(
                 Measurable(
-                    owner_id=m.owner_id,
+                    owner_id=m.owner_id if m.owner_id in member_ids else None,
                     name=m.name,
                     unit=m.unit,
                     goal_value=m.goal_value,
@@ -240,9 +271,10 @@ def delete_scorecard(
     scorecard_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    scorecard = _get_scorecard(db, scorecard_id, current_user.org_id)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
     db.delete(scorecard)
     db.commit()
     return Response(status_code=200)
@@ -254,9 +286,13 @@ def view_scorecard(
     scorecard_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    scorecard = _get_scorecard(db, scorecard_id, current_user.org_id)
-    return templates.TemplateResponse(
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    # Opening another of your teams' scorecards (say, from a link) switches
+    # to that team, so the topbar matches what's on screen.
+    switched = team_ctx.follow(scorecard.team_id)
+    response = templates.TemplateResponse(
         request,
         "scorecard/detail.html",
         {
@@ -264,11 +300,14 @@ def view_scorecard(
             "scorecard": scorecard,
             "weeks": _weeks(scorecard),
             "rows": [_row_context(scorecard, m, current_user) for m in scorecard.measurables],
-            "org_users": _org_users(db, current_user.org_id),
+            "owner_choices": _owner_choices(scorecard),
             "units": list(MeasurableUnit),
             "directions": list(GoalDirection),
         },
     )
+    if switched:
+        remember_team(response, str(scorecard.team_id))
+    return response
 
 
 # --- Measurables (admin) ----------------------------------------------------
@@ -285,10 +324,11 @@ def create_measurable(
     goal_direction: GoalDirection = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    scorecard = _get_scorecard(db, scorecard_id, current_user.org_id)
-    _check_owner(db, owner_id, current_user.org_id)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    _check_owner(scorecard, owner_id)
     measurable = Measurable(
         name=_clean_name(name),
         owner_id=owner_id,
@@ -300,8 +340,8 @@ def create_measurable(
     scorecard.measurables.append(measurable)
     db.commit()
     db.expire_all()
-    scorecard = _get_scorecard(db, scorecard_id, current_user.org_id)
-    measurable = _get_measurable(db, scorecard_id, measurable.id, current_user.org_id)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    measurable = _get_measurable(db, scorecard_id, measurable.id, team_ctx)
     return _row_response(request, scorecard, measurable, current_user)
 
 
@@ -312,9 +352,11 @@ def edit_measurable_form(
     measurable_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    measurable = _get_measurable(db, scorecard_id, measurable_id, current_user.org_id)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     return templates.TemplateResponse(
         request,
         "scorecard/_edit_measurable.html",
@@ -322,7 +364,7 @@ def edit_measurable_form(
             "current_user": current_user,
             "scorecard_id": scorecard_id,
             "measurable": measurable,
-            "org_users": _org_users(db, current_user.org_id),
+            "owner_choices": _owner_choices(scorecard, measurable),
             "units": list(MeasurableUnit),
             "directions": list(GoalDirection),
         },
@@ -341,10 +383,12 @@ def update_measurable(
     goal_direction: GoalDirection = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    measurable = _get_measurable(db, scorecard_id, measurable_id, current_user.org_id)
-    _check_owner(db, owner_id, current_user.org_id)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
+    _check_owner(scorecard, owner_id, measurable)
     measurable.name = _clean_name(name)
     measurable.owner_id = owner_id
     measurable.unit = unit.value
@@ -352,8 +396,8 @@ def update_measurable(
     measurable.goal_direction = goal_direction.value
     db.commit()
     db.expire_all()
-    scorecard = _get_scorecard(db, scorecard_id, current_user.org_id)
-    measurable = _get_measurable(db, scorecard_id, measurable_id, current_user.org_id)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     return _row_response(request, scorecard, measurable, current_user)
 
 
@@ -363,9 +407,10 @@ def delete_measurable(
     measurable_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     _require_admin(current_user)
-    measurable = _get_measurable(db, scorecard_id, measurable_id, current_user.org_id)
+    measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     db.delete(measurable)
     db.commit()
     return Response(status_code=200)
@@ -383,11 +428,12 @@ def set_cell(
     value: str = Form(""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
     if not 1 <= week <= SCORECARD_WEEKS:
         raise HTTPException(status_code=404)
-    scorecard = _get_scorecard(db, scorecard_id, current_user.org_id)
-    measurable = _get_measurable(db, scorecard_id, measurable_id, current_user.org_id)
+    scorecard = _get_scorecard(db, scorecard_id, team_ctx)
+    measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     if not _can_edit_cells(current_user, measurable):
         raise HTTPException(status_code=403)
 
@@ -410,7 +456,7 @@ def set_cell(
     db.commit()
     db.expire_all()
 
-    measurable = _get_measurable(db, scorecard_id, measurable_id, current_user.org_id)
+    measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)
     entry = next((e for e in measurable.scorecard_entries if e.week_number == week), None)
     week_ctx = next(w for w in _weeks(scorecard) if w["n"] == week)
     return templates.TemplateResponse(

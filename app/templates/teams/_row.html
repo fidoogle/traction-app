@@ -46,15 +46,15 @@
   </td>
   {% if current_user.role.value == "admin" %}
   <td>
-    {% if team.members %}
-    <span class="text-muted" title="Remove everyone from this team before deleting it">Has members</span>
+    {% if team.id in in_use %}
+    <span class="text-muted" title="Only a team with no members and no rocks, issues, meetings, seats or scorecards can be deleted">In use</span>
     {% else %}
     <button
       class="link-danger"
       hx-delete="/teams/{{ team.id }}"
       hx-target="#team-row-{{ team.id }}"
       hx-swap="delete"
-      hx-confirm="Delete {{ team.name }}? This also deletes everything that team owns (rocks, issues, meetings, seats, ...). This cannot be undone."
+      hx-confirm="Delete {{ team.name }}? This cannot be undone."
     >
       Delete
     </button>

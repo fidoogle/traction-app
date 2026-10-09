@@ -42,11 +42,17 @@ queued.
 
 - [ ] Teams rollout (multi-team support), in progress. Done: Phase 0 -
       `team_memberships` (people can be on several teams), the topbar
-      current-team switcher, member add/remove on the Teams page. Next:
-      (1) Scorecards per team; (2) Rocks/Issues/Meetings/Org Chart filtered
-      by the current team and restricted to your own teams; (3) To-Dos get
-      a team_id; (4) one VTO per team; (5) Dashboard + Activity follow the
-      current team.
+      current-team switcher, member add/remove on the Teams page; Phase 1 -
+      each scorecard belongs to a team (list follows the current team,
+      owners must be team members, non-members get 404). Next:
+      (2) Rocks/Issues/Meetings/Org Chart filtered by the current team and
+      restricted to your own teams; (3) To-Dos get a team_id; (4) one VTO
+      per team; (5) Dashboard + Activity follow the current team.
+- [ ] The generic REST CRUD routers (app/api/routes.py - teams, rocks,
+      scorecards, measurables, ...) don't scope by org or team at all:
+      any signed-in API user can read every row, and admin writes accept
+      any team_id. Separate from the web UI, which now scopes scorecards by
+      team. Fold into the team-scoped access work (Phase 2).
 - [ ] Home team (users.team_id) has no UI of its own: it's the first team
       ticked when a user is created, and moves to another of their teams if
       they're removed from it. It only decides which team a non-admin lands
@@ -96,9 +102,9 @@ rather than filling a gap.
       after creation (today a wrong start date means delete + recreate);
       (2) reorder measurables (rows follow the order they were added);
       (3) a Reports page with trend charts built from scorecard data (the
-      old sparklines were removed on purpose); (4) scorecards are
-      org-wide for now since there's one team - tie them to a team if
-      the app ever runs several; (5) the REST API's scorecard-entry
+      old sparklines were removed on purpose); (4) moving a scorecard to
+      another team (today: copy it into the other team, then delete it);
+      (5) the REST API's scorecard-entry
       endpoints are admin-only, so owners can't use them to bypass the
       "owner or admin" rule the web UI enforces - revisit if API access
       for owners is ever needed.
