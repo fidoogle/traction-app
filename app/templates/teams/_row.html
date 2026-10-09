@@ -1,3 +1,6 @@
+{% set is_admin = current_user.role.value == "admin" %}
+{% set can_manage = request.state.team_ctx.can_admin(team.id) %}
+{% set admin_ids = team.memberships | selectattr("is_team_admin") | map(attribute="user_id") | list %}
 <tr id="team-row-{{ team.id }}">
   <td>{{ team.name }}</td>
   <td>{{ team.meeting_day if team.meeting_day else "—" }}</td>
@@ -5,9 +8,26 @@
     <div class="member-list">
       {% for member in team.members %}
       {% set only_team = member.teams | length == 1 %}
-      <span class="member-chip"{% if only_team and current_user.role.value == "admin" %} title="{{ member.name }}'s only team - add them to another team before removing them from this one"{% endif %}>
+      {% set is_team_admin = member.id in admin_ids %}
+      {# A team admin can't remove themselves, a fellow team admin or an admin. #}
+      {% set can_remove = can_manage and not only_team and (is_admin or (member.id != current_user.id and member.role.value != "admin" and not is_team_admin)) %}
+      <span class="member-chip"{% if only_team and can_manage %} title="{{ member.name }}'s only team - add them to another team before removing them from this one"{% endif %}>
         {{ member.name }}
-        {% if current_user.role.value == "admin" and not only_team %}
+        {% if is_team_admin %}<span class="member-badge">team admin</span>{% endif %}
+        {% if is_admin and member.role.value == "member" %}
+          {% set elsewhere = member.memberships | selectattr("is_team_admin") | rejectattr("team_id", "equalto", team.id) | list %}
+          <button
+            type="button"
+            class="member-admin"
+            {% if elsewhere and not is_team_admin %}disabled title="{{ member.name }} is already admin of another team"{% else %}
+            hx-patch="/teams/{{ team.id }}/members/{{ member.id }}/admin"
+            hx-vals='{"is_team_admin": "{{ 'false' if is_team_admin else 'true' }}"}'
+            hx-target="#team-row-{{ team.id }}"
+            hx-swap="outerHTML"
+            title="{{ 'Take back' if is_team_admin else 'Give' }} admin rights on {{ team.name }}"{% endif %}
+          >{{ "remove admin" if is_team_admin else "make admin" }}</button>
+        {% endif %}
+        {% if can_remove %}
           <button
             type="button"
             class="member-remove"
@@ -23,7 +43,7 @@
       {% else %}
       <span class="text-muted">No members</span>
       {% endfor %}
-      {% if current_user.role.value == "admin" %}
+      {% if can_manage %}
         {% set addable = org_users | rejectattr("id", "in", team.members | map(attribute="id") | list) | list %}
         {% if addable %}
         <select
@@ -44,7 +64,7 @@
       {% endif %}
     </div>
   </td>
-  {% if current_user.role.value == "admin" %}
+  {% if is_admin %}
   <td>
     {% if team.id in in_use %}
     <span class="text-muted" title="Only a team with no members and no rocks, issues, to-dos, meetings, seats, scorecards or VTO can be deleted">In use</span>

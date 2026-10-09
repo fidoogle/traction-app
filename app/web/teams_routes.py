@@ -41,7 +41,10 @@ def _get_team(db: Session, team_id: uuid.UUID, org_id: uuid.UUID) -> Team:
     team = db.scalar(
         select(Team)
         .where(Team.id == team_id, Team.org_id == org_id)
-        .options(selectinload(Team.members).selectinload(User.teams))
+        .options(
+            selectinload(Team.members).selectinload(User.teams),
+            selectinload(Team.memberships),
+        )
     )
     if team is None:
         raise HTTPException(status_code=404)
@@ -85,7 +88,10 @@ def list_teams(
     teams = db.scalars(
         select(Team)
         .where(Team.org_id == current_user.org_id)
-        .options(selectinload(Team.members).selectinload(User.teams))
+        .options(
+            selectinload(Team.members).selectinload(User.teams),
+            selectinload(Team.memberships),
+        )
         .order_by(Team.name)
     ).all()
     return templates.TemplateResponse(
@@ -160,7 +166,7 @@ def delete_team(
     return Response(status_code=200)
 
 
-# --- Members (admin) --------------------------------------------------------
+# --- Members (admin, or a team's own admin for that team) -------------------
 
 
 @router.post("/{team_id}/members")
@@ -170,8 +176,9 @@ def add_member(
     user_id: uuid.UUID = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
+    team_ctx.require_admin(team_id)
     team = _get_team(db, team_id, current_user.org_id)
     user = db.get(User, user_id)
     if user is None or user.org_id != current_user.org_id:
@@ -189,8 +196,9 @@ def remove_member(
     user_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
 ):
-    _require_admin(current_user)
+    team_ctx.require_admin(team_id)
     _get_team(db, team_id, current_user.org_id)
     user = db.scalar(
         select(User)
@@ -200,6 +208,12 @@ def remove_member(
     membership = next((m for m in user.memberships if m.team_id == team_id), None) if user else None
     if membership is None:
         raise HTTPException(status_code=404)
+    if current_user.role != UserRole.ADMIN and (
+        user.id == current_user.id or user.role == UserRole.ADMIN or membership.is_team_admin
+    ):
+        # A team admin can't remove themselves, a fellow team admin or an
+        # admin - only an admin can.
+        raise HTTPException(status_code=403)
     others = sorted(
         (m for m in user.memberships if m.team_id != team_id), key=lambda m: m.team.name
     )
@@ -219,5 +233,37 @@ def remove_member(
     ):
         measurable.owner_id = None
     db.delete(membership)
+    db.commit()
+    return _row_response(request, db, current_user, team_id)
+
+
+@router.patch("/{team_id}/members/{user_id}/admin")
+def set_team_admin(
+    request: Request,
+    team_id: uuid.UUID,
+    user_id: uuid.UUID,
+    is_team_admin: bool = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Make a member admin of this team (or take it back). Admin only."""
+    _require_admin(current_user)
+    _get_team(db, team_id, current_user.org_id)
+    user = db.scalar(
+        select(User)
+        .where(User.id == user_id, User.org_id == current_user.org_id)
+        .options(selectinload(User.memberships))
+    )
+    membership = next((m for m in user.memberships if m.team_id == team_id), None) if user else None
+    if membership is None:
+        raise HTTPException(status_code=404)
+    if is_team_admin:
+        if user.role != UserRole.MEMBER:
+            raise HTTPException(status_code=400, detail="Only a member can be made a team admin")
+        if any(m.is_team_admin and m.team_id != team_id for m in user.memberships):
+            raise HTTPException(
+                status_code=409, detail=f"{user.name} is already admin of another team"
+            )
+    membership.is_team_admin = is_team_admin
     db.commit()
     return _row_response(request, db, current_user, team_id)

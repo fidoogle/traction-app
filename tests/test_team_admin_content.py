@@ -129,3 +129,75 @@ def test_plain_member_cannot_start_a_meeting(world, login):
     mia = login("mia")
     mia.switch_team(world["team_bravo"])
     assert mia.post("/meetings/session/start").status_code == 403
+
+
+# --- Teams page: roster and the team-admin toggle -----------------------------
+
+
+def _is_team_admin(user, team):
+    with SessionLocal() as db:
+        return db.scalar(
+            select(TeamMembership.is_team_admin).where(
+                TeamMembership.user_id == user, TeamMembership.team_id == team
+            )
+        )
+
+
+def test_admin_can_make_and_unmake_a_team_admin(world, login):
+    admin = login("admin")
+    url = f"/teams/{world['team_bravo']}/members/{world['mia']}/admin"
+    assert admin.patch(url, data={"is_team_admin": "true"}).status_code == 200
+    assert _is_team_admin(world["mia"], world["team_bravo"])
+    assert admin.patch(url, data={"is_team_admin": "false"}).status_code == 200
+    assert not _is_team_admin(world["mia"], world["team_bravo"])
+
+
+def test_team_admin_flag_rules(world, login):
+    admin = login("admin")
+    flag = {"is_team_admin": "true"}
+    on = lambda team, who: f"/teams/{world['team_' + team]}/members/{world[who]}/admin"  # noqa: E731
+    assert admin.patch(on("alpha", "mia"), data=flag).status_code == 200
+    # Only one team each.
+    assert admin.patch(on("bravo", "mia"), data=flag).status_code == 409
+    # Only members, and only of teams they're on.
+    assert admin.patch(on("alpha", "vic"), data=flag).status_code == 400
+    assert admin.patch(on("alpha", "admin"), data=flag).status_code == 400
+    assert admin.patch(on("bravo", "max"), data=flag).status_code == 404
+    # Only an admin can hand it out - not a team admin, not a member.
+    assert login("mia").patch(on("alpha", "mia"), data={"is_team_admin": "false"}).status_code == 403
+    assert login("max").patch(on("charlie", "max"), data=flag).status_code == 403
+
+
+def test_team_admin_manages_their_roster(world, mia_admin_of_bravo):
+    mia = mia_admin_of_bravo
+    members = f"/teams/{world['team_bravo']}/members"
+    assert mia.post(members, data={"user_id": str(world["max"])}).status_code == 200
+    assert mia.delete(f"{members}/{world['max']}").status_code == 200
+    # Not another team's roster.
+    assert mia.post(f"/teams/{world['team_alpha']}/members", data={"user_id": str(world["max"])}).status_code == 403
+    assert mia.delete(f"/teams/{world['team_alpha']}/members/{world['vic']}").status_code == 403
+    # Can't create or delete teams.
+    assert mia.post("/teams", data={"name": "New"}).status_code == 403
+    assert mia.delete(f"/teams/{world['team_bravo']}").status_code == 403
+
+
+def test_team_admin_cannot_remove_themselves_a_peer_or_an_admin(world, login, mia_admin_of_bravo):
+    mia = mia_admin_of_bravo
+    admin = login("admin")
+    members = f"/teams/{world['team_bravo']}/members"
+    assert admin.post(members, data={"user_id": str(world["admin"])}).status_code == 200
+    assert admin.post(members, data={"user_id": str(world["max"])}).status_code == 200
+    assert admin.patch(f"{members}/{world['max']}/admin", data={"is_team_admin": "true"}).status_code == 200
+    assert mia.delete(f"{members}/{world['mia']}").status_code == 403
+    assert mia.delete(f"{members}/{world['max']}").status_code == 403
+    assert mia.delete(f"{members}/{world['admin']}").status_code == 403
+    # The admin can remove a team admin; the flag goes with the membership.
+    assert admin.delete(f"{members}/{world['max']}").status_code == 200
+    assert not _is_team_admin(world["max"], world["team_bravo"])
+
+
+def test_teams_page_shows_roster_controls_only_where_allowed(world, mia_admin_of_bravo):
+    html = mia_admin_of_bravo.get("/teams").text
+    assert f'hx-post="/teams/{world["team_bravo"]}/members"' in html
+    assert f'hx-post="/teams/{world["team_alpha"]}/members"' not in html
+    assert "make admin" not in html  # only an admin hands out the role
