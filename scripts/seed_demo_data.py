@@ -241,7 +241,7 @@ def main() -> None:
             ]
         )
 
-        # --- Scorecard: 13 weeks starting on a Sunday, 6 weeks filled in ---
+        # --- Scorecard: 13 weeks, the first 6 filled in ---
         today = date.today()
         start = today - timedelta(days=(today.weekday() + 1) % 7) - timedelta(weeks=5)
         scorecard = Scorecard(

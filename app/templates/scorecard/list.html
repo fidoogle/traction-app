@@ -13,9 +13,9 @@
     <input type="text" id="sc-name" name="name" required maxlength="255" placeholder="e.g. Q4 2026" autofocus>
   </div>
   <div class="field">
-    <label for="sc-start">Start date (a Sunday)</label>
+    <label for="sc-start">Start date</label>
     <input type="date" id="sc-start" name="start_date" value="{{ default_start }}" required>
-    <div class="field-hint">Week 1 starts on this date; the scorecard runs 13 weeks.</div>
+    <div class="field-hint">Week 1 begins on this date (any day, past dates allowed); each week runs 7 days from it, for 13 weeks.</div>
   </div>
   <div class="field">
     <label for="sc-copy">Copy measurables from</label>
@@ -49,7 +49,7 @@
       {% set s = item.scorecard %}
       <tr id="scorecard-row-{{ s.id }}">
         <td><a href="/scorecards/{{ s.id }}">{{ s.name }}</a></td>
-        <td>{{ s.start_date.strftime("%b") }} {{ s.start_date.day }}, {{ s.start_date.year }} &ndash; {{ s.end_date.strftime("%b") }} {{ s.end_date.day }}, {{ s.end_date.year }}</td>
+        <td>{{ s.start_date.strftime("%a, %b") }} {{ s.start_date.day }}, {{ s.start_date.year }} &ndash; {{ s.end_date.strftime("%a, %b") }} {{ s.end_date.day }}, {{ s.end_date.year }}</td>
         <td>{{ s.measurables | length }}</td>
         <td><span class="badge {{ {'Current': 'on_track', 'Upcoming': 'scheduled', 'Past': 'dropped'}[item.status] }}">{{ item.status }}</span></td>
         {% if is_admin %}

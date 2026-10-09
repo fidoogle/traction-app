@@ -12,7 +12,7 @@ SCORECARD_WEEKS = 13
 
 
 class Scorecard(UUIDPKMixin, Base):
-    """A 13-week scorecard. Weeks run Sunday-Saturday from start_date (a Sunday)."""
+    """A 13-week scorecard. Each week is 7 days, week 1 beginning on start_date."""
 
     __tablename__ = "scorecards"
 

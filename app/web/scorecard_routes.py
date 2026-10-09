@@ -1,4 +1,4 @@
-"""Scorecards: 13-week, Sunday-start grids of measurables.
+"""Scorecards: 13-week grids of measurables, starting on any date the admin picks.
 
 Admins create/delete scorecards and add/edit/delete measurables (assigning
 each an owner). A measurable's owner - or an admin - types values into its
@@ -33,9 +33,6 @@ router = APIRouter(prefix="/scorecards")
 # The page used to live at /scorecard; keep old bookmarks working.
 legacy_router = APIRouter()
 
-SUNDAY = 6  # date.weekday()
-
-
 @legacy_router.get("/scorecard")
 def legacy_scorecard_redirect():
     return RedirectResponse("/scorecards", status_code=307)
@@ -44,12 +41,6 @@ def legacy_scorecard_redirect():
 def _require_admin(current_user: User) -> None:
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403)
-
-
-def _default_start() -> date:
-    """The Sunday that began the current week."""
-    today = date.today()
-    return today - timedelta(days=(today.weekday() + 1) % 7)
 
 
 def _org_users(db: Session, org_id: uuid.UUID):
@@ -201,7 +192,7 @@ def list_scorecards(
             "scorecards": [
                 {"scorecard": s, "status": _scorecard_status(s, today)} for s in scorecards
             ],
-            "default_start": _default_start(),
+            "default_start": date.today(),
         },
     )
 
@@ -216,8 +207,6 @@ def create_scorecard(
 ):
     _require_admin(current_user)
     name = _clean_name(name)
-    if start_date.weekday() != SUNDAY:
-        raise HTTPException(status_code=422, detail="Start date must be a Sunday")
 
     source = None
     if copy_from.strip():
