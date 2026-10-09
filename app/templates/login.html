@@ -11,11 +11,19 @@
       <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
       <div class="field">
         <label for="email">Email</label>
+        {% if login_users %}
+        <select id="email" name="email" required autofocus>
+          {% for u in login_users %}
+          <option value="{{ u.email }}">{{ u.label }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
         <input type="email" id="email" name="email" required autofocus>
+        {% endif %}
       </div>
       <div class="field">
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" required>
+        <input type="password" id="password" name="password" value="{{ demo_password or '' }}" required>
       </div>
       <button class="primary" type="submit">Log in</button>
     </form>

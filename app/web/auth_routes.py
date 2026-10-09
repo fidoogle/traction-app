@@ -7,12 +7,37 @@ from app.api.deps import get_db
 from app.config import settings
 from app.core.rate_limit import login_rate_limiter
 from app.core.security import ACCESS_TOKEN_COOKIE_NAME, create_access_token, verify_password
-from app.models.user import User
+from app.models.team_membership import TeamMembership
+from app.models.user import User, UserRole
 from app.web.csrf import CSRF_COOKIE_NAME, csrf_tokens_match
 from app.web.team_context import TEAM_COOKIE_NAME
 from app.web.templates import templates
 
 router = APIRouter()
+
+# Test-environment convenience: the login page lists every account and
+# prefills this password (the demo seed gives everyone the same one). It is
+# only a prefill - accounts created later with another password just retype it.
+DEMO_LOGIN_PASSWORD = "demo1234"
+
+
+def _login_context(db: Session, **extra) -> dict:
+    """Login-page accounts: the admin first, then team admins, then everyone
+    else, each group sorted by email (so man-/woman-/youth- cluster)."""
+    team_admin_ids = set(
+        db.scalars(
+            select(TeamMembership.user_id).where(TeamMembership.is_team_admin.is_(True))
+        )
+    )
+
+    def rank(user: User) -> int:
+        if user.role == UserRole.ADMIN:
+            return 0
+        return 1 if user.id in team_admin_ids else 2
+
+    users = sorted(db.scalars(select(User)).all(), key=lambda u: (rank(u), u.email))
+    choices = [{"email": u.email, "label": f"{u.email} - {u.name}"} for u in users]
+    return {"login_users": choices, "demo_password": DEMO_LOGIN_PASSWORD, **extra}
 
 
 def _client_key(request: Request) -> str:
@@ -27,8 +52,8 @@ def _validate_csrf_form_field(request: Request, csrf_token: str) -> None:
 
 
 @router.get("/login")
-def login_form(request: Request):
-    return templates.TemplateResponse(request, "login.html", {})
+def login_form(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse(request, "login.html", _login_context(db))
 
 
 @router.post("/login")
@@ -46,7 +71,9 @@ def login_submit(
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"error": "Too many failed login attempts. Please wait a few minutes and try again."},
+            _login_context(
+                db, error="Too many failed login attempts. Please wait a few minutes and try again."
+            ),
             status_code=429,
         )
 
@@ -60,7 +87,7 @@ def login_submit(
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"error": "Incorrect email or password"},
+            _login_context(db, error="Incorrect email or password"),
             status_code=401,
         )
 
