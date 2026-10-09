@@ -8,7 +8,7 @@
 <p class="text-muted scorecard-dates">
   Started {{ scorecard.start_date.strftime("%A, %b") }} {{ scorecard.start_date.day }}, {{ scorecard.start_date.year }}
   &middot; ends {{ scorecard.end_date.strftime("%A, %b") }} {{ scorecard.end_date.day }}, {{ scorecard.end_date.year }}.
-  Each week begins on a {{ scorecard.start_date.strftime("%A") }}.
+  Each week begins on a <strong>{{ scorecard.start_date.strftime("%A") }}</strong>.
   {% if not is_admin %}You can edit the rows you own.{% endif %}
 </p>
 
@@ -38,7 +38,7 @@
         <th>Who</th><th>Measurable</th><th>Goal</th>
         {% for w in weeks %}
         <th class="week-head{% if w.is_current %} current-week{% endif %}" title="Week {{ w.n }} begins {{ w.start.strftime('%A, %b') }} {{ w.start.day }}">
-          {{ w.n }}<span class="week-date">{{ w.start.strftime("%a %b") }} {{ w.start.day }}</span>
+          {{ w.n }}<span class="week-date">{{ w.start.strftime("%b") }} {{ w.start.day }}</span>
         </th>
         {% endfor %}
         {% if is_admin %}<th></th>{% endif %}

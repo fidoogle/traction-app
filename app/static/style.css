@@ -682,7 +682,7 @@ select.status-select {
 .scorecard-grid th, .scorecard-grid td { padding: 0.35rem 0.4rem; }
 .scorecard-grid td.who, .scorecard-grid td.measurable-name { font-weight: 500; }
 .scorecard-grid td.goal { font-weight: 600; }
-.scorecard-grid .week-head { text-align: center; min-width: 5.5rem; }
+.scorecard-grid .week-head { text-align: center; min-width: 4.5rem; }
 .scorecard-grid .week-date {
   display: block;
   font-size: 0.7rem;
@@ -702,7 +702,7 @@ select.status-select {
    background, normal text) and let the cell's met / missed color show. */
 .scorecard-grid td.week-cell .cell-input {
   width: 100%;
-  min-width: 5.5rem;
+  min-width: 4.5rem;
   padding: 0.45rem 0.4rem;
   border: 1px solid transparent;
   border-radius: 0;
