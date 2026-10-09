@@ -1,8 +1,54 @@
 <tr id="team-row-{{ team.id }}">
   <td>{{ team.name }}</td>
   <td>{{ team.meeting_day if team.meeting_day else "—" }}</td>
+  <td>
+    <div class="member-list">
+      {% for member in team.members %}
+      {% set only_team = member.teams | length == 1 %}
+      <span class="member-chip"{% if only_team and current_user.role.value == "admin" %} title="{{ member.name }}'s only team - add them to another team before removing them from this one"{% endif %}>
+        {{ member.name }}
+        {% if current_user.role.value == "admin" and not only_team %}
+          <button
+            type="button"
+            class="member-remove"
+            hx-delete="/teams/{{ team.id }}/members/{{ member.id }}"
+            hx-target="#team-row-{{ team.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Remove {{ member.name }} from {{ team.name }}?"
+            aria-label="Remove {{ member.name }} from {{ team.name }}"
+            title="Remove from team"
+          >&times;</button>
+        {% endif %}
+      </span>
+      {% else %}
+      <span class="text-muted">No members</span>
+      {% endfor %}
+      {% if current_user.role.value == "admin" %}
+        {% set addable = org_users | rejectattr("id", "in", team.members | map(attribute="id") | list) | list %}
+        {% if addable %}
+        <select
+          class="status-select"
+          name="user_id"
+          aria-label="Add a member to {{ team.name }}"
+          hx-post="/teams/{{ team.id }}/members"
+          hx-target="#team-row-{{ team.id }}"
+          hx-swap="outerHTML"
+          hx-trigger="change"
+        >
+          <option value="" selected disabled>+ Add member</option>
+          {% for user in addable %}
+          <option value="{{ user.id }}">{{ user.name }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+      {% endif %}
+    </div>
+  </td>
   {% if current_user.role.value == "admin" %}
   <td>
+    {% if team.members %}
+    <span class="text-muted" title="Remove everyone from this team before deleting it">Has members</span>
+    {% else %}
     <button
       class="link-danger"
       hx-delete="/teams/{{ team.id }}"
@@ -12,6 +58,7 @@
     >
       Delete
     </button>
+    {% endif %}
   </td>
   {% endif %}
 </tr>

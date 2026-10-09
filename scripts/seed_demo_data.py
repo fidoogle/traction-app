@@ -38,6 +38,7 @@ from app.models import (  # noqa: E402
     ScorecardEntry,
     Seat,
     Team,
+    TeamMembership,
     Todo,
     TodoStatus,
     User,
@@ -56,6 +57,7 @@ DEMO_TABLES = [
     "scorecards",
     "rocks",
     "meetings",
+    "team_memberships",
     "users",
     "teams",
     "organizations",
@@ -91,7 +93,9 @@ def main() -> None:
         db.add_all([leadership, curriculum, ops])
         db.flush()
 
-        def make_user(name: str, email: str, team: Team, role: UserRole) -> User:
+        def make_user(
+            name: str, email: str, team: Team, role: UserRole, also_on: tuple[Team, ...] = ()
+        ) -> User:
             user = User(
                 org_id=org.id,
                 team_id=team.id,
@@ -99,6 +103,7 @@ def main() -> None:
                 email=email,
                 role=role,
                 hashed_password=hash_password(DEMO_PASSWORD),
+                memberships=[TeamMembership(team_id=t.id) for t in (team, *also_on)],
             )
             db.add(user)
             db.flush()
@@ -107,8 +112,9 @@ def main() -> None:
         superintendent = make_user(
             "Dana Admin", "admin@school.example", leadership, UserRole.ADMIN
         )
+        # On two teams, to exercise the topbar team switcher.
         cfo = make_user(
-            "Marcus Member", "member1@school.example", leadership, UserRole.MEMBER
+            "Marcus Member", "member1@school.example", leadership, UserRole.MEMBER, (ops,)
         )
         curriculum_dir = make_user(
             "Priya Member", "member2@school.example", curriculum, UserRole.MEMBER

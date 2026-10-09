@@ -28,6 +28,7 @@ from app.models import (
     ScorecardEntry,
     Seat,
     Team,
+    TeamMembership,
     Todo,
     User,
 )
@@ -49,6 +50,7 @@ ENTITY_TYPES: dict[str, tuple[str, Optional[str]]] = {
     "vto": ("VTO", "/vto"),
     "people_analyzer_entry": ("People Analyzer entry", "/people-analyzer"),
     "team": ("team", "/teams"),
+    "team_membership": ("team member", "/teams"),
     "user": ("user", "/users"),
     "organization": ("organization", None),
 }
@@ -65,6 +67,7 @@ _MODEL_TYPES: dict[type, str] = {
     VTO: "vto",
     PeopleAnalyzerEntry: "people_analyzer_entry",
     Team: "team",
+    TeamMembership: "team_membership",
     User: "user",
     Organization: "organization",
 }
@@ -134,6 +137,10 @@ def _label(db: Session, obj: Any) -> str:
         return " / ".join(x for x in (person and person.name, seat and seat.title) if x)
     if isinstance(obj, VTO):
         return "Vision/Traction Organizer"
+    if isinstance(obj, TeamMembership):
+        person = db.get(User, obj.user_id) if obj.user_id else None
+        team = db.get(Team, obj.team_id) if obj.team_id else None
+        return " on ".join(x for x in (person and person.name, team and team.name) if x)
     return ""
 
 
@@ -248,11 +255,16 @@ def _removed_with_parent(db: Session, obj: Any) -> bool:
         return obj.measurable is not None and obj.measurable in db.deleted
     if isinstance(obj, Measurable):
         return obj.scorecard is not None and obj.scorecard in db.deleted
+    if isinstance(obj, TeamMembership):
+        return obj.user in db.deleted or obj.team in db.deleted
     return False
 
 
 def _added_with_parent(db: Session, obj: Any) -> bool:
-    """Measurables copied into a brand-new scorecard are part of its creation."""
+    """Measurables copied into a brand-new scorecard, or a new user's first
+    teams, are part of creating that scorecard / user."""
+    if isinstance(obj, TeamMembership):
+        return obj.user is not None and obj.user in db.new
     return isinstance(obj, Measurable) and obj.scorecard is not None and obj.scorecard in db.new
 
 

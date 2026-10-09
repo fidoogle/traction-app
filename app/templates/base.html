@@ -240,6 +240,23 @@
           >
             <span class="nav-toggle-icon"></span>
           </button>
+          {% set team_ctx = request.state.team_ctx %}
+          <div class="team-switcher">
+            <span class="team-switcher-label">Team</span>
+            {% if team_ctx.can_view_all or team_ctx.teams | length > 1 %}
+            <select name="team_id" aria-label="Current team"
+                    hx-post="/teams/current" hx-trigger="change" hx-swap="none">
+              {% if team_ctx.can_view_all %}
+              <option value="all" {% if team_ctx.current is none %}selected{% endif %}>All teams</option>
+              {% endif %}
+              {% for team in team_ctx.teams %}
+              <option value="{{ team.id }}" {% if team_ctx.current and team_ctx.current.id == team.id %}selected{% endif %}>{{ team.name }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <strong class="team-switcher-name">{{ team_ctx.current.name if team_ctx.current else "No team" }}</strong>
+            {% endif %}
+          </div>
         </div>
         {% if current_user.role.value != "viewer" %}
         <button type="button" id="quick-add-open" class="icon-button primary-icon"

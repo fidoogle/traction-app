@@ -19,6 +19,7 @@ from app.models.scorecard import SCORECARD_WEEKS, Scorecard
 from app.models.scorecard_entry import ScorecardEntry
 from app.models.seat import Seat
 from app.models.team import Team
+from app.models.team_membership import TeamMembership
 from app.models.todo import Todo
 from app.models.user import User
 from app.models.vto import VTO
@@ -27,6 +28,7 @@ __all__ = [
     "Base",
     "Organization",
     "Team",
+    "TeamMembership",
     "User",
     "Rock",
     "Scorecard",

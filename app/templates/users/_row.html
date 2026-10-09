@@ -1,7 +1,7 @@
 <tr id="user-row-{{ user.id }}">
   <td>{{ user.name }}</td>
   <td>{{ user.email }}</td>
-  <td>{{ user.team.name }}</td>
+  <td>{{ user.teams | map(attribute="name") | join(", ") }}</td>
   <td>
     {% if current_user.role.value == "admin" %}
       <select

@@ -17,14 +17,19 @@
         <label for="email">Email</label>
         <input type="email" id="email" name="email" required>
       </div>
-      <div class="field">
-        <label for="team_id">Team</label>
-        <select id="team_id" name="team_id" required>
-          {% for team in teams %}
-          <option value="{{ team.id }}">{{ team.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
+      {% set current_team = request.state.team_ctx.current %}
+      <fieldset class="field field-full team-checkboxes">
+        <legend>Teams</legend>
+        <div class="team-checkbox-list">
+        {% for team in teams %}
+        <label class="checkbox-field">
+          <input type="checkbox" name="team_ids" value="{{ team.id }}"
+                 {% if (current_team and current_team.id == team.id) or (not current_team and loop.first) %}checked{% endif %}>
+          {{ team.name }}
+        </label>
+        {% endfor %}
+        </div>
+      </fieldset>
       <div class="field">
         <label for="role">Role</label>
         <select id="role" name="role" required>
@@ -50,7 +55,7 @@
   <table>
     <thead>
       <tr>
-        <th>Name</th><th>Email</th><th>Team</th><th>Role</th>
+        <th>Name</th><th>Email</th><th>Teams</th><th>Role</th>
         {% if current_user.role.value == "admin" %}<th></th>{% endif %}
       </tr>
     </thead>

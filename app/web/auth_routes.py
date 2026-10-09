@@ -9,6 +9,7 @@ from app.core.rate_limit import login_rate_limiter
 from app.core.security import ACCESS_TOKEN_COOKIE_NAME, create_access_token, verify_password
 from app.models.user import User
 from app.web.csrf import CSRF_COOKIE_NAME, csrf_tokens_match
+from app.web.team_context import TEAM_COOKIE_NAME
 from app.web.templates import templates
 
 router = APIRouter()
@@ -75,6 +76,8 @@ def login_submit(
         max_age=settings.access_token_expire_minutes * 60,
         path="/",
     )
+    # A previous user's team choice on this browser shouldn't carry over.
+    response.delete_cookie(TEAM_COOKIE_NAME, path="/")
     return response
 
 
@@ -83,4 +86,5 @@ def logout(request: Request, csrf_token: str = Form(...)):
     _validate_csrf_form_field(request, csrf_token)
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie(ACCESS_TOKEN_COOKIE_NAME, path="/")
+    response.delete_cookie(TEAM_COOKIE_NAME, path="/")
     return response

@@ -25,6 +25,15 @@ jobs:
       - name: Lint (ruff)
         run: pipx run --spec ruff==0.13.0 ruff check .
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Tests (pytest)
+        run: |
+          pip install -r requirements-dev.txt
+          python -m pytest -q
+
       - name: Build Docker image
         run: docker build -t traction-app:ci .
 

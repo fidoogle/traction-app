@@ -40,6 +40,22 @@ queued.
 
 ## Data Model
 
+- [ ] Teams rollout (multi-team support), in progress. Done: Phase 0 -
+      `team_memberships` (people can be on several teams), the topbar
+      current-team switcher, member add/remove on the Teams page. Next:
+      (1) Scorecards per team; (2) Rocks/Issues/Meetings/Org Chart filtered
+      by the current team and restricted to your own teams; (3) To-Dos get
+      a team_id; (4) one VTO per team; (5) Dashboard + Activity follow the
+      current team.
+- [ ] Home team (users.team_id) has no UI of its own: it's the first team
+      ticked when a user is created, and moves to another of their teams if
+      they're removed from it. It only decides which team a non-admin lands
+      on before they've picked one. Either add a "home team" picker or drop
+      the column once nothing else reads it.
+- [ ] The REST API's `POST /api/users` doesn't check that `team_id`
+      belongs to the caller's org (the web UI does). Admin-only, but worth
+      tightening alongside the team-scoping work.
+
 - [ ] People Analyzer: core values ratings are currently a simple boolean
       per value. Real GWC/People Analyzer practice often uses a 3-state
       rating (+ / +- / -). Consider widening `core_values_ratings` if the
@@ -99,13 +115,14 @@ rather than filling a gap.
 Done: Dockerfile + docker-compose now run the whole app (not just
 Postgres), with migrations applied automatically on container start.
 
-- [ ] Automated test suite (pytest). Verification so far has been manual
-      curl runs / browser clicks against a live Postgres container, not
-      committed tests.
+- [ ] Automated test suite (pytest). Started: `tests/` covers the
+      current-team rules (app/web/team_context.py) as pure unit tests and
+      runs in CI. Still missing: DB-backed route tests (needs a throwaway
+      Postgres fixture) - most verification is still manual curl runs /
+      browser clicks against a live container.
 - [ ] CI pipeline: `.github/workflows/deploy.yml` now runs ruff (E9/F
-      only) + a Docker build on every push/PR, and auto-deploys `main` to
-      the droplet over SSH. Still missing: type-check (mypy) and a real
-      test suite in the gate.
+      only), pytest and a Docker build on every push/PR, and auto-deploys
+      `main` to the droplet over SSH. Still missing: type-check (mypy).
 - [ ] TLS / reverse proxy. The container serves plain HTTP on :8000, and
       COOKIE_SECURE defaults to false to match. Fine for internal-network
       testing, but before this is trusted with real district data, put a

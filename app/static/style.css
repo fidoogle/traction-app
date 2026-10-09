@@ -273,6 +273,49 @@ textarea:focus-visible {
   color: var(--text-muted);
 }
 
+/* Current team: always visible, so it's clear whose Rocks/Scorecards/...
+   the page is showing. */
+.team-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.team-switcher-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.team-switcher select {
+  width: auto;
+  max-width: 16rem;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  text-overflow: ellipsis;
+}
+
+.team-switcher-name {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 640px) {
+  .team-switcher-label,
+  .topbar .user-info { display: none; }
+  .team-switcher select { max-width: 10rem; }
+}
+
 .logout-form button {
   background: none;
   border: none;
@@ -638,6 +681,59 @@ select.status-select {
 }
 
 .text-muted { color: var(--text-muted); font-size: 0.85rem; }
+
+.team-checkboxes {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+}
+
+.team-checkboxes legend {
+  padding: 0;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Beats `.field label` / `.field input`, which assume one stacked input. */
+.team-checkboxes label.checkbox-field { display: flex; color: var(--text); margin: 0; }
+.team-checkboxes input[type="checkbox"] { width: auto; }
+
+/* Teams page: members as removable chips plus an "add member" picker. */
+.member-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: var(--neutral-bg);
+}
+
+.member-remove {
+  background: none;
+  border: none;
+  padding: 0 0.1rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.member-remove:hover { color: var(--off-track); }
 
 .seat-tree { display: flex; flex-direction: column; gap: 0.5rem; }
 

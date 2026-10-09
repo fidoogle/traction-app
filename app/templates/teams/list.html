@@ -28,7 +28,7 @@
   <table>
     <thead>
       <tr>
-        <th>Name</th><th>Meeting day</th>
+        <th>Name</th><th>Meeting day</th><th>Members</th>
         {% if current_user.role.value == "admin" %}<th></th>{% endif %}
       </tr>
     </thead>
@@ -36,7 +36,7 @@
       {% for team in teams %}
         {% include "teams/_row.html" %}
       {% else %}
-      <tr><td colspan="3">No teams yet.</td></tr>
+      <tr><td colspan="4">No teams yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

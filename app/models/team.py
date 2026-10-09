@@ -18,8 +18,16 @@ class Team(UUIDPKMixin, Base):
     meeting_day: Mapped[Optional[str]] = mapped_column(String(20))
 
     organization: Mapped["Organization"] = relationship(back_populates="teams")
+    # Users whose *home* team this is (User.team_id). Membership - which
+    # teams a person actually works on - is `memberships` / `members`.
     users: Mapped[List["User"]] = relationship(
         back_populates="team", foreign_keys="User.team_id"
+    )
+    memberships: Mapped[List["TeamMembership"]] = relationship(
+        back_populates="team", cascade="all, delete-orphan", passive_deletes=True
+    )
+    members: Mapped[List["User"]] = relationship(
+        secondary="team_memberships", viewonly=True, order_by="User.name"
     )
     rocks: Mapped[List["Rock"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"

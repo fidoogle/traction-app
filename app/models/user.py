@@ -17,6 +17,9 @@ class User(UUIDPKMixin, Base):
     org_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False
     )
+    # Home team: the one shown first after login. Always also one of the
+    # user's memberships (see TeamMembership), which are the teams they
+    # can actually work in.
     team_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
     )
@@ -38,6 +41,12 @@ class User(UUIDPKMixin, Base):
 
     organization: Mapped["Organization"] = relationship(back_populates="users")
     team: Mapped["Team"] = relationship(back_populates="users", foreign_keys=[team_id])
+    memberships: Mapped[List["TeamMembership"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+    teams: Mapped[List["Team"]] = relationship(
+        secondary="team_memberships", viewonly=True, order_by="Team.name"
+    )
     rocks: Mapped[List["Rock"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )

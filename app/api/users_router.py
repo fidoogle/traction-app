@@ -7,6 +7,7 @@ from app.api.deps import get_current_user, get_db, require_roles
 from app.core.security import hash_password
 from app.crud.base import CRUDBase
 from app.models.enums import UserRole
+from app.models.team_membership import TeamMembership
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
@@ -25,7 +26,11 @@ SELF_SERVICE_FIELDS = {"name", "email", "password"}
 )
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     data = payload.model_dump(exclude={"password"})
-    user = User(**data, hashed_password=hash_password(payload.password))
+    user = User(
+        **data,
+        hashed_password=hash_password(payload.password),
+        memberships=[TeamMembership(team_id=payload.team_id)],
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -72,6 +77,9 @@ def update_user(
         setattr(user, field, value)
     if payload.password is not None:
         user.hashed_password = hash_password(payload.password)
+    # A new home team is also a team they're on.
+    if "team_id" in update_data and all(m.team_id != user.team_id for m in user.memberships):
+        user.memberships.append(TeamMembership(team_id=user.team_id))
 
     db.add(user)
     db.commit()

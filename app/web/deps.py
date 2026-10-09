@@ -2,13 +2,14 @@ import uuid
 from typing import Optional
 
 import jwt
-from fastapi import Cookie, Depends
+from fastapi import Cookie, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.activity import set_actor
 from app.core.security import ACCESS_TOKEN_COOKIE_NAME, decode_access_token
 from app.models.user import User
+from app.web.team_context import TEAM_COOKIE_NAME, TeamContext, build_team_context
 
 
 class RedirectToLogin(Exception):
@@ -21,9 +22,13 @@ class RedirectToLogin(Exception):
 
 
 def get_current_user_web(
+    request: Request,
     cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_TOKEN_COOKIE_NAME),
     db: Session = Depends(get_db),
 ) -> User:
+    """The signed-in user. Also works out their current team (see team_context)
+    and leaves it on request.state.team_ctx, where base.html's switcher and
+    get_team_context read it."""
     if cookie_token is None:
         raise RedirectToLogin()
     try:
@@ -37,10 +42,12 @@ def get_current_user_web(
     if user is None:
         raise RedirectToLogin()
     set_actor(db, user)
+    request.state.team_ctx = build_team_context(db, user, request.cookies.get(TEAM_COOKIE_NAME))
     return user
 
 
 def get_optional_user_web(
+    request: Request,
     cookie_token: Optional[str] = Cookie(default=None, alias=ACCESS_TOKEN_COOKIE_NAME),
     db: Session = Depends(get_db),
 ) -> Optional[User]:
@@ -50,6 +57,13 @@ def get_optional_user_web(
     shouldn't yank an idle tab over to the login page.
     """
     try:
-        return get_current_user_web(cookie_token, db)
+        return get_current_user_web(request, cookie_token, db)
     except RedirectToLogin:
         return None
+
+
+def get_team_context(
+    request: Request, current_user: User = Depends(get_current_user_web)
+) -> TeamContext:
+    """The signed-in user's current team and the teams they can switch to."""
+    return request.state.team_ctx
