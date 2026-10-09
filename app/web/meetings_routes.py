@@ -231,7 +231,10 @@ def finish_session(
     team_ctx: TeamContext = Depends(get_team_context),
 ):
     meeting = _admin_session(db, current_user, team_ctx)
-    meeting_session.finish(meeting, meeting_session.now_utc())
+    try:
+        meeting_session.finish(meeting, meeting_session.now_utc())
+    except meeting_session.SessionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     db.commit()
     db.refresh(meeting)
     return _session_response(request, db, current_user, meeting)

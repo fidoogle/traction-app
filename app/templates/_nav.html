@@ -91,7 +91,7 @@
         {{ icon_stop | safe }}<span>Stop</span>
       </button>
       {% endif %}
-      <button type="button" class="meeting-finish" {{ session_post('finish') }}>
+      <button type="button" class="meeting-finish" {{ session_post('finish') }}{% if not ms.stopped %} disabled title="Stop the meeting first"{% endif %}>
         {{ icon_check | safe }}<span>Finish</span>
       </button>
     </div>

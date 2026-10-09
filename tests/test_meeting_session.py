@@ -117,6 +117,7 @@ def test_pause_resume_and_overtime_are_recorded(world, admin, clock):
 def test_finish_restores_the_menu_and_the_times_show_on_the_meetings_page(admin, clock):
     admin.post("/meetings/session/start")
     clock(310)
+    admin.post("/meetings/session/stop")
     done = admin.post("/meetings/session/finish")
     assert 'href="/users"' in done.text and "nav-more" not in done.text
     assert "meeting-panel" not in done.text
@@ -152,6 +153,7 @@ def test_timer_bookkeeping_is_not_logged_as_activity(world, admin, clock):
     admin.post("/meetings/session/start")
     clock(60)
     admin.post("/meetings/session/steps/0/stop")
+    admin.post("/meetings/session/stop")
     admin.post("/meetings/session/finish")
     with SessionLocal() as db:
         lines = [
@@ -177,6 +179,7 @@ def test_stop_can_be_undone_until_finish(world, admin, clock):
     assert navigate_to(resumed) == "/rocks"
     assert "<span>Stop</span>" in resumed.text
     clock(40)
+    admin.post("/meetings/session/stop")
     admin.post("/meetings/session/finish")
     meeting = meeting_of(world["team_alpha"])
     assert meeting.step_seconds == [60, 140, 0, 0, 0, 0]
@@ -192,5 +195,19 @@ def test_resume_while_paused_leaves_the_step_paused(world, admin, clock):
     resumed = admin.post("/meetings/session/resume")
     assert navigate_to(resumed) is None
     clock(100)
+    admin.post("/meetings/session/stop")
     admin.post("/meetings/session/finish")
     assert meeting_of(world["team_alpha"]).step_seconds[0] == 30
+
+
+def test_finish_needs_a_stop_first(world, admin, clock):
+    started = admin.post("/meetings/session/start")
+    assert 'class="meeting-finish"' in started.text
+    finish_button = started.text.split('class="meeting-finish"')[1].split(">")[0]
+    assert "disabled" in finish_button
+    clock(60)
+    assert admin.post("/meetings/session/finish").status_code == 409
+    stopped = admin.post("/meetings/session/stop")
+    assert "disabled" not in stopped.text.split('class="meeting-finish"')[1].split(">")[0]
+    assert admin.post("/meetings/session/finish").status_code == 200
+    assert meeting_of(world["team_alpha"]).status == MeetingStatus.COMPLETED

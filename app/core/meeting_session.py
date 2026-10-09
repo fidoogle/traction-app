@@ -143,7 +143,8 @@ def resume(meeting: Meeting, now: datetime) -> Optional[int]:
 
 
 def finish(meeting: Meeting, now: datetime) -> None:
-    stop(meeting, now)
+    if meeting.stopped_at is None:
+        raise SessionError("Stop the meeting before finishing it.")
     meeting.running_step = None
     meeting.finished_at = now
     meeting.status = MeetingStatus.COMPLETED
