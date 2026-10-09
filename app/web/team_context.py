@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session, selectinload
 from starlette.responses import Response
 
 from app.config import settings
-from app.core.team_access import accessible_teams
+from app.core.team_access import accessible_teams, administered_team_ids
 from app.models import Team, TeamMembership, User, UserRole
 
 TEAM_COOKIE_NAME = "current_team"
@@ -35,6 +35,19 @@ class TeamContext:
     # aren't on any team yet.
     current: Optional[Team] = None
     can_view_all: bool = False
+    # Teams where the user has admin rights: all of them for an admin, just
+    # their own for a team admin.
+    admin_team_ids: set[uuid.UUID] = field(default_factory=set)
+
+    def can_admin(self, team_id: Optional[uuid.UUID]) -> bool:
+        """Admin rights on this team. Check the *record's* team, not the
+        current one - a record can be opened from another of your teams."""
+        return team_id is not None and team_id in self.admin_team_ids
+
+    @property
+    def can_admin_current(self) -> bool:
+        """Admin rights on the team being viewed (False under "All teams")."""
+        return self.current is not None and self.can_admin(self.current.id)
 
     @property
     def scope_ids(self) -> list[uuid.UUID]:
@@ -128,6 +141,7 @@ def build_team_context(db: Session, user: User, requested: Optional[str]) -> Tea
         teams=teams,
         current=resolve_current_team(teams, can_view_all, user.team_id, requested),
         can_view_all=can_view_all,
+        admin_team_ids=administered_team_ids(db, user),
     )
 
 
