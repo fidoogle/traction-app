@@ -181,6 +181,9 @@ def _check_owner(
         raise HTTPException(status_code=404)
 
 
+_SCORECARD_STATUS_ORDER = {"Current": 0, "Upcoming": 1, "Past": 2}
+
+
 def _scorecard_status(scorecard: Scorecard, today: date) -> str:
     if today < scorecard.start_date:
         return "Upcoming"
@@ -215,9 +218,15 @@ def list_scorecards(
         {
             "current_user": current_user,
             "team_ctx": team_ctx,
-            "scorecards": [
-                {"scorecard": s, "status": _scorecard_status(s, today)} for s in scorecards
-            ],
+            # Current, then upcoming, then past (the query's newest-first
+            # order is kept within each group - sorted() is stable).
+            "scorecards": sorted(
+                (
+                    {"scorecard": s, "status": _scorecard_status(s, today)}
+                    for s in scorecards
+                ),
+                key=lambda item: _SCORECARD_STATUS_ORDER[item["status"]],
+            ),
             # "Copy measurables from" can start from any team's scorecard.
             "copy_sources": query(team_ctx.team_ids),
             "default_start": date.today(),

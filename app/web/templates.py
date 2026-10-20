@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.core import meeting_session
 from app.core.scorecard_format import format_goal, format_value, raw_value
+from app.models.enums import status_rank, status_state
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
@@ -29,6 +30,8 @@ templates.env.globals["static_version"] = static_version
 templates.env.globals["format_value"] = format_value
 templates.env.globals["format_goal"] = format_goal
 templates.env.globals["raw_value"] = raw_value
+templates.env.globals["status_rank"] = status_rank
+templates.env.globals["status_state"] = status_state
 
 
 def step_clock(seconds: int) -> str:

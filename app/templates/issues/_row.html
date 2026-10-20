@@ -1,10 +1,7 @@
-{% from "_macros.html" import notes_indicator %}
+{% from "_macros.html" import icon_pencil, icon_trash, notes_indicator %}
 {% set can_edit_notes = current_user.role.value != "viewer" %}
-<tr id="issue-row-{{ issue.id }}"{% if issue.notes or can_edit_notes %} data-notes-url="/issues/{{ issue.id }}/notes"{% endif %}>
-  <td>{{ issue.title }} {{ notes_indicator("/issues/" ~ issue.id ~ "/notes", issue.notes, can_edit_notes) }}</td>
-  <td>{{ issue.team.name }}</td>
-  <td>{{ issue.priority }}</td>
-  <td>
+<tr id="issue-row-{{ issue.id }}" class="row-{{ status_state(issue.status) }}"{% if issue.notes or can_edit_notes %} data-notes-url="/issues/{{ issue.id }}/notes"{% endif %}>
+  <td class="status-cell" data-sort="{{ status_rank(issue.status) }}">
     {% if current_user.role.value == "viewer" %}
       <span class="badge {{ issue.status.value }}">{{ issue.status.value }}</span>
     {% else %}
@@ -24,25 +21,28 @@
       </select>
     {% endif %}
   </td>
+  <td>{{ issue.title }} {{ notes_indicator("/issues/" ~ issue.id ~ "/notes", issue.notes, can_edit_notes) }}</td>
+  <td>{{ issue.team.name }}</td>
+  <td>{{ issue.priority }}</td>
   {% if request.state.team_ctx.can_admin_any %}
   <td class="row-actions">
     {% if request.state.team_ctx.can_admin(issue.team_id) %}
     <button
-      class="link"
+      class="icon-button row-icon" aria-label="Edit" title="Edit"
       hx-get="/issues/{{ issue.id }}/edit"
       hx-target="#issue-row-{{ issue.id }}"
       hx-swap="outerHTML"
     >
-      Edit
+      {{ icon_pencil | safe }}
     </button>
     <button
-      class="link-danger"
+      class="icon-button row-icon danger" aria-label="Delete" title="Delete"
       hx-delete="/issues/{{ issue.id }}"
       hx-target="#issue-row-{{ issue.id }}"
       hx-swap="delete"
       hx-confirm="Delete the issue &quot;{{ issue.title }}&quot;? Any to-dos linked to it are kept but unlinked. This cannot be undone."
     >
-      Delete
+      {{ icon_trash | safe }}
     </button>
     {% endif %}
   </td>

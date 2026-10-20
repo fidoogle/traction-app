@@ -1,3 +1,4 @@
+{% from "_macros.html" import icon_pencil, icon_trash %}
 <tr id="mrow-{{ measurable.id }}">
   <td class="who">{{ measurable.owner.name if measurable.owner else "—" }}</td>
   <td class="measurable-name">{{ measurable.name }}</td>
@@ -6,22 +7,22 @@
   {% if can_admin %}
   <td class="row-actions">
     <button
-      class="link"
+      class="icon-button row-icon" aria-label="Edit" title="Edit"
       hx-get="/scorecards/{{ scorecard.id }}/measurables/{{ measurable.id }}/edit"
       hx-target="#edit-measurable-body"
       hx-swap="innerHTML"
       hx-on::after-request="if(event.detail.successful) document.getElementById('edit-measurable-modal').showModal()"
     >
-      Edit
+      {{ icon_pencil | safe }}
     </button>
     <button
-      class="link-danger"
+      class="icon-button row-icon danger" aria-label="Delete" title="Delete"
       hx-delete="/scorecards/{{ scorecard.id }}/measurables/{{ measurable.id }}"
       hx-target="#mrow-{{ measurable.id }}"
       hx-swap="delete"
       hx-confirm="Delete the measurable &quot;{{ measurable.name }}&quot; and all of its weekly values? This cannot be undone."
     >
-      Delete
+      {{ icon_trash | safe }}
     </button>
   </td>
   {% endif %}

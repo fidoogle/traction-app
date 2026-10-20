@@ -1,10 +1,5 @@
 {% from "_macros.html" import team_select %}
 <tr id="issue-row-{{ issue.id }}" class="row-edit">
-  <td><input type="text" name="title" value="{{ issue.title }}" maxlength="255" required aria-label="Title"></td>
-  <td>
-    {{ team_select(teams, issue.team_id, id="issue-team-" ~ issue.id) }}
-  </td>
-  <td><input type="number" name="priority" value="{{ issue.priority }}" required aria-label="Priority"></td>
   <td>
     <select name="status" aria-label="Status">
       {% for choice in IssueStatus %}
@@ -12,6 +7,11 @@
       {% endfor %}
     </select>
   </td>
+  <td><input type="text" name="title" value="{{ issue.title }}" maxlength="255" required aria-label="Title"></td>
+  <td>
+    {{ team_select(teams, issue.team_id, id="issue-team-" ~ issue.id) }}
+  </td>
+  <td><input type="number" name="priority" value="{{ issue.priority }}" required aria-label="Priority"></td>
   <td class="row-actions">
     <button class="link" hx-put="/issues/{{ issue.id }}" hx-include="closest tr"
             hx-target="#issue-row-{{ issue.id }}" hx-swap="outerHTML">Save</button>

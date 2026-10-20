@@ -1292,3 +1292,44 @@ tr:hover .note-btn.empty,
 .recap-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
 .recap-list .muted { white-space: nowrap; font-size: 0.85rem; }
 .recap-list .muted, .modal p.muted { color: var(--text-muted); }
+
+/* --- Tables: row status, icon actions, sortable headers ------------------ */
+
+/* At-a-glance row state: open rows are normal, resolved/done rows fade, and
+   dropped rows fade and are crossed out. The status cell and the action
+   buttons stay fully legible so they can still be used. */
+tr.row-closed > td:not(.status-cell):not(.row-actions),
+tr.row-dropped > td:not(.status-cell):not(.row-actions) {
+  opacity: 0.55;
+}
+
+tr.row-dropped > td:not(.status-cell):not(.row-actions) {
+  text-decoration: line-through;
+}
+
+/* Edit / Delete as small icon buttons. */
+.icon-button.row-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-color: transparent;
+  background: none;
+  vertical-align: middle;
+}
+
+.icon-button.row-icon svg { width: 1rem; height: 1rem; }
+.icon-button.row-icon:hover { color: var(--brand); border-color: var(--border); }
+.icon-button.row-icon.danger:hover { color: var(--off-track); }
+.row-actions .icon-button + .icon-button { margin-left: 0.25rem; }
+
+/* Click a header to sort by it (see tablesort.js). */
+th[data-sortable] { cursor: pointer; user-select: none; }
+th[data-sortable]:hover { color: var(--text); }
+th[data-sortable]::after {
+  content: "";
+  display: inline-block;
+  margin-left: 0.35rem;
+  border: 4px solid transparent;
+  vertical-align: middle;
+}
+th[aria-sort="ascending"]::after { border-bottom: 5px solid currentColor; border-top-width: 0; }
+th[aria-sort="descending"]::after { border-top: 5px solid currentColor; border-bottom-width: 0; }

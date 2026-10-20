@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.models import Rock, RockStatus, Team, User
+from app.models.enums import status_order
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.notes import clean_notes, notes_form_response
 from app.web.team_context import TeamContext, require_member, team_people
@@ -20,7 +21,7 @@ def _rocks_query(team_ids: list[uuid.UUID]):
         select(Rock)
         .where(Rock.team_id.in_(team_ids))
         .options(joinedload(Rock.owner), joinedload(Rock.team))
-        .order_by(Rock.quarter.desc(), Rock.title)
+        .order_by(status_order(Rock.status), Rock.quarter.desc(), Rock.title)
     )
 
 

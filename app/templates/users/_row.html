@@ -1,3 +1,4 @@
+{% from "_macros.html" import icon_pencil, icon_trash %}
 <tr id="user-row-{{ user.id }}">
   <td>{{ user.name }}</td>
   <td>{{ user.email }}</td>
@@ -26,13 +27,13 @@
   <td>
     {% if user.id != current_user.id %}
     <button
-      class="link-danger"
+      class="icon-button row-icon danger" aria-label="Delete" title="Delete"
       hx-delete="/users/{{ user.id }}"
       hx-target="#user-row-{{ user.id }}"
       hx-swap="delete"
       hx-confirm="Remove {{ user.name }}'s account? This cannot be undone."
     >
-      Delete
+      {{ icon_trash | safe }}
     </button>
     {% endif %}
   </td>

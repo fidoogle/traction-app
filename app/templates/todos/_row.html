@@ -1,15 +1,10 @@
-{% from "_macros.html" import notes_indicator %}
+{% from "_macros.html" import icon_pencil, icon_trash, notes_indicator %}
 {# Admins can edit any to-do; members only their own. Governs both the status
    dropdown and notes. #}
 {% set is_team_admin = request.state.team_ctx.can_admin(todo.team_id) %}
 {% set can_edit = is_team_admin or (current_user.role.value == "member" and todo.owner_id == current_user.id) %}
-<tr id="todo-row-{{ todo.id }}"{% if todo.notes or can_edit %} data-notes-url="/todos/{{ todo.id }}/notes"{% endif %}>
-  <td>{{ todo.title }} {{ notes_indicator("/todos/" ~ todo.id ~ "/notes", todo.notes, can_edit) }}</td>
-  <td>{{ todo.owner.name }}</td>
-  <td>{{ todo.team.name }}</td>
-  <td>{{ todo.issue.title if todo.issue else "—" }}</td>
-  <td>{{ todo.due_date if todo.due_date else "—" }}</td>
-  <td>
+<tr id="todo-row-{{ todo.id }}" class="row-{{ status_state(todo.status) }}"{% if todo.notes or can_edit %} data-notes-url="/todos/{{ todo.id }}/notes"{% endif %}>
+  <td class="status-cell" data-sort="{{ status_rank(todo.status) }}">
     {% if can_edit %}
       <select
         class="status-select"
@@ -29,25 +24,30 @@
       <span class="badge {{ todo.status.value }}">{{ todo.status.value }}</span>
     {% endif %}
   </td>
+  <td>{{ todo.title }} {{ notes_indicator("/todos/" ~ todo.id ~ "/notes", todo.notes, can_edit) }}</td>
+  <td>{{ todo.owner.name }}</td>
+  <td>{{ todo.team.name }}</td>
+  <td>{{ todo.issue.title if todo.issue else "—" }}</td>
+  <td>{{ todo.due_date if todo.due_date else "—" }}</td>
   {% if request.state.team_ctx.can_admin_any %}
   <td class="row-actions">
     {% if is_team_admin %}
     <button
-      class="link"
+      class="icon-button row-icon" aria-label="Edit" title="Edit"
       hx-get="/todos/{{ todo.id }}/edit"
       hx-target="#todo-row-{{ todo.id }}"
       hx-swap="outerHTML"
     >
-      Edit
+      {{ icon_pencil | safe }}
     </button>
     <button
-      class="link-danger"
+      class="icon-button row-icon danger" aria-label="Delete" title="Delete"
       hx-delete="/todos/{{ todo.id }}"
       hx-target="#todo-row-{{ todo.id }}"
       hx-swap="delete"
       hx-confirm="Delete the to-do &quot;{{ todo.title }}&quot;? This cannot be undone."
     >
-      Delete
+      {{ icon_trash | safe }}
     </button>
     {% endif %}
   </td>

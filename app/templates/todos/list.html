@@ -51,7 +51,7 @@
   <table>
     <thead>
       <tr>
-        <th>Title</th><th>Owner</th><th>Team</th><th>Related issue</th><th>Due</th><th>Status</th>
+        <th aria-sort="ascending">Status</th><th>Title</th><th>Owner</th><th>Team</th><th>Related issue</th><th>Due</th>
         {% if request.state.team_ctx.can_admin_any %}<th></th>{% endif %}
       </tr>
     </thead>

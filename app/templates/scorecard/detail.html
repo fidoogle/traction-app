@@ -38,7 +38,7 @@
       <tr>
         <th>Who</th><th>Measurable</th><th>Goal</th>
         {% for w in weeks %}
-        <th class="week-head{% if w.is_current %} current-week{% endif %}" title="Week {{ w.n }} begins {{ w.start.strftime('%A, %b') }} {{ w.start.day }}">
+        <th data-nosort class="week-head{% if w.is_current %} current-week{% endif %}" title="Week {{ w.n }} begins {{ w.start.strftime('%A, %b') }} {{ w.start.day }}">
           {{ w.n }}<span class="week-date">{{ w.start.strftime("%b") }} {{ w.start.day }}</span>
         </th>
         {% endfor %}

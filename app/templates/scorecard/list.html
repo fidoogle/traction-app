@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Scorecards - Traction/EOS{% endblock %}
 {% block content %}
-{% from "_macros.html" import page_header, modal %}
+{% from "_macros.html" import icon_pencil, icon_trash, page_header, modal %}
 {% set is_admin = request.state.team_ctx.can_admin_any %}
 {% set current_team = team_ctx.current %}
 {% set show_team = current_team is none %}
@@ -59,31 +59,31 @@
   <table>
     <thead>
       <tr>
-        <th>Name</th>{% if show_team %}<th>Team</th>{% endif %}<th>Weeks</th><th>Measurables</th><th>Status</th>
+        <th aria-sort="ascending">Status</th><th>Name</th>{% if show_team %}<th>Team</th>{% endif %}<th>Weeks</th><th>Measurables</th>
         {% if is_admin %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody id="scorecards-table-body">
       {% for item in scorecards %}
       {% set s = item.scorecard %}
-      <tr id="scorecard-row-{{ s.id }}">
+      <tr id="scorecard-row-{{ s.id }}" class="row-{{ 'closed' if item.status == 'Past' else 'open' }}">
+        <td class="status-cell" data-sort="{{ {'Current': 0, 'Upcoming': 1, 'Past': 2}[item.status] }}"><span class="badge {{ {'Current': 'on_track', 'Upcoming': 'scheduled', 'Past': 'dropped'}[item.status] }}">{{ item.status }}</span></td>
         <td><a href="/scorecards/{{ s.id }}">{{ s.name }}</a></td>
         {% if show_team %}<td>{{ s.team.name }}</td>{% endif %}
-        <td>{{ s.start_date.strftime("%a, %b") }} {{ s.start_date.day }}, {{ s.start_date.year }} &ndash; {{ s.end_date.strftime("%a, %b") }} {{ s.end_date.day }}, {{ s.end_date.year }}</td>
+        <td data-sort="{{ s.start_date.isoformat() }}">{{ s.start_date.strftime("%a, %b") }} {{ s.start_date.day }}, {{ s.start_date.year }} &ndash; {{ s.end_date.strftime("%a, %b") }} {{ s.end_date.day }}, {{ s.end_date.year }}</td>
         <td>{{ s.measurables | length }}</td>
-        <td><span class="badge {{ {'Current': 'on_track', 'Upcoming': 'scheduled', 'Past': 'dropped'}[item.status] }}">{{ item.status }}</span></td>
         {% if is_admin %}
         <td class="row-actions">
           {% if team_ctx.can_admin(s.team_id) %}
           <button
-            class="link-danger"
+            class="icon-button row-icon danger" aria-label="Delete" title="Delete"
             hx-delete="/scorecards/{{ s.id }}"
             hx-target="#scorecard-row-{{ s.id }}"
             hx-swap="delete"
             hx-confirm="Delete the scorecard &quot;{{ s.name }}&quot;? All of its measurables and weekly values are deleted too. This cannot be undone."
           >
-            Delete
-          </button>
+      {{ icon_trash | safe }}
+    </button>
           {% endif %}
         </td>
         {% endif %}

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.models import Issue, IssueStatus, User, UserRole
+from app.models.enums import status_order
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.notes import clean_notes, notes_form_response
 from app.web.team_context import TeamContext
@@ -19,7 +20,7 @@ def _issues_query(team_ids: list[uuid.UUID]):
         select(Issue)
         .where(Issue.team_id.in_(team_ids))
         .options(joinedload(Issue.team))
-        .order_by(Issue.priority, Issue.title)
+        .order_by(status_order(Issue.status), Issue.priority, Issue.title)
     )
 
 

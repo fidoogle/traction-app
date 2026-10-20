@@ -1,10 +1,11 @@
+{% from "_macros.html" import icon_pencil, icon_trash %}
 {% set is_admin = current_user.role.value == "admin" %}
 {% set can_manage = request.state.team_ctx.can_admin(team.id) %}
 {% set admin_ids = team.memberships | selectattr("is_team_admin") | map(attribute="user_id") | list %}
 <tr id="team-row-{{ team.id }}">
   <td>{{ team.name }}</td>
   <td>{{ team.meeting_day if team.meeting_day else "—" }}</td>
-  <td>
+  <td data-sort="{{ team.members | length }}">
     <div class="member-list">
       {% for member in team.members %}
       {% set only_team = member.teams | length == 1 %}
@@ -70,13 +71,13 @@
     <span class="text-muted" title="Only a team with no members and no rocks, issues, to-dos, meetings, seats, scorecards or VTO can be deleted">In use</span>
     {% else %}
     <button
-      class="link-danger"
+      class="icon-button row-icon danger" aria-label="Delete" title="Delete"
       hx-delete="/teams/{{ team.id }}"
       hx-target="#team-row-{{ team.id }}"
       hx-swap="delete"
       hx-confirm="Delete {{ team.name }}? This cannot be undone."
     >
-      Delete
+      {{ icon_trash | safe }}
     </button>
     {% endif %}
   </td>

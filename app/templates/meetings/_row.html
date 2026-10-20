@@ -1,7 +1,8 @@
+{% from "_macros.html" import icon_pencil, icon_trash %}
 <tr id="meeting-row-{{ meeting.id }}">
   <td>{{ meeting.team.name }}</td>
   <td>{{ meeting.scheduled_date }}</td>
-  <td>
+  <td data-sort="{{ meeting.step_seconds | sum if meeting.started_at else 0 }}">
     {% if meeting.started_at %}
     <strong>{{ step_clock(meeting.step_seconds | sum) }}</strong>
     <div class="step-times">
@@ -16,13 +17,13 @@
   <td class="row-actions">
     {% if request.state.team_ctx.can_admin(meeting.team_id) %}
     <button
-      class="link-danger"
+      class="icon-button row-icon danger" aria-label="Delete" title="Delete"
       hx-delete="/meetings/{{ meeting.id }}"
       hx-target="#meeting-row-{{ meeting.id }}"
       hx-swap="delete"
       hx-confirm="Delete the {{ meeting.team.name }} meeting from {{ meeting.scheduled_date }}? This cannot be undone."
     >
-      Delete
+      {{ icon_trash | safe }}
     </button>
     {% endif %}
   </td>

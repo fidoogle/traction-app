@@ -36,7 +36,7 @@
   <table>
     <thead>
       <tr>
-        <th>Title</th><th>Team</th><th>Priority</th><th>Status</th>
+        <th aria-sort="ascending">Status</th><th>Title</th><th>Team</th><th>Priority</th>
         {% if request.state.team_ctx.can_admin_any %}<th></th>{% endif %}
       </tr>
     </thead>

@@ -1,5 +1,12 @@
 {% from "_macros.html" import people_options, team_select %}
 <tr id="todo-row-{{ todo.id }}" class="row-edit">
+  <td>
+    <select name="status" aria-label="Status">
+      {% for choice in TodoStatus %}
+      <option value="{{ choice.value }}" {% if choice == todo.status %}selected{% endif %}>{{ choice.value }}</option>
+      {% endfor %}
+    </select>
+  </td>
   <td><input type="text" name="title" value="{{ todo.title }}" maxlength="255" required aria-label="Title"></td>
   <td>
     <select name="owner_id" aria-label="Owner">
@@ -18,13 +25,6 @@
     </select>
   </td>
   <td><input type="date" name="due_date" value="{{ todo.due_date or '' }}" aria-label="Due"></td>
-  <td>
-    <select name="status" aria-label="Status">
-      {% for choice in TodoStatus %}
-      <option value="{{ choice.value }}" {% if choice == todo.status %}selected{% endif %}>{{ choice.value }}</option>
-      {% endfor %}
-    </select>
-  </td>
   <td class="row-actions">
     <button class="link" hx-put="/todos/{{ todo.id }}" hx-include="closest tr"
             hx-target="#todo-row-{{ todo.id }}" hx-swap="outerHTML">Save</button>

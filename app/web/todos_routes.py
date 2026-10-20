@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.models import Issue, Team, Todo, TodoStatus, User, UserRole
+from app.models.enums import status_order
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.notes import clean_notes, notes_form_response
 from app.web.team_context import TeamContext, require_member, team_people
@@ -21,7 +22,9 @@ def _todos_query(team_ids: list[uuid.UUID]):
         select(Todo)
         .where(Todo.team_id.in_(team_ids))
         .options(joinedload(Todo.owner), joinedload(Todo.issue), joinedload(Todo.team))
-        .order_by(Todo.due_date.is_(None), Todo.due_date, Todo.title)
+        .order_by(
+            status_order(Todo.status), Todo.due_date.is_(None), Todo.due_date, Todo.title
+        )
     )
 
 
