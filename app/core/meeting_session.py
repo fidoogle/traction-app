@@ -24,8 +24,8 @@ STEPS = [
     ("Segue", "/", 5),
     ("Rocks", "/rocks", 5),
     ("Scorecard", "/scorecards", 5),
-    ("Issues", "/issues", 60),
     ("To-Dos", "/todos", 10),
+    ("Issues", "/issues", 60),
     ("Closing", "/meetings", 5),
 ]
 TOTAL_SECONDS = sum(minutes for _, _, minutes in STEPS) * 60
