@@ -1,6 +1,6 @@
 {% from "_macros.html" import icon_pencil, icon_trash, notes_indicator %}
 {% set can_edit_notes = request.state.team_ctx.can_admin(rock.team_id) %}
-<tr id="rock-row-{{ rock.id }}" class="row-{{ status_state(rock.status) }}"{% if rock.notes or can_edit_notes %} data-notes-url="/rocks/{{ rock.id }}/notes"{% endif %}>
+<tr id="rock-row-{{ rock.id }}" class="row-{{ status_state(rock.status) }} st-{{ rock.status.value }}"{% if rock.notes or can_edit_notes %} data-notes-url="/rocks/{{ rock.id }}/notes"{% endif %}>
   <td class="status-cell" data-sort="{{ status_rank(rock.status) }}">
     {% if not can_edit_notes %}
       <span class="badge {{ rock.status.value }}">{{ rock.status.value.replace("_", " ") }}</span>

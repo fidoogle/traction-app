@@ -1295,15 +1295,34 @@ tr:hover .note-btn.empty,
 
 /* --- Tables: row status, icon actions, sortable headers ------------------ */
 
-/* At-a-glance row state: open rows are normal, resolved/done rows fade, and
-   dropped rows fade and are crossed out. The status cell and the action
-   buttons stay fully legible so they can still be used. */
-tr.row-closed > td:not(.status-cell):not(.row-actions),
-tr.row-dropped > td:not(.status-cell):not(.row-actions) {
-  opacity: 0.55;
+/* At-a-glance row state. Every status row gets a tinted background and a
+   thick bar in the status colour down its first cell; the status dropdown
+   is tinted to match. Dropped rows are also crossed out and muted. Colours
+   mirror the status badges: amber = open, green = on track / resolved /
+   current, red = off track, blue = done / upcoming, grey = dropped / past. */
+tr.st-open { --row-c: var(--warn); }
+tr.st-on_track, tr.st-resolved, tr.st-current { --row-c: var(--on-track); }
+tr.st-off_track { --row-c: var(--off-track); }
+tr.st-done, tr.st-upcoming { --row-c: var(--done); }
+tr.st-dropped, tr.st-past { --row-c: var(--text-muted); }
+
+tr[class*=" st-"] > td {
+  background: color-mix(in srgb, var(--row-c) 14%, transparent);
+}
+
+tr[class*=" st-"] > td.status-cell {
+  border-left: 6px solid var(--row-c);
+}
+
+tr[class*=" st-"] select.status-select {
+  background: color-mix(in srgb, var(--row-c) 22%, var(--surface));
+  border-color: var(--row-c);
+  color: var(--row-c);
+  font-weight: 600;
 }
 
 tr.row-dropped > td:not(.status-cell):not(.row-actions) {
+  color: var(--text-muted);
   text-decoration: line-through;
 }
 
@@ -1333,3 +1352,5 @@ th[data-sortable]::after {
 }
 th[aria-sort="ascending"]::after { border-bottom: 5px solid currentColor; border-top-width: 0; }
 th[aria-sort="descending"]::after { border-top: 5px solid currentColor; border-bottom-width: 0; }
+
+tr[class*=" st-"] select.status-select option { color: var(--text); background: var(--surface); }

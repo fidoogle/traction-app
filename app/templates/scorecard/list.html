@@ -66,7 +66,7 @@
     <tbody id="scorecards-table-body">
       {% for item in scorecards %}
       {% set s = item.scorecard %}
-      <tr id="scorecard-row-{{ s.id }}" class="row-{{ 'closed' if item.status == 'Past' else 'open' }}">
+      <tr id="scorecard-row-{{ s.id }}" class="row-{{ 'closed' if item.status == 'Past' else 'open' }} st-{{ item.status | lower }}">
         <td class="status-cell" data-sort="{{ {'Current': 0, 'Upcoming': 1, 'Past': 2}[item.status] }}"><span class="badge {{ {'Current': 'on_track', 'Upcoming': 'scheduled', 'Past': 'dropped'}[item.status] }}">{{ item.status }}</span></td>
         <td><a href="/scorecards/{{ s.id }}">{{ s.name }}</a></td>
         {% if show_team %}<td>{{ s.team.name }}</td>{% endif %}

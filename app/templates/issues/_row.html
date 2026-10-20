@@ -1,6 +1,6 @@
 {% from "_macros.html" import icon_pencil, icon_trash, notes_indicator %}
 {% set can_edit_notes = current_user.role.value != "viewer" %}
-<tr id="issue-row-{{ issue.id }}" class="row-{{ status_state(issue.status) }}"{% if issue.notes or can_edit_notes %} data-notes-url="/issues/{{ issue.id }}/notes"{% endif %}>
+<tr id="issue-row-{{ issue.id }}" class="row-{{ status_state(issue.status) }} st-{{ issue.status.value }}"{% if issue.notes or can_edit_notes %} data-notes-url="/issues/{{ issue.id }}/notes"{% endif %}>
   <td class="status-cell" data-sort="{{ status_rank(issue.status) }}">
     {% if current_user.role.value == "viewer" %}
       <span class="badge {{ issue.status.value }}">{{ issue.status.value }}</span>

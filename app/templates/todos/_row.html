@@ -3,7 +3,7 @@
    dropdown and notes. #}
 {% set is_team_admin = request.state.team_ctx.can_admin(todo.team_id) %}
 {% set can_edit = is_team_admin or (current_user.role.value == "member" and todo.owner_id == current_user.id) %}
-<tr id="todo-row-{{ todo.id }}" class="row-{{ status_state(todo.status) }}"{% if todo.notes or can_edit %} data-notes-url="/todos/{{ todo.id }}/notes"{% endif %}>
+<tr id="todo-row-{{ todo.id }}" class="row-{{ status_state(todo.status) }} st-{{ todo.status.value }}"{% if todo.notes or can_edit %} data-notes-url="/todos/{{ todo.id }}/notes"{% endif %}>
   <td class="status-cell" data-sort="{{ status_rank(todo.status) }}">
     {% if can_edit %}
       <select
