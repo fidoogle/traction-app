@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.core import meeting_session
-from app.models import Meeting, MeetingStatus, User
+from app.models import Meeting, MeetingStatus, Todo, TodoStatus, User
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.team_context import TeamContext
 from app.web.templates import templates
@@ -186,6 +186,26 @@ def resume_session(
     db.commit()
     db.refresh(meeting)
     return _session_response(request, db, current_user, meeting, go_to_step=step)
+
+
+@router.get("/session/finish-recap")
+def finish_recap(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+    team_ctx: TeamContext = Depends(get_team_context),
+):
+    """The modal shown before Finish: the team's still-open to-dos, as a last check."""
+    meeting = _admin_session(db, current_user, team_ctx)
+    todos = db.scalars(
+        select(Todo)
+        .where(Todo.team_id == meeting.team_id, Todo.status == TodoStatus.OPEN)
+        .options(joinedload(Todo.owner))
+        .order_by(Todo.due_date.is_(None), Todo.due_date, Todo.title)
+    ).unique().all()
+    return templates.TemplateResponse(
+        request, "meetings/_finish_recap.html", {"current_user": current_user, "todos": todos}
+    )
 
 
 @router.post("/session/finish")

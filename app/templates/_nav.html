@@ -91,10 +91,11 @@
         {{ icon_stop | safe }}<span>Stop</span>
       </button>
       {% endif %}
-      <button type="button" class="meeting-finish" {{ session_post('finish') }}{% if not ms.stopped %} disabled title="Stop the meeting first"{% endif %}>
+      <button type="button" class="meeting-finish" hx-get="/meetings/session/finish-recap" hx-target="#finish-recap-slot" hx-swap="innerHTML"{% if not ms.stopped %} disabled title="Stop the meeting first"{% endif %}>
         {{ icon_check | safe }}<span>Finish</span>
       </button>
     </div>
+    <div id="finish-recap-slot"></div>
   </div>
   {% endif %}
   {% if meeting_session %}

@@ -90,6 +90,12 @@
   document.addEventListener('htmx:afterSwap', restoreMore);
   document.addEventListener('DOMContentLoaded', restoreMore);
 
+  // The Finish recap arrives as a <dialog>; show it as a modal.
+  document.addEventListener('htmx:afterSwap', function (evt) {
+    var dlg = evt.target && evt.target.id === 'finish-recap-slot' && evt.target.querySelector('dialog');
+    if (dlg && !dlg.open) dlg.showModal();
+  });
+
   window.addEventListener('popstate', function () { window.location.reload(); });
   document.addEventListener('htmx:afterSwap', tick);
   document.addEventListener('DOMContentLoaded', tick);

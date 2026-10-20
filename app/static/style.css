@@ -1286,3 +1286,9 @@ tr:hover .note-btn.empty,
 .nav-more > summary::before { content: "\25B8"; display: inline-block; width: 1rem; }
 .nav-more[open] > summary::before { content: "\25BE"; }
 .nav-more > summary:hover { color: var(--text); }
+
+/* Finish-meeting recap of open to-dos */
+.recap-list { list-style: none; margin: 0.5rem 0 0; padding: 0; max-height: 50vh; overflow-y: auto; }
+.recap-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
+.recap-list .muted { white-space: nowrap; font-size: 0.85rem; }
+.recap-list .muted, .modal p.muted { color: var(--text-muted); }

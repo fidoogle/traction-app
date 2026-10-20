@@ -1,0 +1,20 @@
+{# Shown (as a modal) when Finish is clicked: what is still open before the meeting closes.
+   Confirming posts the real finish; the nav swap removes this dialog with the rest of the panel. #}
+{% from "_macros.html" import modal %}
+{% call modal("finish-recap", "Open To-Dos") %}
+  {% if todos %}
+  <p class="muted">{{ todos | length }} still open. Anything finished in the meeting should be closed first.</p>
+  <ul class="recap-list">
+    {% for t in todos %}
+    <li><span class="recap-title">{{ t.title }}</span>
+      <span class="muted">{{ t.owner.name }}{% if t.due_date %} · due {{ t.due_date }}{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No open to-dos.</p>
+  {% endif %}
+  <div class="modal-actions">
+    <button type="button" class="secondary" data-modal-close>Back</button>
+    <button type="button" class="primary" hx-post="/meetings/session/finish" hx-target="#site-nav" hx-swap="outerHTML">Finish meeting</button>
+  </div>
+{% endcall %}

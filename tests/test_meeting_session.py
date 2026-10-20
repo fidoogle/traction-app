@@ -247,3 +247,22 @@ def test_meetings_page_has_a_plus_that_starts_a_meeting(world, login, admin, clo
 def test_plus_asks_all_teams_admins_to_pick_a_team(world, login):
     header = login("admin").get("/meetings").text.split('class="page-header"')[1].split("</div>")[0]
     assert "disabled" in header and "Pick a team first" in header
+
+
+def test_finish_recap_lists_only_the_teams_open_todos(world, admin, clock):
+    from app.models import Todo, TodoStatus
+
+    with SessionLocal() as db:
+        todos = db.scalars(select(Todo).where(Todo.team_id == world["team_alpha"])).all()
+        for t in todos:
+            t.status = TodoStatus.DONE
+        first = todos[0]
+        first.status = TodoStatus.OPEN
+        title = first.title
+        db.commit()
+    admin.post("/meetings/session/start")
+    admin.post("/meetings/session/stop")
+    recap = admin.get("/meetings/session/finish-recap")
+    assert recap.status_code == 200
+    assert title in recap.text and "alpha todo" not in recap.text.replace(title, "")
+    assert 'hx-post="/meetings/session/finish"' in recap.text
