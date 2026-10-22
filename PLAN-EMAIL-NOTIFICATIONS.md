@@ -83,25 +83,31 @@ A user only receives team-level mail for teams they belong to (use
 
 Goal: the app can send a message through SMTP, and nothing else changes.
 
-- [ ] Add settings to `app/config.py`: `smtp_host`, `smtp_port`, `smtp_username`,
-      `smtp_password`, `smtp_use_tls` (STARTTLS), `smtp_use_ssl`, `smtp_from_address`,
+- [x] Add settings to `app/config.py`: `smtp_host`, `smtp_port`, `smtp_username`,
+      `smtp_password`, `smtp_security` (`starttls` | `ssl` | `none`), `smtp_from_address`,
       `smtp_from_name`, `base_url`. Email is enabled only when host, from-address
       and base URL are all set (`settings.email_enabled`).
-- [ ] `app/core/email.py`: `send_email(to, subject, text_body, html_body=None, attachments=())`.
+- [x] `app/core/email.py`: `send_email(to, subject, text_body, html_body=None, attachments=())`.
       Plain text always, HTML optional. Timeout on the connection. Never raises into
       a request handler; returns success or failure and logs.
-- [ ] Template system for emails: Jinja2 (already used by the app) under
+- [x] Template system for emails: Jinja2 (already used by the app) under
       `app/templates/email/`, one text and one HTML template per type, shared
       base layout. Inline CSS only, no remote assets.
-- [ ] Pass the new env vars through `docker-compose.yml` and document them in
+- [x] Pass the new env vars through `docker-compose.yml` and document them in
       `.env.example`.
-- [ ] Admin-only "Send test email" action (in a new Settings page or on the Users page).
+- [x] Admin-only "Send test email" action (in a new Settings page or on the Users page).
       Shows the "not configured" state when disabled.
-- [ ] Dev aid: document running a local catch-all SMTP container (e.g. MailHog or
+- [x] Dev aid: document running a local catch-all SMTP container (e.g. MailHog or
       Mailpit) under a compose `profiles: [dev]` entry so nothing leaves the machine
       while testing.
 - [ ] Tests: sending is a no-op when disabled; a fake SMTP server (or monkeypatched
       `smtplib`) receives the right headers and body; failures are swallowed and logged.
+
+Note: the Settings page is at `/settings` (admin only) and has the send-test button. The
+unit tests in `tests/test_email.py` pass; its four route tests need Postgres and have not
+yet been run (Docker Desktop would not start). Run `pytest tests/test_email.py` once the
+database is up, then tick the Tests box. The same routes were exercised by hand with the
+sign-in dependency stubbed.
 
 Done when: a test email reaches the dev mail catcher and the app boots with no SMTP settings.
 

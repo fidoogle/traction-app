@@ -11,6 +11,7 @@ from app.web.rocks_routes import router as rocks_routes
 from app.web.scorecard_routes import legacy_router as scorecard_legacy_routes
 from app.web.scorecard_routes import router as scorecard_routes
 from app.web.seats_routes import router as seats_routes
+from app.web.settings_routes import router as settings_routes
 from app.web.teams_routes import router as teams_routes
 from app.web.todos_routes import router as todos_routes
 from app.web.users_routes import router as users_routes
@@ -26,6 +27,7 @@ web_router.include_router(todos_routes)
 web_router.include_router(quick_add_routes)
 web_router.include_router(teams_routes)
 web_router.include_router(users_routes)
+web_router.include_router(settings_routes)
 web_router.include_router(scorecard_routes)
 web_router.include_router(scorecard_legacy_routes)
 web_router.include_router(meetings_routes)

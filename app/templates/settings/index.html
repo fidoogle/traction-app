@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Settings - Traction/EOS{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<div class="card">
+  <h2>Email</h2>
+  {% if cfg.email_enabled %}
+  <p>Email is <strong>configured</strong>. Outgoing mail goes through <strong>{{ cfg.smtp_host }}:{{ cfg.smtp_port }}</strong>
+     ({{ cfg.smtp_security }}) from <strong>{{ cfg.smtp_from_address }}</strong>. Links in emails point to {{ cfg.base_url }}.</p>
+  <form hx-post="/settings/test-email" hx-target="#test-email-result" hx-swap="innerHTML">
+    <button class="primary" type="submit">Send a test email to {{ current_user.email }}</button>
+  </form>
+  <div id="test-email-result" role="status"></div>
+  {% else %}
+  <p>Email is <strong>not configured</strong>, so the app sends no email. This is fine; everything else works without it.</p>
+  <p class="field-hint">To turn it on, set <code>SMTP_HOST</code>, <code>SMTP_FROM_ADDRESS</code> and
+     <code>BASE_URL</code> (and, if your mail relay needs them, <code>SMTP_PORT</code>, <code>SMTP_SECURITY</code>,
+     <code>SMTP_USERNAME</code>, <code>SMTP_PASSWORD</code>) in the server's environment, then restart the app.</p>
+  {% endif %}
+</div>
+{% endblock %}

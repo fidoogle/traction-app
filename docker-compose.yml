@@ -36,8 +36,29 @@ services:
       # up` works out of the box for local testing.
       SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Email is off unless SMTP_HOST, SMTP_FROM_ADDRESS and BASE_URL are all
+      # set (see .env.example). The app never needs it to run.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Traction}
+      BASE_URL: ${BASE_URL:-}
     ports:
       - "8000:8000"
+
+  # Development only (`docker compose --profile dev up`): a local mail catcher
+  # so test emails never leave the machine. Read them at http://localhost:8025,
+  # and set SMTP_HOST=mailpit SMTP_PORT=1025 SMTP_SECURITY=none
+  # SMTP_FROM_ADDRESS=traction@localhost BASE_URL=http://localhost:8000.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    profiles: [dev]
+    ports:
+      - "8025:8025"
+      - "1025:1025"
 
 volumes:
   db_data:
