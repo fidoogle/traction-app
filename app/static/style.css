@@ -502,6 +502,7 @@ h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
   cursor: pointer;
 }
 
+a.icon-button { text-decoration: none; }
 .icon-button:hover { color: var(--text); border-color: var(--input-border); }
 .icon-button svg { width: 1.15rem; height: 1.15rem; }
 
@@ -1363,3 +1364,13 @@ th[aria-sort="ascending"]::after { border-bottom: 5px solid currentColor; border
 th[aria-sort="descending"]::after { border-top: 5px solid currentColor; border-bottom-width: 0; }
 
 tr[class*=" st-"] select.status-select option { color: var(--text); background: var(--surface); }
+
+.notification-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--border);
+}
+.notification-row:first-of-type { border-top: none; }

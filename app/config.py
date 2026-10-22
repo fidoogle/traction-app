@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     # How far back the Activity page goes; older entries are pruned.
     activity_retention_days: int = 90
+    # How long the record of sent emails is kept.
+    notification_log_retention_days: int = 90
 
     # Outgoing email. Entirely optional: with no SMTP host (or from-address,
     # or base URL) the app runs exactly as before and sends nothing. Point it

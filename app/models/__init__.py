@@ -12,6 +12,7 @@ from app.models.enums import (
 from app.models.issue import Issue
 from app.models.measurable import Measurable
 from app.models.meeting import Meeting
+from app.models.notification import NotificationLog, NotificationPreference
 from app.models.organization import Organization
 from app.models.password_token import PasswordToken
 from app.models.people_analyzer import PeopleAnalyzerEntry
@@ -43,6 +44,8 @@ __all__ = [
     "PeopleAnalyzerEntry",
     "ActivityLog",
     "PasswordToken",
+    "NotificationPreference",
+    "NotificationLog",
     "RockStatus",
     "IssueStatus",
     "TodoStatus",

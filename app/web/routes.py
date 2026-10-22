@@ -6,6 +6,7 @@ from app.web.dashboard_routes import router as dashboard_routes
 from app.web.issues_routes import router as issues_routes
 from app.web.meetings_routes import router as meetings_routes
 from app.web.password_routes import router as password_routes
+from app.web.notifications_routes import router as notifications_routes
 from app.web.people_analyzer_routes import router as people_analyzer_routes
 from app.web.quick_add_routes import router as quick_add_routes
 from app.web.rocks_routes import router as rocks_routes
@@ -30,6 +31,7 @@ web_router.include_router(quick_add_routes)
 web_router.include_router(teams_routes)
 web_router.include_router(users_routes)
 web_router.include_router(settings_routes)
+web_router.include_router(notifications_routes)
 web_router.include_router(scorecard_routes)
 web_router.include_router(scorecard_legacy_routes)
 web_router.include_router(meetings_routes)

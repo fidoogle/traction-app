@@ -56,14 +56,15 @@ Defaults: **On** = enabled for new users, **Opt-in** = off until the user turns 
 | `owner_reassigned` | Rock or Issue reassigned to you | New owner | On | 4 |
 | `todo_due` | To-Dos due within 2 days or overdue (one email per day, lists all) | Owner | On | 4 |
 | `meeting_invite` | Meeting scheduled or changed, with .ics | Team members | On | 5 |
-| `meeting_reminder` | 24 h before (On); 1 h before (Opt-in) | Team members | On / Opt-in | 5 |
+| `meeting_reminder` | 24 h before | Team members | On | 5 |
+| `meeting_reminder_1h` | 1 h before | Team members | Opt-in | 5 |
 | `meeting_cancelled` | Meeting cancelled, with .ics cancel | Team members | On | 5 |
 | `weekly_digest` | Open To-Dos, Rocks at risk, off-track scorecard items | Members and team admins | On | 6 |
-| `rock_off_track` | A Rock was set Off Track | Team admins | Opt-in | 7 |
+| `rock_off_track` | A Rock was set Off Track | Team admins | On for team admins (opt-in for org admins) | 7 |
 | `scorecard_missed` | Measurable missed goal N weeks running | Measurable owner, team admins | Opt-in | 7 |
 | `issue_added` | New issue on the team list | Team members | Opt-in | 7 |
 | `meeting_summary` | Recap after a meeting is finished | Team members | Opt-in | 7 |
-| `quarter_reminder` | Rock-setting reminder at quarter start / end | Team admins | Opt-in | 7 |
+| `quarter_reminder` | Rock-setting reminder at quarter start / end | Team admins | On for team admins (opt-in for org admins) | 7 |
 | `admin_system` | New user, role change, email delivery failures | Admins | Opt-in | 7 |
 
 Role rules:
@@ -143,28 +144,37 @@ Done when: create a user, receive the link, set a password, log in.
 
 Goal: the data model that every later phase relies on.
 
-- [ ] Migration: `notification_preferences` (user id, notification key, enabled)
+- [x] Migration: `notification_preferences` (user id, notification key, enabled)
       or a JSONB column on `users`. Prefer the table so keys can be added without
       migrations touching users. Missing row means "use the default from the catalog".
-- [ ] Migration: `notification_log` (id, user id, key, subject type and id, period key,
-      status sent/failed, error, created_at) with a unique constraint on
-      (user id, key, subject id, period key).
-- [ ] `app/core/notifications.py`: one registry that holds the catalog above
+- [x] Migration: `notification_log` (id, user id, key, `subject` (e.g. `todo:<id>`, "" if none), `period`
+      (e.g. `2026-W43`, a meeting's sequence; "" if none), status pending/sent/failed, error,
+      created_at) with a unique constraint on (user id, key, subject, period).
+- [x] `app/core/notifications.py`: one registry that holds the catalog above
       (key, label, default, allowed roles, always-on flag). Everything else reads it.
-- [ ] `notify(user, key, context)` helper: checks role and preference, checks the
+- [x] `notify(user, key, context)` helper: checks role and preference, checks the
       log for a duplicate, renders, sends, records the result.
-- [ ] "My notifications" page: one toggle per type the user's role may receive,
+- [x] "My notifications" page: one toggle per type the user's role may receive,
       grouped (Assignments, Meetings, Summaries, Team alerts). Always-on items are
       shown but locked. Includes calendar-feed link (Phase 5) later.
-- [ ] No admin configuration of notification defaults. Defaults are computed by the
+- [x] No admin configuration of notification defaults. Defaults are computed by the
       system: `default_for(user, key)` in the registry returns on/off from the catalog
       entry and the user's role (and team-admin status), so a new user gets a sensible
       set automatically (e.g. viewers get meeting emails and digest only; team admins
       get the team-level types that apply to them). Users can still override their own
       toggles on "My notifications". Changing a catalog default later applies to anyone
       who hasn't overridden it, since only explicit overrides are stored.
-- [ ] Log retention: prune old rows with the same pattern as `activity_retention_days`.
+- [x] Log retention: prune old rows with the same pattern as `activity_retention_days`.
 - [ ] Tests: role filtering, preference override, duplicate suppression.
+
+Built as: `app/core/notifications.py` (catalog, "hats" = role plus team_admin, `types_for`,
+`set_preference`, `notify`, `prune_log`), `app/models/notification.py`, the page at
+`/notifications` (envelope icon in the top bar), migration `d5f8b2c0e4a7`. Later phases call
+`notify(db, user, key, subject_line=..., template=..., context=..., subject=..., period=...)`
+after committing their change. It skips quietly when email is off, the role can't get the
+type, or the person turned it off; a claim row stops duplicates; a failed send can be
+retried by calling it again. The calendar-feed link on the page waits for Phase 5.
+`tests/test_notifications.py` (25 tests) passes on the SQLite stand-in, not yet on Postgres.
 
 ## Phase 4: Assignment and due-date emails
 

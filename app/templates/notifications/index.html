@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}My notifications - Traction/EOS{% endblock %}
+{% block content %}
+<h1>My email notifications</h1>
+<p class="field-hint">Choose which emails you get. Only the kinds that apply to your role are listed, and your choices save as you click.</p>
+
+{% if not email_enabled() %}
+<div class="card">
+  <p>This site isn't set up to send email yet, so nothing is being sent. Your choices are saved for when it is.</p>
+</div>
+{% endif %}
+
+{% for group, items in groups.items() %}
+<div class="card">
+  <h2>{{ group }}</h2>
+  {% for nt, on in items %}
+  <div class="notification-row">
+    <label class="checkbox-field">
+      {% if nt.always %}
+      <input type="checkbox" checked disabled>
+      {% else %}
+      <input type="checkbox" name="enabled" value="1" {% if on %}checked{% endif %}
+             hx-post="/notifications/{{ nt.key }}" hx-trigger="change"
+             hx-target="#saved-{{ nt.key }}" hx-swap="innerHTML">
+      {% endif %}
+      <span><strong>{{ nt.label }}</strong><br><span class="field-hint">{{ nt.description }}</span></span>
+    </label>
+    <span class="field-hint" role="status">
+      {% if nt.always %}Always sent{% else %}<span id="saved-{{ nt.key }}"></span>{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endblock %}
