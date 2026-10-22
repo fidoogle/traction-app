@@ -36,7 +36,11 @@ def _login_context(db: Session, **extra) -> dict:
         return 1 if user.id in team_admin_ids else 2
 
     users = sorted(db.scalars(select(User)).all(), key=lambda u: (rank(u), u.email))
-    choices = [{"email": u.email, "label": f"{u.email} - {u.name}"} for u in users]
+    # Testing-only: drop the shared demo domain so the dropdown stays narrow.
+    choices = [
+        {"email": u.email, "label": f"{u.email.removesuffix('@myemail.com')} - {u.name}"}
+        for u in users
+    ]
     return {"login_users": choices, "demo_password": DEMO_LOGIN_PASSWORD, **extra}
 
 
