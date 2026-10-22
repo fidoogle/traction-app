@@ -53,7 +53,7 @@ Defaults: **On** = enabled for new users, **Opt-in** = off until the user turns 
 | `account_welcome` | Account created, link to set a password | New user | Always | 2 |
 | `password_reset` | Reset link | Requesting user | Always | 2 |
 | `todo_assigned` | To-Do assigned to you | Owner (not if self-assigned) | On | 4 |
-| `owner_reassigned` | Rock or Issue reassigned to you | New owner | On | 4 |
+| `rock_assigned` | Rock assigned or reassigned to you (Issues have no owner) | New owner | On | 4 |
 | `todo_due` | To-Dos due within 2 days or overdue (one email per day, lists all) | Owner | On | 4 |
 | `meeting_invite` | Meeting scheduled or changed, with .ics | Team members | On | 5 |
 | `meeting_reminder` | 24 h before | Team members | On | 5 |
@@ -180,18 +180,27 @@ retried by calling it again. The calendar-feed link on the page waits for Phase 
 
 Goal: first real notifications. Event-driven plus one daily job.
 
-- [ ] Hook `todo_assigned` into To-Do create and owner-change (`todos_routes.py`,
+- [x] Hook `todo_assigned` into To-Do create and owner-change (`todos_routes.py`,
       `quick_add_routes.py`, and API routes if they create To-Dos). Skip when the actor
       is the new owner.
-- [ ] Hook `owner_reassigned` into Rock and Issue owner changes.
-- [ ] Send after the DB commit, not inside the transaction.
-- [ ] Worker service: add `worker` to `docker-compose.yml`, entrypoint `python -m app.worker`,
+- [x] Hook `rock_assigned` into Rock create and owner changes (Issues have no owner).
+- [x] Send after the DB commit, not inside the transaction.
+- [x] Worker service: add `worker` to `docker-compose.yml`, entrypoint `python -m app.worker`,
       loop with a simple tick (e.g. every minute), graceful shutdown, shares the DB.
-- [ ] Daily `todo_due` job: per owner, one email listing items due within 2 days or
+- [x] Daily `todo_due` job: per owner, one email listing items due within 2 days or
       overdue; the log key uses the date so it sends at most once per day; skip if
       the list is empty.
 - [ ] Tests: assignment sends once, self-assignment sends nothing, due job is
       idempotent across two runs.
+
+Built as: `app/core/assignment_emails.py` (queued as background tasks from `todos_routes.py` and
+`rocks_routes.py` after the commit; only when the owner actually changes), `app/core/due_emails.py`,
+`app/worker.py` (60-second tick, `worker` service in `docker-compose.yml` sharing the app's
+environment and skipping the web health check). The daily To-Do email goes out from 7:00 in
+`DEFAULT_TIMEZONE` (default America/Chicago; moves to the org setting in Phase 5), catches up if the
+worker was down, and shows at most 20 items. Quick-add posts to `/todos`, so it is covered. The JSON
+API's create/update endpoints do not send assignment emails (see TODO-ENHANCEMENTS.md). Run only one
+worker. `tests/test_assignment_emails.py` (18 tests) passes on the SQLite stand-in, not yet on Postgres.
 
 ## Phase 5: Meeting scheduling, invites and calendar
 

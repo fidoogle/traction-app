@@ -1,0 +1,8 @@
+Hi {{ name }},
+
+{{ assigned_by }} gave you a To-Do on {{ team }}:
+
+  {{ title }}
+{% if due %}  Due {{ due }}{% endif %}
+
+See your To-Dos: {{ link }}

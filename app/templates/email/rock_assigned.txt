@@ -1,0 +1,7 @@
+Hi {{ name }},
+
+{{ assigned_by }} made you the owner of a Rock on {{ team }} for {{ quarter }}:
+
+  {{ title }}
+
+See your Rocks: {{ link }}

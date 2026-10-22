@@ -3,6 +3,27 @@
 # Before any real deployment, copy .env.example to .env and set a real
 # SECRET_KEY (and change POSTGRES_PASSWORD below) - the values here are
 # safe-for-local-testing defaults only, not production-safe.
+x-app-env: &app-env
+    DATABASE_URL: postgresql+psycopg://traction:traction@db:5432/traction
+    # Reads from a .env file next to this compose file if present
+    # (Compose's own convention - separate from the app's own .env
+    # handling, which only ever sees real process env vars in a
+    # container). Falls back to a dev-only default so `docker compose
+    # up` works out of the box for local testing.
+    SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
+    COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    # Email is off unless SMTP_HOST, SMTP_FROM_ADDRESS and BASE_URL are all
+    # set (see .env.example). The app never needs it to run.
+    SMTP_HOST: ${SMTP_HOST:-}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+    SMTP_USERNAME: ${SMTP_USERNAME:-}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+    SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Traction}
+    BASE_URL: ${BASE_URL:-}
+    DEFAULT_TIMEZONE: ${DEFAULT_TIMEZONE:-America/Chicago}
+
 services:
   db:
     image: postgres:16
@@ -27,27 +48,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+psycopg://traction:traction@db:5432/traction
-      # Reads from a .env file next to this compose file if present
-      # (Compose's own convention - separate from the app's own .env
-      # handling, which only ever sees real process env vars in a
-      # container). Falls back to a dev-only default so `docker compose
-      # up` works out of the box for local testing.
-      SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      # Email is off unless SMTP_HOST, SMTP_FROM_ADDRESS and BASE_URL are all
-      # set (see .env.example). The app never needs it to run.
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
-      SMTP_USERNAME: ${SMTP_USERNAME:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Traction}
-      BASE_URL: ${BASE_URL:-}
+    environment: *app-env
     ports:
       - "8000:8000"
+
+  # Sends the emails that go out on a clock (daily To-Do reminders, ...).
+  # Run exactly one. It idles when email isn't configured. It skips the
+  # image's web health check and waits for the app, which has finished the
+  # database migrations by the time it reports healthy.
+  worker:
+    build: .
+    restart: unless-stopped
+    entrypoint: ["python", "-m", "app.worker"]
+    depends_on:
+      app:
+        condition: service_healthy
+    environment: *app-env
+    healthcheck:
+      disable: true
 
   # Development only (`docker compose --profile dev up`): a local mail catcher
   # so test emails never leave the machine. Read them at http://localhost:8025,

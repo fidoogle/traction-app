@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<h2 style="margin-top:0;">New To-Do</h2>
+<p>Hi {{ name }},</p>
+<p>{{ assigned_by }} gave you a To-Do on {{ team }}:</p>
+<p style="margin:16px 0;padding:12px 16px;background:#f4f5f7;border-radius:4px;"><strong>{{ title }}</strong>{% if due %}<br><span style="color:#52606d;">Due {{ due }}</span>{% endif %}</p>
+<p><a href="{{ link }}" style="display:inline-block;padding:10px 18px;background:#2b6cb0;color:#ffffff;text-decoration:none;border-radius:4px;">See your To-Dos</a></p>
+{% endblock %}

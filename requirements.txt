@@ -9,3 +9,4 @@ bcrypt
 pyjwt
 python-multipart
 jinja2
+tzdata

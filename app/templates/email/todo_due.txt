@@ -1,0 +1,8 @@
+Hi {{ name }},
+
+You have {{ count }} To-Do{{ 's' if count != 1 }} that {{ 'are' if count != 1 else 'is' }} due soon or overdue:
+
+{% for item in items %}  - {{ item.title }} ({{ item.team }}) - {{ item.when }}
+{% endfor %}{% if more %}  ...and {{ more }} more.
+{% endif %}
+See your To-Dos: {{ link }}

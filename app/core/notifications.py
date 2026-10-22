@@ -65,8 +65,8 @@ CATALOG: list[NotificationType] = [
         "Assignments", OWNERS, OWNERS,
     ),
     NotificationType(
-        "owner_reassigned", "A Rock or Issue is handed to you",
-        "When ownership of a Rock or Issue changes to you.",
+        "rock_assigned", "A Rock is assigned to you",
+        "When someone makes you the owner of a Rock, new or existing.",
         "Assignments", OWNERS, OWNERS,
     ),
     NotificationType(

@@ -1,11 +1,12 @@
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
+from app.core.assignment_emails import new_event_id, send_rock_assigned, should_notify
 from app.models import Rock, RockStatus, Team, User
 from app.models.enums import status_order
 from app.web.deps import get_current_user_web, get_team_context
@@ -90,6 +91,7 @@ def list_rocks(
 @router.post("")
 def create_rock(
     request: Request,
+    background_tasks: BackgroundTasks,
     team_id: uuid.UUID = Form(...),
     owner_id: uuid.UUID = Form(...),
     title: str = Form(...),
@@ -105,6 +107,8 @@ def create_rock(
     rock = Rock(team_id=team.id, owner_id=owner_id, title=title, quarter=quarter, status=status)
     db.add(rock)
     db.commit()
+    if should_notify(None, owner_id):
+        background_tasks.add_task(send_rock_assigned, rock.id, current_user.id, new_event_id())
     return _row_response(request, current_user, _get_rock(db, rock.id, team_ctx))
 
 
@@ -145,6 +149,7 @@ def edit_rock_row(
 @router.put("/{rock_id}")
 def update_rock(
     request: Request,
+    background_tasks: BackgroundTasks,
     rock_id: uuid.UUID,
     team_id: uuid.UUID = Form(...),
     owner_id: uuid.UUID = Form(...),
@@ -169,12 +174,15 @@ def update_rock(
         keep_owner=rock.owner_id if team_id == rock.team_id else None,
     )
 
+    previous_owner = rock.owner_id
     rock.team_id = team.id
     rock.owner_id = owner_id
     rock.title = title
     rock.quarter = quarter
     rock.status = status
     db.commit()
+    if should_notify(previous_owner, owner_id):
+        background_tasks.add_task(send_rock_assigned, rock_id, current_user.id, new_event_id())
     db.expire_all()
     return _row_response(request, current_user, _get_rock(db, rock_id, team_ctx))
 

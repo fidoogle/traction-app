@@ -2,11 +2,12 @@ import uuid
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
+from app.core.assignment_emails import new_event_id, send_todo_assigned, should_notify
 from app.models import Issue, Team, Todo, TodoStatus, User, UserRole
 from app.models.enums import status_order
 from app.web.deps import get_current_user_web, get_team_context
@@ -90,6 +91,7 @@ def list_todos(
 @router.post("")
 def create_todo(
     request: Request,
+    background_tasks: BackgroundTasks,
     title: str = Form(...),
     team_id: uuid.UUID = Form(...),
     owner_id: uuid.UUID = Form(...),
@@ -117,6 +119,8 @@ def create_todo(
     )
     db.add(todo)
     db.commit()
+    if should_notify(None, owner_id):
+        background_tasks.add_task(send_todo_assigned, todo.id, current_user.id, new_event_id())
     return _row_response(request, current_user, _get_todo(db, todo.id, team_ctx))
 
 
@@ -177,6 +181,7 @@ def edit_todo_row(
 @router.put("/{todo_id}")
 def update_todo(
     request: Request,
+    background_tasks: BackgroundTasks,
     todo_id: uuid.UUID,
     title: str = Form(...),
     team_id: uuid.UUID = Form(...),
@@ -200,6 +205,7 @@ def update_todo(
     require_member(team, owner_id, keep=todo.owner_id if team.id == todo.team_id else None)
     resolved_issue_id = _resolve_issue_id(db, issue_id, team)
 
+    previous_owner = todo.owner_id
     todo.title = title
     todo.team_id = team.id
     todo.owner_id = owner_id
@@ -207,6 +213,8 @@ def update_todo(
     todo.due_date = due_date
     todo.status = status
     db.commit()
+    if should_notify(previous_owner, owner_id):
+        background_tasks.add_task(send_todo_assigned, todo_id, current_user.id, new_event_id())
     db.expire_all()
     return _row_response(request, current_user, _get_todo(db, todo_id, team_ctx))
 

@@ -19,6 +19,10 @@ queued.
       Admin only and doesn't know about team admins. Teach `write_roles` /
       `edit_roles` and app/api/scoping.py a per-team check if the API is
       ever used for real writes.
+- [ ] Email on JSON API writes. The web UI emails a new To-Do or Rock owner
+      (app/core/assignment_emails.py), but creating/updating them through the
+      JSON API (app/api/crud_router.py) does not. Add the same hooks if the API
+      is ever used for real writes.
 - [ ] Long-term audit trail. The Activity log (app/core/activity.py) now
       records every add/edit/delete with who + when, including role changes
       and deletes - but it's pruned after ACTIVITY_RETENTION_DAYS (90) and

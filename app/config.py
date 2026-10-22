@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     smtp_from_address: str = ""
     smtp_from_name: str = "Traction"
     smtp_timeout_seconds: int = 10
+    # Time zone for anything scheduled by the clock (daily and weekly emails).
+    # An IANA name; US Central by default (daylight saving is handled).
+    default_timezone: str = "America/Chicago"
     # Public address of this app (e.g. https://traction.district.org), used to
     # build links inside emails.
     base_url: str = ""
