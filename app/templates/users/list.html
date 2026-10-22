@@ -48,8 +48,14 @@
         </select>
       </div>
       <div class="field">
+        {% if email_enabled() %}
+        <label for="password">Temporary password (optional)</label>
+        <input type="password" id="password" name="password" minlength="8">
+        <p class="field-hint">Leave blank to email them a link to choose their own password.</p>
+        {% else %}
         <label for="password">Temporary password</label>
         <input type="password" id="password" name="password" minlength="8" required>
+        {% endif %}
       </div>
       <button class="primary" type="submit">Add user</button>
     </div>

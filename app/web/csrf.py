@@ -17,7 +17,7 @@ EXEMPT_PREFIXES = ("/api", "/static", "/health")
 # parsing). The middleware can't also read the body to check a form field
 # here without breaking that downstream parse - Starlette's request body
 # can only safely be consumed once.
-FORM_FIELD_VALIDATED_PATHS = {"/login", "/logout"}
+FORM_FIELD_VALIDATED_PATHS = {"/login", "/logout", "/forgot-password", "/set-password"}
 
 
 def generate_csrf_token() -> str:

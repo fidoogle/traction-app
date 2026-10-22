@@ -25,6 +25,13 @@
   </td>
   {% if current_user.role.value == "admin" %}
   <td>
+    {% if email_enabled() %}
+    <button type="button" class="secondary"
+      hx-post="/users/{{ user.id }}/resend-welcome"
+      hx-target="#resend-status-{{ user.id }}" hx-swap="innerHTML"
+      hx-confirm="Email {{ user.name }} a new link to set their password?">Resend welcome email</button>
+    <span id="resend-status-{{ user.id }}" class="field-hint" role="status"></span>
+    {% endif %}
     {% if user.id != current_user.id %}
     <button
       class="icon-button row-icon danger" aria-label="Delete" title="Delete"

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
+from app.config import settings
 from app.core import meeting_session
 from app.core.scorecard_format import format_goal, format_value, raw_value
 from app.models.enums import status_rank, status_state
@@ -32,6 +33,8 @@ templates.env.globals["format_goal"] = format_goal
 templates.env.globals["raw_value"] = raw_value
 templates.env.globals["status_rank"] = status_rank
 templates.env.globals["status_state"] = status_state
+# A function, not a value, so it reflects the settings at render time.
+templates.env.globals["email_enabled"] = lambda: settings.email_enabled
 
 
 def step_clock(seconds: int) -> str:

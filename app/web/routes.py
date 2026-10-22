@@ -5,6 +5,7 @@ from app.web.auth_routes import router as auth_routes
 from app.web.dashboard_routes import router as dashboard_routes
 from app.web.issues_routes import router as issues_routes
 from app.web.meetings_routes import router as meetings_routes
+from app.web.password_routes import router as password_routes
 from app.web.people_analyzer_routes import router as people_analyzer_routes
 from app.web.quick_add_routes import router as quick_add_routes
 from app.web.rocks_routes import router as rocks_routes
@@ -19,6 +20,7 @@ from app.web.vto_routes import router as vto_routes
 
 web_router = APIRouter()
 web_router.include_router(auth_routes)
+web_router.include_router(password_routes)
 web_router.include_router(dashboard_routes)
 web_router.include_router(activity_routes)
 web_router.include_router(rocks_routes)

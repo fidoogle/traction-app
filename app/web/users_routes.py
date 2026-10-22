@@ -1,10 +1,14 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db
+from app.config import settings
+from app.core.account_emails import send_welcome_email
+from app.core.password_tokens import MIN_PASSWORD_LENGTH, WELCOME, issue_token
 from app.core.security import hash_password
 from app.models import Team, TeamMembership, User, UserRole
 from app.web.deps import get_current_user_web, get_team_context
@@ -49,11 +53,14 @@ def list_users(
 @router.post("")
 def create_user(
     request: Request,
+    background_tasks: BackgroundTasks,
     name: str = Form(...),
     email: str = Form(...),
     team_ids: list[uuid.UUID] = Form(...),
     role: UserRole = Form(...),
-    password: str = Form(...),
+    # Optional when email is set up: leave it blank and the person sets their
+    # own through the emailed link.
+    password: str = Form(""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
@@ -70,8 +77,18 @@ def create_user(
     ).all()
     if not team_ids or len(teams) != len(team_ids):
         raise HTTPException(status_code=404)
-    if len(password) < 8:
-        raise HTTPException(status_code=422, detail="Password must be at least 8 characters")
+    if password:
+        if len(password) < MIN_PASSWORD_LENGTH:
+            raise HTTPException(
+                status_code=422, detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters"
+            )
+        hashed_password = hash_password(password)
+    elif settings.email_enabled:
+        hashed_password = None
+    else:
+        raise HTTPException(
+            status_code=422, detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters"
+        )
 
     user = User(
         org_id=current_user.org_id,
@@ -80,11 +97,18 @@ def create_user(
         name=name,
         email=email,
         role=role,
-        hashed_password=hash_password(password),
+        hashed_password=hashed_password,
         memberships=[TeamMembership(team_id=team_id) for team_id in team_ids],
     )
     db.add(user)
+    if settings.email_enabled:
+        db.flush()
+        welcome_token = issue_token(db, user, WELCOME)
     db.commit()
+    if settings.email_enabled:
+        background_tasks.add_task(
+            send_welcome_email, user.email, user.name, welcome_token, current_user.name
+        )
     db.refresh(user)
     return templates.TemplateResponse(
         request,
@@ -123,6 +147,26 @@ def update_user_role(
         "users/_row.html",
         {"current_user": current_user, "user": user, "UserRole": UserRole},
     )
+
+
+@router.post("/{user_id}/resend-welcome")
+def resend_welcome(
+    user_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """Emails the person a fresh set-password link (the old one stops working)."""
+    _require_admin(current_user)
+    user = db.get(User, user_id)
+    if user is None or user.org_id != current_user.org_id:
+        raise HTTPException(status_code=404)
+    if not settings.email_enabled:
+        return HTMLResponse('<span class="error">Email is not configured.</span>')
+    token = issue_token(db, user, WELCOME)
+    db.commit()
+    background_tasks.add_task(send_welcome_email, user.email, user.name, token, current_user.name)
+    return HTMLResponse("<span>Sent.</span>")
 
 
 @router.delete("/{user_id}")

@@ -7,6 +7,9 @@
     {% if error %}
     <div class="error">{{ error }}</div>
     {% endif %}
+    {% if notice %}
+    <div class="notice" role="status">{{ notice }}</div>
+    {% endif %}
     <form method="post" action="/login">
       <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token }}">
       <div class="field">
@@ -27,6 +30,9 @@
       </div>
       <button class="primary" type="submit">Log in</button>
     </form>
+    {% if email_enabled() %}
+    <p class="field-hint"><a href="/forgot-password">Forgot your password?</a></p>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

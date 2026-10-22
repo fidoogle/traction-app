@@ -11,8 +11,6 @@ queued.
 - [ ] Refresh tokens / session revocation. Access tokens are currently
       long-lived (24h) bearer JWTs with no server-side revocation — logging
       out or deactivating a user doesn't invalidate outstanding tokens.
-- [ ] Password reset / forgot-password flow (currently only an admin, or
-      the user themself via their existing password, can change it).
 - [ ] Team admins in the JSON API. The web UI lets a member flagged
       `team_memberships.is_team_admin` do admin-level work on that one team
       (rocks, issues, to-dos, scorecards, meetings, the team's roster, new

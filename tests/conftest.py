@@ -13,6 +13,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import OperationalError
 
+pytest_plugins = ["fixtures_email"]
+
 SERVER_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://traction:traction@localhost:5432/postgres"
 )

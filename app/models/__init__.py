@@ -13,6 +13,7 @@ from app.models.issue import Issue
 from app.models.measurable import Measurable
 from app.models.meeting import Meeting
 from app.models.organization import Organization
+from app.models.password_token import PasswordToken
 from app.models.people_analyzer import PeopleAnalyzerEntry
 from app.models.rock import Rock
 from app.models.scorecard import SCORECARD_WEEKS, Scorecard
@@ -41,6 +42,7 @@ __all__ = [
     "VTO",
     "PeopleAnalyzerEntry",
     "ActivityLog",
+    "PasswordToken",
     "RockStatus",
     "IssueStatus",
     "TodoStatus",

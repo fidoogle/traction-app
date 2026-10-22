@@ -1,0 +1,8 @@
+Hi {{ name }},
+
+{{ invited_by }} created a Traction account for you. Your login is your email address ({{ email }}).
+
+Set your password here:
+{{ link }}
+
+This link works once and expires in {{ hours }} hours. If it expires, ask {{ invited_by }} to send you a new one.

@@ -55,9 +55,15 @@ def _validate_csrf_form_field(request: Request, csrf_token: str) -> None:
         raise HTTPException(status_code=403, detail="CSRF token missing or invalid")
 
 
+# Fixed messages for /login?notice=..., so a link can't put arbitrary text on the page.
+LOGIN_NOTICES = {"password-set": "Your password is set. You can log in now."}
+
+
 @router.get("/login")
-def login_form(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse(request, "login.html", _login_context(db))
+def login_form(request: Request, notice: str = "", db: Session = Depends(get_db)):
+    return templates.TemplateResponse(
+        request, "login.html", _login_context(db, notice=LOGIN_NOTICES.get(notice))
+    )
 
 
 @router.post("/login")

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block body %}
+<h2 style="margin-top:0;">Welcome to Traction</h2>
+<p>Hi {{ name }},</p>
+<p>{{ invited_by }} created a Traction account for you. Your login is your email address (<strong>{{ email }}</strong>).</p>
+<p><a href="{{ link }}" style="display:inline-block;padding:10px 18px;background:#2b6cb0;color:#ffffff;text-decoration:none;border-radius:4px;">Set your password</a></p>
+<p style="font-size:13px;color:#52606d;">Or paste this address into your browser:<br>{{ link }}</p>
+<p style="font-size:13px;color:#52606d;">This link works once and expires in {{ hours }} hours. If it expires, ask {{ invited_by }} to send you a new one.</p>
+{% endblock %}

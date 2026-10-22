@@ -39,6 +39,10 @@ class FailureRateLimiter:
         with self._lock:
             self._prune(key, now).append(now)
 
+    def clear(self) -> None:
+        with self._lock:
+            self._failures.clear()
+
     def reset(self, key: str) -> None:
         with self._lock:
             self._failures.pop(key, None)

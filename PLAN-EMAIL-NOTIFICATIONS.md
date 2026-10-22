@@ -118,18 +118,24 @@ Goal: new users get a way in without an admin reading out a password.
 First check how `create_user` in `app/web/users_routes.py` sets the initial password
 today, and keep that path working when email is off.
 
-- [ ] Migration: `password_reset_tokens` table (user id, hash of token, expires_at,
+- [x] Migration: `password_reset_tokens` table (user id, hash of token, expires_at,
       used_at). Store only a hash of the token.
-- [ ] Token helper in `app/core/security.py`: create, verify, expire (e.g. 48 h for
+- [x] Token helper in `app/core/security.py`: create, verify, expire (e.g. 48 h for
       welcome, 1 h for reset), single use.
-- [ ] Routes: `GET/POST /set-password/{token}`, `GET/POST /forgot-password`.
+- [x] Routes: `GET/POST /set-password/{token}`, `GET/POST /forgot-password`.
       Forgot-password responds identically whether or not the email exists, and is
       rate limited with the existing `rate_limit.py`.
-- [ ] Welcome email sent when an admin or team admin creates a user and email is
+- [x] Welcome email sent when an admin or team admin creates a user and email is
       enabled. Contains a one-time link, never a password.
-- [ ] Admin action "Resend welcome email" on the Users page.
-- [ ] If email is disabled, keep the current manual flow and show that in the UI.
+- [x] Admin action "Resend welcome email" on the Users page.
+- [x] If email is disabled, keep the current manual flow and show that in the UI.
 - [ ] Tests: token expiry, reuse, wrong token, enumeration-safe response, rate limit.
+
+Note: `tests/test_password_tokens.py` (28 tests) passes against a throwaway SQLite stand-in,
+not Postgres (Docker would not start). Tick the Tests box here and on Phase 1 after
+`python -m pytest -q` passes against the real database. Team admins can add users and the
+new user gets the welcome email; "Resend welcome email" is admin-only. The JSON API's
+user creation (`app/api/users_router.py`) does not send email.
 
 Done when: create a user, receive the link, set a password, log in.
 
