@@ -9,9 +9,25 @@ from sqlalchemy import select, update
 from app import worker
 from app.core import meeting_session
 from app.core import notifications as n
-from app.core.alert_emails import announce_new_issues, due_quarter_events, quarter_bounds, send_quarter_reminders
+from app.core.alert_emails import (
+    alert_delivery_failures,
+    announce_new_issues,
+    due_quarter_events,
+    quarter_bounds,
+    send_quarter_reminders,
+)
 from app.db import SessionLocal
-from app.models import Issue, Rock, RockStatus, TeamMembership, Todo, TodoStatus, User
+from app.models import (
+    Issue,
+    NotificationLog,
+    Rock,
+    RockStatus,
+    TeamMembership,
+    Todo,
+    TodoStatus,
+    User,
+    UserRole,
+)
 
 
 def sent(smtp):
@@ -154,7 +170,7 @@ def test_two_misses_in_a_row_tell_the_owner_and_opted_in_admins(world, login, sm
     msg = sent(smtp)[0]
     assert msg["Subject"] == "Scorecard: alpha m missed goal 2 weeks in a row"
     body = text(msg)
-    assert "alpha m on Alpha" in body and "goal (\u2265 1)" in body.replace("goal (≥ 1)", "goal (\u2265 1)")
+    assert "alpha m on Alpha" in body and "(≥ 1)" in body
     assert "Week of Oct 5: 0" in body and "Week of Oct 12: 0" in body and "Owner: Mia Member" in body
 
 
@@ -518,3 +534,122 @@ def test_the_worker_sends_them_from_7am_local_on_the_day(world, smtp, configured
     worker.tick(state, datetime(2026, 10, 1, 18, 0, tzinfo=timezone.utc))
     worker.tick(worker.WorkerState(), datetime(2026, 10, 1, 20, 0, tzinfo=timezone.utc))  # even after a restart
     assert len(sent(smtp)) == 1
+
+
+# --- notices for the organization's admins ---
+
+
+@pytest.fixture()
+def second_admin(world):
+    """A second org admin, so there is someone besides the actor to be told."""
+    with SessionLocal() as db:
+        admin = db.get(User, world["admin"])
+        other = User(
+            org_id=admin.org_id, team_id=world["team_alpha"], name="Bea Boss", email="admin2@example.com",
+            role=UserRole.ADMIN, hashed_password="x", memberships=[TeamMembership(team_id=world["team_alpha"])],
+        )
+        db.add(other)
+        db.commit()
+        world.ids["admin2"] = other.id
+
+
+def test_admins_who_opted_in_hear_about_new_users(world, login, smtp, configured, second_admin):
+    opt_in(world, "admin2", "admin_system")
+    form = {
+        "name": "Nia Newhire", "email": "nia@example.com", "team_ids": str(world["team_alpha"]),
+        "role": "member", "password": "longenough",
+    }
+    assert login("admin").post("/users", data=form).status_code == 200
+    (notice,) = [m for m in sent(smtp) if m["To"] == "admin2@example.com"]
+    assert notice["Subject"] == "New user: Nia Newhire"
+    body = text(notice)
+    assert "Ada Admin added Nia Newhire (nia@example.com) as member" in body and "Teams: Alpha" in body
+    assert not [m for m in sent(smtp) if m["To"] == "admin@example.com"]  # the admin who did it is not told
+
+
+def test_it_is_off_unless_an_admin_opts_in(world, login, smtp, configured, second_admin):
+    form = {
+        "name": "Nia Newhire", "email": "nia@example.com", "team_ids": str(world["team_alpha"]),
+        "role": "member", "password": "longenough",
+    }
+    login("admin").post("/users", data=form)
+    login("admin").patch(f"/users/{world['mia']}/role", data={"role": "viewer"})
+    assert [m for m in sent(smtp) if m["To"] in ("admin@example.com", "admin2@example.com")] == []
+
+
+def test_admins_hear_about_role_changes(world, login, smtp, configured, second_admin):
+    opt_in(world, "admin2", "admin_system")
+    admin = login("admin")
+    assert admin.patch(f"/users/{world['mia']}/role", data={"role": "viewer"}).status_code == 200
+    (notice,) = sent(smtp)
+    assert notice["To"] == "admin2@example.com" and notice["Subject"] == "Role changed: Mia Member"
+    assert "changed Mia Member's role from member to viewer" in text(notice)
+    admin.patch(f"/users/{world['mia']}/role", data={"role": "viewer"})  # no change: no notice
+    assert len(sent(smtp)) == 1
+
+
+def add_failures(db, world, count, hours_ago=1, key="todo_assigned", who="mia"):
+    at = datetime.now(timezone.utc) - timedelta(hours=hours_ago)
+    for i in range(count):
+        db.add(NotificationLog(user_id=world[who], key=key, subject=f"s{hours_ago}-{key}-{who}-{i}",
+                               status="failed", error="Connection refused", created_at=at))
+    db.commit()
+
+
+def org_id(world):
+    with SessionLocal() as db:
+        return db.get(User, world["admin"]).org_id
+
+
+def test_repeated_delivery_failures_are_reported_once_a_day(world, smtp, configured):
+    opt_in(world, "admin", "admin_system")
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    with SessionLocal() as db:
+        add_failures(db, world, 4)
+        assert alert_delivery_failures(db, org_id(world), now, today) is False   # four is not yet a pattern
+        add_failures(db, world, 2, key="weekly_digest")
+        assert alert_delivery_failures(db, org_id(world), now, today) is True
+        assert alert_delivery_failures(db, org_id(world), now, today) is True    # still a problem...
+    (msg,) = sent(smtp)                                                          # ...but admins were told only once
+    assert msg["To"] == "admin@example.com" and msg["Subject"] == "Email delivery problems: 6 failed in the last day"
+    body = text(msg)
+    assert "todo_assigned (4)" in body and "weekly_digest (2)" in body and "Connection refused" in body
+
+
+def test_old_failures_other_districts_and_our_own_notices_do_not_count(world, smtp, configured):
+    opt_in(world, "admin", "admin_system")
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        add_failures(db, world, 5, hours_ago=30)                      # outside the last day
+        add_failures(db, world, 5, who="other")                       # the other district
+        add_failures(db, world, 5, key="admin_system")                # failures of these notices themselves
+        assert alert_delivery_failures(db, org_id(world), now, now.date()) is False
+    assert sent(smtp) == []
+
+
+def test_failure_notices_need_an_opted_in_admin_and_working_email(world, smtp, configured):
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        add_failures(db, world, 6)
+        assert alert_delivery_failures(db, org_id(world), now, now.date()) is True   # a problem, but nobody asked to hear
+    assert sent(smtp) == []
+
+
+def test_the_worker_checks_for_failures_and_stops_after_telling_the_admins(world, smtp, configured, no_digest):
+    opt_in(world, "admin", "admin_system")
+    with SessionLocal() as db:
+        add_failures(db, world, 6)
+    state = worker.WorkerState()
+    now = datetime.now(timezone.utc)
+    worker.tick(state, now)
+    assert [m["Subject"] for m in sent(smtp)] == ["Email delivery problems: 6 failed in the last day"]
+    worker.tick(state, now + timedelta(minutes=1))
+    assert len(sent(smtp)) == 1
+    assert state.failure_alert_dates
+
+
+def test_no_admin_notices_when_email_is_off(world, login, smtp, second_admin):
+    opt_in(world, "admin2", "admin_system")
+    login("admin").patch(f"/users/{world['mia']}/role", data={"role": "viewer"})
+    assert sent(smtp) == []

@@ -18,7 +18,7 @@ from app.core.notifications import notify
 from app.core.org_time import format_short, tz_of
 from app.core.scorecard_format import format_goal, format_value, goal_met
 from app.db import SessionLocal
-from app.models import Issue, IssueStatus, Measurable, Meeting, MeetingStatus, Rock, RockStatus, Team, TeamMembership, Todo, TodoStatus, User, UserRole
+from app.models import Issue, IssueStatus, Measurable, Meeting, MeetingStatus, NotificationLog, Rock, RockStatus, Team, TeamMembership, Todo, TodoStatus, User, UserRole
 
 
 def team_admin_ids(db: Session, team_id: uuid.UUID) -> list[uuid.UUID]:
@@ -351,3 +351,84 @@ def send_quarter_reminders(db: Session, org_id: uuid.UUID, today: date) -> int:
                 subject=f"team:{team_id}", period=f"{quarter}-{kind}",
             )
     return sent
+
+
+# --- notices for the organization's admins (opt-in) ---
+
+FAILURE_WINDOW = timedelta(hours=24)
+FAILURE_THRESHOLD = 5  # failed emails in the window before admins are told
+
+
+def _org_admin_ids(db: Session, org_id: uuid.UUID) -> list[uuid.UUID]:
+    return sorted(db.scalars(select(User.id).where(User.org_id == org_id, User.role == UserRole.ADMIN)), key=str)
+
+
+def _admin_notice(db: Session, org_id: uuid.UUID, actor_id, headline: str, lines: list[str], subject: str, period: str) -> int:
+    return alert_people(
+        db, _org_admin_ids(db, org_id), "admin_system", actor_id=actor_id, subject_line=headline,
+        template="admin_system",
+        context={"headline": headline, "lines": lines, "link": settings.absolute_url("/users")},
+        subject=subject, period=period,
+    )
+
+
+def send_user_added_notice(user_id: uuid.UUID, actor_id: uuid.UUID, event_id: str) -> None:
+    with SessionLocal() as db:
+        user, actor = db.get(User, user_id), db.get(User, actor_id)
+        if user is None:
+            return
+        teams = ", ".join(sorted(t.name for t in user.teams)) or "no team"
+        _admin_notice(
+            db, user.org_id, actor_id, f"New user: {one_line(user.name)}",
+            [f"{actor.name if actor else 'Someone'} added {user.name} ({user.email}) as {user.role.value}.", f"Teams: {teams}."],
+            subject=f"user:{user.id}", period=event_id,
+        )
+
+
+def send_role_changed_notice(user_id: uuid.UUID, previous_role: str, actor_id: uuid.UUID, event_id: str) -> None:
+    with SessionLocal() as db:
+        user, actor = db.get(User, user_id), db.get(User, actor_id)
+        if user is None:
+            return
+        _admin_notice(
+            db, user.org_id, actor_id, f"Role changed: {one_line(user.name)}",
+            [f"{actor.name if actor else 'Someone'} changed {user.name}'s role from {previous_role} to {user.role.value}."],
+            subject=f"user:{user.id}", period=event_id,
+        )
+
+
+def alert_delivery_failures(db: Session, org_id: uuid.UUID, now: datetime, today: date) -> bool:
+    """If this organization's emails have failed FAILURE_THRESHOLD or more times
+    in the last day, tell its admins (opt-in), once a day. Returns True when
+    there was a problem to report (whether or not anyone was due to be told),
+    so the caller can stop checking for the rest of the day."""
+    if not settings.email_enabled:
+        return False
+    failed = db.execute(
+        select(NotificationLog.key, NotificationLog.error, NotificationLog.created_at)
+        .join(User, User.id == NotificationLog.user_id)
+        .where(
+            User.org_id == org_id,
+            NotificationLog.status == "failed",
+            NotificationLog.key != "admin_system",
+            NotificationLog.created_at >= now - FAILURE_WINDOW,
+        )
+        .order_by(NotificationLog.created_at.desc())
+    ).all()
+    if len(failed) < FAILURE_THRESHOLD:
+        return False
+    by_key: dict[str, int] = {}
+    for key, _error, _at in failed:
+        by_key[key] = by_key.get(key, 0) + 1
+    latest = failed[0].error or "no details"
+    _admin_notice(
+        db, org_id, None, f"Email delivery problems: {len(failed)} failed in the last day",
+        [
+            f"{len(failed)} emails could not be sent in the last 24 hours.",
+            "By kind: " + ", ".join(f"{k} ({v})" for k, v in sorted(by_key.items())) + ".",
+            f"Most recent error: {latest}",
+            "Check the mail server settings (Settings page) and send a test email.",
+        ],
+        subject="delivery-failures", period=today.isoformat(),
+    )
+    return True

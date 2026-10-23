@@ -17,7 +17,7 @@ from typing import Optional
 from sqlalchemy import select
 
 from app.config import settings
-from app.core.alert_emails import announce_new_issues, send_quarter_reminders
+from app.core.alert_emails import alert_delivery_failures, announce_new_issues, send_quarter_reminders
 from app.core.digest_emails import digest_due, send_digests
 from app.core.due_emails import send_due_todos
 from app.core.meeting_emails import send_meeting_reminders
@@ -38,6 +38,7 @@ class WorkerState:
     todo_due_dates: dict[uuid.UUID, date] = field(default_factory=dict)  # per organization
     digest_weeks: dict[uuid.UUID, str] = field(default_factory=dict)  # week label last sent, per organization
     quarter_dates: dict[uuid.UUID, date] = field(default_factory=dict)  # day last checked, per organization
+    failure_alert_dates: dict[uuid.UUID, date] = field(default_factory=dict)  # day admins were last told, per organization
 
 
 def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
@@ -76,6 +77,15 @@ def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
                 state.quarter_dates[org_id] = local.date()
             except Exception:
                 logger.exception("Quarter reminder job failed; will retry next tick")
+
+        # If emails keep failing, tell the admins who asked to hear (at most once a day).
+        if state.failure_alert_dates.get(org_id) != local.date():
+            try:
+                with SessionLocal() as db:
+                    if alert_delivery_failures(db, org_id, now, local.date()):
+                        state.failure_alert_dates[org_id] = local.date()
+            except Exception:
+                logger.exception("Delivery-failure check failed; will retry next tick")
 
         # The weekly summary: once this week's moment (set by the admin) has passed,
         # until it has gone out. The per-person record stops a second send.

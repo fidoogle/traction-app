@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.api.deps import get_db
 from app.config import settings
 from app.core.account_emails import send_welcome_email
+from app.core.alert_emails import send_role_changed_notice, send_user_added_notice
+from app.core.assignment_emails import new_event_id
 from app.core.password_tokens import MIN_PASSWORD_LENGTH, WELCOME, issue_token
 from app.core.security import hash_password
 from app.models import Team, TeamMembership, User, UserRole
@@ -109,6 +111,7 @@ def create_user(
         background_tasks.add_task(
             send_welcome_email, user.email, user.name, welcome_token, current_user.name
         )
+        background_tasks.add_task(send_user_added_notice, user.id, current_user.id, new_event_id())
     db.refresh(user)
     return templates.TemplateResponse(
         request,
@@ -120,6 +123,7 @@ def create_user(
 @router.patch("/{user_id}/role")
 def update_user_role(
     request: Request,
+    background_tasks: BackgroundTasks,
     user_id: uuid.UUID,
     role: UserRole = Form(...),
     db: Session = Depends(get_db),
@@ -134,6 +138,7 @@ def update_user_role(
     if user is None:
         raise HTTPException(status_code=404)
 
+    previous_role = user.role
     user.role = role
     if user.role != UserRole.MEMBER:
         # Team admin is a member-only role; it doesn't survive becoming
@@ -141,6 +146,10 @@ def update_user_role(
         for membership in user.memberships:
             membership.is_team_admin = False
     db.commit()
+    if settings.email_enabled and previous_role != role:
+        background_tasks.add_task(
+            send_role_changed_notice, user_id, previous_role.value, current_user.id, new_event_id()
+        )
     db.refresh(user)
     return templates.TemplateResponse(
         request,

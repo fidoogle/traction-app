@@ -1,0 +1,7 @@
+Hi {{ name }},
+
+{{ headline }}
+
+{% for line in lines %}{{ line }}
+{% endfor %}
+Users and settings: {{ link }}

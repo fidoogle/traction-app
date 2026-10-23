@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body %}
+<h2 style="margin-top:0;">{{ headline }}</h2>
+<p>Hi {{ name }},</p>
+{% for line in lines %}<p>{{ line }}</p>{% endfor %}
+<p><a href="{{ link }}" style="display:inline-block;padding:10px 18px;background:#2b6cb0;color:#ffffff;text-decoration:none;border-radius:4px;">Users and settings</a></p>
+{% endblock %}

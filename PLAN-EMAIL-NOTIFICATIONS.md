@@ -338,17 +338,36 @@ rule), `weekly_digest` email templates, worker step in `app/worker.py`, org colu
 
 One notification at a time, each small and separately committed.
 
-- [ ] `rock_off_track`: fire on status change to Off Track; recipients are the
+- [x] `rock_off_track`: fire on status change to Off Track; recipients are the
       Rock's team admins.
-- [ ] `scorecard_missed`: evaluate when weekly entries are saved; N consecutive misses
+- [x] `scorecard_missed`: evaluate when weekly entries are saved; N consecutive misses
       (start with 2); log key includes the week so it fires once.
-- [ ] `issue_added`: batch within a short window (e.g. combine adds made in the same
+- [x] `issue_added`: batch within a short window (e.g. combine adds made in the same
       5 minutes) so a busy meeting doesn't flood inboxes.
-- [ ] `meeting_summary`: sent when a meeting is finished; lists decisions, new To-Dos,
-      and issues left open. Link to the app for detail.
-- [ ] `quarter_reminder`: worker job at quarter boundaries; needs the org's fiscal
+- [x] `meeting_summary`: sent when a meeting is finished; lists how the time went, the To-Dos made during it,
+      and issues left open (the app does not record decisions, so none are listed). Link to the app for detail.
+- [x] `quarter_reminder`: worker job at quarter boundaries; needs the org's fiscal
       quarter definition (check how Rocks track quarters first).
-- [ ] `admin_system`: new user, role change, repeated delivery failures.
+- [x] `admin_system`: new user, role change, repeated delivery failures.
+
+Built as (each committed on its own), all in `app/core/alert_emails.py` unless noted. Every one is quiet
+unless email is configured, and the person who caused it is never emailed:
+- `rock_off_track`: when a Rock changes to off track (new, edited or via the status control). Team admins of that
+  team; org admins opt in. Going off track again alerts again.
+- `scorecard_missed`: after a result is saved, if this week and the week(s) just before it all missed (2 or more in a
+  row). The measurable's owner and team admins; opt-in for everyone. Once per measurable per week.
+- `issue_added`: issues now record `created_at` and `announced_at` (migration `a9d3f6b2c8e1`; existing issues count as
+  announced). The worker sends one email per team after 5 quiet minutes (or 15 minutes after the first), to opted-in
+  members. Issues older than a day are never announced.
+- `meeting_summary`: on Finish (not Stop): time per step against its allotment, To-Dos created during the meeting
+  (To-Dos now record `created_at`, migration `b1e4a7c9d2f5`), issues still open. Opted-in team members.
+- `quarter_reminder`: Rocks use calendar quarters, so these do too. From 7:00 local on the first day of a quarter and
+  on the day 14 days before its last day (a missed one is still sent for up to a week). Team admins of each team;
+  org admins opt in. Checked once a day per organization by the worker.
+- `admin_system`: a new user, a role change (not when the role is unchanged), and "5 or more emails failed in the
+  last 24 hours" (once a day, by the worker; its own failures are not counted). Opt-in for org admins.
+- Tests: `tests/test_alerts.py` (47). The whole project suite (402 tests; 2 stand-in-only failures set aside) passes on
+  the SQLite stand-in, not yet on Postgres.
 
 ## Phase 8: Hardening and documentation
 
