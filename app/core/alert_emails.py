@@ -9,14 +9,16 @@ from datetime import datetime, timedelta
 from typing import Iterable, Optional
 
 from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.core.assignment_emails import one_line
+from app.core.meeting_session import STEPS
 from app.core.notifications import notify
+from app.core.org_time import format_short, tz_of
 from app.core.scorecard_format import format_goal, format_value, goal_met
 from app.db import SessionLocal
-from app.models import Issue, Measurable, Rock, RockStatus, Team, TeamMembership, User, UserRole
+from app.models import Issue, IssueStatus, Measurable, Meeting, MeetingStatus, Rock, RockStatus, Team, TeamMembership, Todo, TodoStatus, User, UserRole
 
 
 def team_admin_ids(db: Session, team_id: uuid.UUID) -> list[uuid.UUID]:
@@ -210,3 +212,78 @@ def announce_new_issues(db: Session, now: datetime) -> int:
         db.execute(update(Issue).where(Issue.id.in_(ids)).values(announced_at=now))
         db.commit()
     return sent
+
+
+def _clock(seconds: int) -> str:
+    minutes, secs = divmod(int(seconds), 60)
+    return f"{minutes}:{secs:02d}"
+
+
+def send_meeting_recap(meeting_id: uuid.UUID) -> None:
+    """After a meeting is finished: how it went, the To-Dos made during it, and
+    the issues still open, to team members who opted in. (The app does not
+    record decisions, so there is no list of them.)"""
+    with SessionLocal() as db:
+        meeting = db.get(Meeting, meeting_id)
+        if meeting is None or meeting.status != MeetingStatus.COMPLETED or meeting.started_at is None:
+            return
+        team = meeting.team
+        tz = tz_of(team.organization.timezone)
+        seconds = list(meeting.step_seconds or [])
+        steps = [
+            {
+                "label": label,
+                "time": _clock(seconds[i]) if i < len(seconds) else "0:00",
+                "over": i < len(seconds) and seconds[i] > minutes * 60,
+            }
+            for i, (label, _url, minutes) in enumerate(STEPS)
+        ]
+        ended = meeting.finished_at or meeting.started_at
+        new_todos = db.scalars(
+            select(Todo)
+            .where(
+                Todo.team_id == team.id,
+                Todo.created_at >= meeting.started_at,
+                Todo.created_at <= ended + timedelta(minutes=5),
+                Todo.status != TodoStatus.DROPPED,
+            )
+            .options(joinedload(Todo.owner))
+            .order_by(Todo.created_at)
+        ).unique().all()
+        open_issues = db.scalars(
+            select(Issue)
+            .where(Issue.team_id == team.id, Issue.status == IssueStatus.OPEN)
+            .order_by(Issue.priority.desc(), Issue.title)
+        ).all()
+        context = {
+            "team": team.name,
+            "when": format_short(meeting.started_at, tz),
+            "total": _clock(sum(seconds)),
+            "steps": steps,
+            "todos": [
+                {
+                    "title": t.title,
+                    "owner": t.owner.name,
+                    "due": t.due_date.strftime("%b ") + str(t.due_date.day) if t.due_date else "",
+                }
+                for t in new_todos[:MAX_LISTED]
+            ],
+            "todos_more": max(0, len(new_todos) - MAX_LISTED),
+            "issues": [i.title for i in open_issues[:MAX_LISTED]],
+            "issues_more": max(0, len(open_issues) - MAX_LISTED),
+            "issue_count": len(open_issues),
+            "link": settings.absolute_url("/meetings"),
+        }
+        user_ids = list(
+            db.scalars(
+                select(TeamMembership.user_id)
+                .join(User, User.id == TeamMembership.user_id)
+                .where(TeamMembership.team_id == team.id)
+                .order_by(User.name)
+            )
+        )
+        alert_people(
+            db, user_ids, "meeting_summary", actor_id=None,
+            subject_line=f"{one_line(team.name)} meeting recap, {format_short(meeting.started_at, tz)}",
+            template="meeting_summary", context=context, subject=f"meeting:{meeting_id}", period="recap",
+        )

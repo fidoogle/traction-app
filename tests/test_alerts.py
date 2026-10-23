@@ -3,13 +3,15 @@ new issues, meeting recaps, quarter reminders and system notices."""
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from sqlalchemy import select, update
 
 from app import worker
+from app.core import meeting_session
 from app.core import notifications as n
 from app.core.alert_emails import announce_new_issues
 from app.db import SessionLocal
-from app.models import Issue, Rock, RockStatus, TeamMembership, User
+from app.models import Issue, Rock, RockStatus, TeamMembership, Todo, TodoStatus, User
 
 
 def sent(smtp):
@@ -340,3 +342,80 @@ def test_the_worker_announces_issues_on_its_tick(world, smtp, configured, no_dig
         add_issue(db, world, "From the worker", minutes_ago=10)
     worker.tick(worker.WorkerState(), NOW)
     assert recipients(smtp) == ["mia@example.com"]
+
+
+# --- the meeting recap ---
+
+T0 = datetime(2026, 10, 12, 15, 0, 0, tzinfo=timezone.utc)  # when the test meeting starts
+
+
+@pytest.fixture()
+def clock(monkeypatch):
+    state = {"now": T0}
+    monkeypatch.setattr(meeting_session, "now_utc", lambda: state["now"])
+
+    def advance(seconds):
+        state["now"] += timedelta(seconds=seconds)
+
+    return advance
+
+
+def run_meeting(world, login, clock, seconds=310):
+    admin = login("admin")
+    admin.switch_team(world["team_alpha"])
+    admin.post("/meetings/session/start")
+    clock(seconds)
+    admin.post("/meetings/session/stop")
+    return admin
+
+
+def add_todo(db, world, title, created_at, owner="mia", status=TodoStatus.OPEN, due=None):
+    db.add(Todo(team_id=world["team_alpha"], owner_id=world[owner], title=title, created_at=created_at,
+                status=status, due_date=due))
+
+
+def test_finishing_a_meeting_sends_a_recap_to_opted_in_team_members(world, login, smtp, configured, clock):
+    opt_in(world, "mia", "meeting_summary")
+    opt_in(world, "max", "meeting_summary")   # Max is on Charlie, not Alpha
+    with SessionLocal() as db:
+        add_todo(db, world, "Before the meeting", T0 - timedelta(hours=1))
+        add_todo(db, world, "Order buses", T0 + timedelta(minutes=2), owner="vic")
+        add_todo(db, world, "Call the vendor", T0 + timedelta(minutes=4))
+        add_todo(db, world, "Dropped idea", T0 + timedelta(minutes=3), status=TodoStatus.DROPPED)
+        add_todo(db, world, "Next week's thing", T0 + timedelta(days=3))
+        db.commit()
+    admin = run_meeting(world, login, clock)
+    assert sent(smtp) == []                       # stopping is not finishing
+    assert admin.post("/meetings/session/finish").status_code == 200
+
+    (msg,) = sent(smtp)
+    assert msg["To"] == "mia@example.com"
+    assert msg["Subject"].startswith("Alpha meeting recap, ")
+    body = text(msg)
+    assert "It ran 5:10 in all" in body and "Segue: 5:10 (over its time)" in body
+    assert "Order buses (Vic Viewer)" in body and "Call the vendor (Mia Member)" in body
+    for left_out in ("Before the meeting", "Dropped idea", "Next week's thing"):
+        assert left_out not in body
+    assert "ISSUES STILL OPEN (1)" in body and "alpha issue" in body
+    assert "https://traction.district.test/meetings" in body
+
+
+def test_a_recap_with_nothing_new_says_so(world, login, smtp, configured, clock):
+    opt_in(world, "vic", "meeting_summary")
+    with SessionLocal() as db:
+        db.execute(update(Issue).values(status="resolved"))
+        db.commit()
+    run_meeting(world, login, clock).post("/meetings/session/finish")
+    body = text(sent(smtp)[0])
+    assert "No new To-Dos were added during the meeting." in body and "No issues are left open." in body
+
+
+def test_no_recap_unless_opted_in_or_when_email_is_off(world, login, smtp, configured, clock):
+    run_meeting(world, login, clock).post("/meetings/session/finish")
+    assert sent(smtp) == []
+
+
+def test_no_recap_when_email_is_off(world, login, smtp, clock):
+    opt_in(world, "mia", "meeting_summary")
+    run_meeting(world, login, clock).post("/meetings/session/finish")
+    assert sent(smtp) == []

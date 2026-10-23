@@ -1,8 +1,8 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Date, Enum as SAEnum, ForeignKey, String, Text
+from sqlalchemy import Date, DateTime, Enum as SAEnum, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +26,9 @@ class Todo(UUIDPKMixin, Base):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     due_date: Mapped[Optional[date]] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     status: Mapped[TodoStatus] = mapped_column(
         SAEnum(TodoStatus, name="todo_status", values_callable=lambda e: [m.value for m in e]),
         nullable=False,

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.config import settings
+from app.core.alert_emails import send_meeting_recap
 from app.core import ical, meeting_session
 from app.core.meeting_emails import calendar_file, send_meeting_cancelled, send_meeting_invites
 from app.core.org_time import local_to_utc, tz_of
@@ -373,6 +374,7 @@ def finish_recap(
 @router.post("/session/finish")
 def finish_session(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_web),
     team_ctx: TeamContext = Depends(get_team_context),
@@ -383,5 +385,7 @@ def finish_session(
     except meeting_session.SessionError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
     db.commit()
+    if settings.email_enabled:
+        background_tasks.add_task(send_meeting_recap, meeting.id)
     db.refresh(meeting)
     return _session_response(request, db, current_user, meeting)

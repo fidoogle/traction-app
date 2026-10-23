@@ -1,0 +1,19 @@
+Hi {{ name }},
+
+Recap of the {{ team }} meeting, {{ when }}. It ran {{ total }} in all.
+
+HOW THE TIME WENT
+{% for s in steps %}  - {{ s.label }}: {{ s.time }}{% if s.over %} (over its time){% endif %}
+{% endfor %}
+{% if todos %}NEW TO-DOS
+{% for t in todos %}  - {{ t.title }} ({{ t.owner }}{% if t.due %}, due {{ t.due }}{% endif %})
+{% endfor %}{% if todos_more %}  ...and {{ todos_more }} more.
+{% endif %}
+{% else %}No new To-Dos were added during the meeting.
+
+{% endif %}{% if issues %}ISSUES STILL OPEN ({{ issue_count }})
+{% for title in issues %}  - {{ title }}
+{% endfor %}{% if issues_more %}  ...and {{ issues_more }} more.
+{% endif %}{% else %}No issues are left open.
+{% endif %}
+Meetings in Traction: {{ link }}
