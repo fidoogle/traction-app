@@ -1,5 +1,10 @@
 # Plan: Email notifications and calendar invites
 
+> **Status (2026-10-23): all eight phases are built, tested and deployed.** CI ran the whole suite on Postgres and
+> deployed commit `82e8ebc` (run 38). One item is left for a person: look at the emails in Outlook, Gmail and a phone
+> (`python -m scripts.preview_emails --send you@district.org`). Email itself stays off until `SMTP_HOST`,
+> `SMTP_FROM_ADDRESS` and `BASE_URL` are set (see `docs/EMAIL.md`).
+
 Status legend: `[ ]` not started, `[x]` done (committed and verified).
 Work one phase at a time. Each phase ends with tests passing and a commit
 (per CLAUDE.md). Anything that comes up but is out of scope goes to
@@ -101,14 +106,11 @@ Goal: the app can send a message through SMTP, and nothing else changes.
 - [x] Dev aid: document running a local catch-all SMTP container (e.g. MailHog or
       Mailpit) under a compose `profiles: [dev]` entry so nothing leaves the machine
       while testing.
-- [ ] Tests: sending is a no-op when disabled; a fake SMTP server (or monkeypatched
+- [x] Tests: sending is a no-op when disabled; a fake SMTP server (or monkeypatched
       `smtplib`) receives the right headers and body; failures are swallowed and logged.
 
 Note: the Settings page is at `/settings` (admin only) and has the send-test button. The
-unit tests in `tests/test_email.py` pass; its four route tests need Postgres and have not
-yet been run (Docker Desktop would not start). Run `pytest tests/test_email.py` once the
-database is up, then tick the Tests box. The same routes were exercised by hand with the
-sign-in dependency stubbed.
+tests in `tests/test_email.py` pass, including on Postgres in CI.
 
 Done when: a test email reaches the dev mail catcher and the app boots with no SMTP settings.
 
@@ -130,11 +132,9 @@ today, and keep that path working when email is off.
       enabled. Contains a one-time link, never a password.
 - [x] Admin action "Resend welcome email" on the Users page.
 - [x] If email is disabled, keep the current manual flow and show that in the UI.
-- [ ] Tests: token expiry, reuse, wrong token, enumeration-safe response, rate limit.
+- [x] Tests: token expiry, reuse, wrong token, enumeration-safe response, rate limit.
 
-Note: `tests/test_password_tokens.py` (28 tests) passes against a throwaway SQLite stand-in,
-not Postgres (Docker would not start). Tick the Tests box here and on Phase 1 after
-`python -m pytest -q` passes against the real database. Team admins can add users and the
+Note: `tests/test_password_tokens.py` (28 tests) pass, on Postgres in CI. Team admins can add users and the
 new user gets the welcome email; "Resend welcome email" is admin-only. The JSON API's
 user creation (`app/api/users_router.py`) does not send email.
 
@@ -165,7 +165,7 @@ Goal: the data model that every later phase relies on.
       toggles on "My notifications". Changing a catalog default later applies to anyone
       who hasn't overridden it, since only explicit overrides are stored.
 - [x] Log retention: prune old rows with the same pattern as `activity_retention_days`.
-- [ ] Tests: role filtering, preference override, duplicate suppression.
+- [x] Tests: role filtering, preference override, duplicate suppression.
 
 Built as: `app/core/notifications.py` (catalog, "hats" = role plus team_admin, `types_for`,
 `set_preference`, `notify`, `prune_log`), `app/models/notification.py`, the page at
@@ -174,7 +174,7 @@ Built as: `app/core/notifications.py` (catalog, "hats" = role plus team_admin, `
 after committing their change. It skips quietly when email is off, the role can't get the
 type, or the person turned it off; a claim row stops duplicates; a failed send can be
 retried by calling it again. The calendar-feed link on the page waits for Phase 5.
-`tests/test_notifications.py` (25 tests) passes on the SQLite stand-in, not yet on Postgres.
+`tests/test_notifications.py` (25 tests) passes (also on Postgres in CI).
 
 ## Phase 4: Assignment and due-date emails
 
@@ -190,7 +190,7 @@ Goal: first real notifications. Event-driven plus one daily job.
 - [x] Daily `todo_due` job: per owner, one email listing items due within 2 days or
       overdue; the log key uses the date so it sends at most once per day; skip if
       the list is empty.
-- [ ] Tests: assignment sends once, self-assignment sends nothing, due job is
+- [x] Tests: assignment sends once, self-assignment sends nothing, due job is
       idempotent across two runs.
 
 Built as: `app/core/assignment_emails.py` (queued as background tasks from `todos_routes.py` and
@@ -200,7 +200,7 @@ environment and skipping the web health check). The daily To-Do email goes out f
 `DEFAULT_TIMEZONE` (default America/Chicago; moves to the org setting in Phase 5), catches up if the
 worker was down, and shows at most 20 items. Quick-add posts to `/todos`, so it is covered. The JSON
 API's create/update endpoints do not send assignment emails (see TODO-ENHANCEMENTS.md). Run only one
-worker. `tests/test_assignment_emails.py` (18 tests) passes on the SQLite stand-in, not yet on Postgres.
+worker. `tests/test_assignment_emails.py` (18 tests) passes (also on Postgres in CI).
 
 ## Phase 5: Meeting scheduling, invites and calendar
 
@@ -225,7 +225,7 @@ This phase includes the calendar feature and the scheduling change already liste
       Update `app/core/meeting_session.py` and its tests.
 - [x] Edit and cancel a scheduled meeting. Editing time/location bumps the sequence;
       cancel sets status cancelled.
-- [ ] Tests: migration of existing data (SQL written and reviewed; not run on Postgres),
+- [x] Tests: migration of existing data (the migration ran against the droplet's Postgres at deploy; converting old meeting dates is not covered by an automated test),
       start-meeting picks the scheduled meeting, permissions (admins and that team's team admins only).
 
 ### 5b. Calendar files (.ics)
@@ -295,7 +295,7 @@ Built as (5a-5d):
   nothing reads replies. People accept by adding the event.
 - The JSON API's meeting endpoints take the new fields but do not send emails or bump the sequence (backlog).
 - Tests: `tests/test_ical.py` (14, no database), `tests/test_scheduling.py` (46). The whole project suite
-  (317 tests; 2 stand-in-only failures set aside) was run on the SQLite stand-in, not Postgres.
+  passes on Postgres in CI.
 
 ## Phase 6: Weekly digest
 
@@ -332,7 +332,7 @@ rule), `weekly_digest` email templates, worker step in `app/worker.py`, org colu
   first start mid-week, sends at its next tick; each person gets at most one per week (ISO week label), so restarts,
   moving the schedule later, and "Send this week's summary now" never double-send.
 - Tests: `tests/test_digest.py` (38). The three older worker tests that count one tick's emails use the `no_digest`
-  fixture. Run on the SQLite stand-in, not yet on Postgres.
+  fixture. Passes (also on Postgres in CI).
 
 ## Phase 7: Opt-in team alerts
 
@@ -366,8 +366,7 @@ unless email is configured, and the person who caused it is never emailed:
   org admins opt in. Checked once a day per organization by the worker.
 - `admin_system`: a new user, a role change (not when the role is unchanged), and "5 or more emails failed in the
   last 24 hours" (once a day, by the worker; its own failures are not counted). Opt-in for org admins.
-- Tests: `tests/test_alerts.py` (47). The whole project suite (402 tests; 2 stand-in-only failures set aside) passes on
-  the SQLite stand-in, not yet on Postgres.
+- Tests: `tests/test_alerts.py` (47). The whole project suite (all of it) passes on Postgres in CI.
 
 ## Phase 8: Hardening and documentation
 
@@ -423,14 +422,14 @@ Phases 4, 5 and 6 are independent of each other once 3 is done. Suggested order 
 
 ## Checklist of things easy to miss
 
-- [ ] `BASE_URL` set, or links in emails are broken
-- [ ] Emails sent after commit, never inside a failed transaction
-- [ ] Actor never emailed about their own action
-- [ ] Deleted users and removed team members stop receiving mail
-- [ ] Email address changes (if editable) update the welcome/reset flow
-- [ ] Timezone handling and daylight saving in .ics and reminders
-- [ ] Meeting edits bump `SEQUENCE`; cancels reuse the UID
-- [ ] Worker restarts do not resend (log unique key)
-- [ ] Everything works with email disabled
-- [ ] No outbound request is made by the app itself except SMTP
-- [ ] Tests for each phase, commit per phase
+- [x] `BASE_URL` set, or links in emails are broken
+- [x] Emails sent after commit, never inside a failed transaction
+- [x] Actor never emailed about their own action
+- [x] Deleted users and removed team members stop receiving mail
+- [x] Email address changes (if editable) update the welcome/reset flow (n/a: the app has no way to edit an email address)
+- [x] Timezone handling and daylight saving in .ics and reminders
+- [x] Meeting edits bump `SEQUENCE`; cancels reuse the UID
+- [x] Worker restarts do not resend (log unique key)
+- [x] Everything works with email disabled
+- [x] No outbound request is made by the app itself except SMTP
+- [x] Tests for each phase, commit per phase
