@@ -10,15 +10,17 @@ import signal
 import threading
 import uuid
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import select
 
 from app.config import settings
+from app.core.digest_emails import digest_due, send_digests
 from app.core.due_emails import send_due_todos
 from app.core.meeting_emails import send_meeting_reminders
-from app.core.org_time import tz_of
+from app.core.org_time import to_local, tz_of
 from app.db import SessionLocal
 from app.models import Organization
 
@@ -33,6 +35,7 @@ class WorkerState:
     """What this process has already done today, to avoid re-checking every tick."""
 
     todo_due_dates: dict[uuid.UUID, date] = field(default_factory=dict)  # per organization
+    digest_weeks: dict[uuid.UUID, str] = field(default_factory=dict)  # week label last sent, per organization
 
 
 def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
@@ -41,11 +44,17 @@ def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
     now = now or datetime.now(timezone.utc)
 
     with SessionLocal() as db:
-        orgs = db.execute(select(Organization.id, Organization.timezone)).all()
+        orgs = [
+            SimpleNamespace(
+                id=o.id, timezone=o.timezone, digest_weekday=o.digest_weekday, digest_time=o.digest_time
+            )
+            for o in db.scalars(select(Organization))
+        ]
 
     # Each organization has its own clock, so "7:00" is 7:00 where they are.
-    for org_id, zone in orgs:
-        local = now.astimezone(tz_of(zone))
+    for org in orgs:
+        org_id = org.id
+        local = now.astimezone(tz_of(org.timezone))
         if local.hour >= TODO_DUE_HOUR and state.todo_due_dates.get(org_id) != local.date():
             try:
                 with SessionLocal() as db:
@@ -54,6 +63,18 @@ def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
                 state.todo_due_dates[org_id] = local.date()
             except Exception:
                 logger.exception("To-Do due job failed; will retry next tick")
+
+        # The weekly summary: once this week's moment (set by the admin) has passed,
+        # until it has gone out. The per-person record stops a second send.
+        due, label = digest_due(org, now)
+        if due and state.digest_weeks.get(org_id) != label:
+            try:
+                with SessionLocal() as db:
+                    sent = send_digests(db, org_id, to_local(now, tz_of(org.timezone)).date(), label)
+                logger.info("Weekly summaries %s: %d sent", label, sent)
+                state.digest_weeks[org_id] = label
+            except Exception:
+                logger.exception("Weekly summary job failed; will retry next tick")
 
     try:
         with SessionLocal() as db:

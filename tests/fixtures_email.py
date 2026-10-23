@@ -58,3 +58,12 @@ def configured(monkeypatch):
         "base_url": "https://traction.district.test/",
     }.items():
         monkeypatch.setattr(settings, name, value)
+
+
+@pytest.fixture()
+def no_digest(monkeypatch):
+    """For worker tests that count the emails from one tick: keeps the weekly
+    summary (which the worker also sends when it is due) out of the count."""
+    from app import worker
+
+    monkeypatch.setattr(worker, "digest_due", lambda org, now: (False, ""))

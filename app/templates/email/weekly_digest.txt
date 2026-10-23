@@ -1,0 +1,27 @@
+Hi {{ name }},
+
+Here is your week in Traction.
+{% if digest.todos %}
+YOUR OPEN TO-DOS
+{% for t in digest.todos %}  - {{ t.title }} ({{ t.team }}) - {{ t.when }}
+{% endfor %}{% if digest.todos_more %}  ...and {{ digest.todos_more }} more.
+{% endif %}  All of them: {{ todos_link }}
+{% endif %}{% if digest.rocks %}
+YOUR ROCKS THAT ARE OFF TRACK
+{% for r in digest.rocks %}  - {{ r.title }} ({{ r.team }})
+{% endfor %}  All of them: {{ rocks_link }}
+{% endif %}{% if digest.off_goal %}
+YOUR SCORECARD NUMBERS BELOW GOAL
+{% for m in digest.off_goal %}  - {{ m.name }}: {{ m.actual }} (goal {{ m.goal }})
+{% endfor %}  Scorecards: {{ scorecards_link }}
+{% endif %}{% for team in digest.teams %}
+{{ team.name | upper }}
+  Rocks this quarter: {{ team.rocks_total }} ({{ team.rocks_done }} done, {{ team.rocks_off_track | length }} off track)
+{% for title in team.rocks_off_track %}    off track: {{ title }}
+{% endfor %}  Open To-Dos: {{ team.open_todos }}{% if team.overdue_todos %} ({{ team.overdue_todos }} overdue){% endif %}
+
+  Open issues: {{ team.open_issues }}
+{% if team.measured %}  Scorecard: {{ team.measured - team.off_goal | length }} of {{ team.measured }} numbers met their goal
+{% for n in team.off_goal %}    below goal: {{ n }}
+{% endfor %}{% endif %}{% endfor %}
+Open Traction: {{ link }}

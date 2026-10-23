@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from datetime import time
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from markupsafe import escape
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.api.deps import get_db
+from app.core.digest_emails import STEP_MINUTES, WEEKDAYS, send_digest_now
 from app.core.email import render_email, send_email
 from app.core.org_time import all_timezones, is_valid_timezone
 from app.models import User, UserRole
@@ -30,6 +33,7 @@ def settings_page(request: Request, current_user: User = Depends(get_current_use
             "cfg": settings,
             "org": current_user.organization,
             "timezones": all_timezones(),
+            "weekdays": WEEKDAYS,
         },
     )
 
@@ -47,6 +51,36 @@ def save_timezone(
     current_user.organization.timezone = timezone
     db.commit()
     return HTMLResponse("Saved")
+
+
+@router.post("/digest")
+def save_digest_schedule(
+    weekday: int = Form(...),
+    at: time = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    _require_admin(current_user)
+    if not 0 <= weekday <= 6:
+        raise HTTPException(status_code=422, detail="Pick a day of the week.")
+    if at.minute % STEP_MINUTES or at.second:
+        raise HTTPException(status_code=422, detail=f"Pick a time on a {STEP_MINUTES}-minute step.")
+    org = current_user.organization
+    org.digest_weekday, org.digest_time = weekday, at.replace(microsecond=0)
+    db.commit()
+    return HTMLResponse("Saved. It applies from the next summary.")
+
+
+@router.post("/digest/send-now")
+def send_digest_now_route(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user_web),
+):
+    _require_admin(current_user)
+    if not settings.email_enabled:
+        return HTMLResponse('<span class="error">Email is not configured.</span>')
+    background_tasks.add_task(send_digest_now, current_user.org_id)
+    return HTMLResponse("Sending. Anyone who already got this week's summary will not get another.")
 
 
 @router.post("/calendar-links")

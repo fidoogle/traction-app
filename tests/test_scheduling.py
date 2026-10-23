@@ -310,7 +310,7 @@ def test_reminders_do_nothing_when_email_is_off(world, smtp):
     assert sent(smtp) == []
 
 
-def test_the_worker_sends_reminders_on_its_tick(world, smtp, configured):
+def test_the_worker_sends_reminders_on_its_tick(world, smtp, configured, no_digest):
     with SessionLocal() as db:
         add_meeting(db, world, NOW + timedelta(hours=23))
     worker.tick(worker.WorkerState(), NOW)

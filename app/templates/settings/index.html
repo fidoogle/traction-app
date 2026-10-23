@@ -41,6 +41,38 @@
 </div>
 
 <div class="card">
+  <h2>Weekly summary email</h2>
+  <p class="field-hint">Everyone gets one summary a week: their open To-Dos, Rocks that are off track and scorecard
+     numbers that missed their goal. Team admins and viewers also get a short summary of their team. Nobody is emailed
+     when there is nothing to report. Each person can turn it off for themselves.</p>
+  <form hx-post="/settings/digest" hx-target="#digest-result" hx-swap="innerHTML">
+    <div class="form-row">
+      <div class="field">
+        <label for="digest-day">Day</label>
+        <select id="digest-day" name="weekday">
+          {% for name in weekdays %}
+          <option value="{{ loop.index0 }}" {% if loop.index0 == org.digest_weekday %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="digest-time">Time ({{ org.timezone }})</label>
+        <input type="time" id="digest-time" name="at" step="900" value="{{ org.digest_time.strftime('%H:%M') }}" required>
+      </div>
+      <button class="primary" type="submit">Save</button>
+      <span id="digest-result" class="field-hint" role="status"></span>
+    </div>
+  </form>
+  {% if cfg.email_enabled %}
+  <p>
+    <button type="button" class="secondary" hx-post="/settings/digest/send-now" hx-target="#digest-now-result"
+            hx-swap="innerHTML" hx-confirm="Send this week's summary to everyone now?">Send this week's summary now</button>
+    <span id="digest-now-result" class="field-hint" role="status"></span>
+  </p>
+  {% endif %}
+</div>
+
+<div class="card">
   <h2>Calendar links in invitations</h2>
   <p class="field-hint">Meeting emails always attach a calendar file that works in Outlook, Google Calendar and Apple Calendar,
      with no outside connection. You can also add "Add to Google Calendar" and "Add to Outlook" links. They open those outside

@@ -220,7 +220,7 @@ def late_todo(world):
         db.commit()
 
 
-def test_the_worker_waits_until_7am_local_then_sends_once(world, smtp, configured, late_todo):
+def test_the_worker_waits_until_7am_local_then_sends_once(world, smtp, configured, late_todo, no_digest):
     state = worker.WorkerState()
     worker.tick(state, utc(2026, 10, 22, 11, 59))  # 6:59 CDT
     assert sent(smtp) == [] and not state.todo_due_dates
@@ -231,7 +231,7 @@ def test_the_worker_waits_until_7am_local_then_sends_once(world, smtp, configure
     assert len(sent(smtp)) == 1
 
 
-def test_the_worker_follows_daylight_saving(world, smtp, configured, late_todo):
+def test_the_worker_follows_daylight_saving(world, smtp, configured, late_todo, no_digest):
     state = worker.WorkerState()
     worker.tick(state, utc(2026, 11, 10, 12, 0))  # 6:00 CST: not yet
     assert sent(smtp) == []
@@ -239,7 +239,7 @@ def test_the_worker_follows_daylight_saving(world, smtp, configured, late_todo):
     assert len(sent(smtp)) == 1
 
 
-def test_a_restarted_worker_does_not_resend(world, smtp, configured, late_todo):
+def test_a_restarted_worker_does_not_resend(world, smtp, configured, late_todo, no_digest):
     worker.tick(worker.WorkerState(), utc(2026, 10, 22, 15, 0))
     worker.tick(worker.WorkerState(), utc(2026, 10, 22, 16, 0))  # a fresh process, same day
     assert len(sent(smtp)) == 1

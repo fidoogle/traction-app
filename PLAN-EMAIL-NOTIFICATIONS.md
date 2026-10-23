@@ -299,26 +299,40 @@ Built as (5a-5d):
 
 ## Phase 6: Weekly digest
 
-- [ ] Digest builder: for one user, gather open To-Dos (due soon or overdue), Rocks
-      Off Track or At Risk, and scorecard items off goal, scoped to their teams. Return
+- [x] Digest builder: for one user, gather open To-Dos (due soon or overdue), Rocks
+      Off Track (there is no separate "at risk" status), and scorecard items off goal, scoped to their teams. Return
       nothing if there is nothing to say, and send no email.
-- [ ] Digest schedule is an org setting: day of week and time, default Monday 7:00 in
+- [x] Digest schedule is an org setting: day of week and time, default Monday 7:00 in
       the org timezone. One schedule for all users, no per-user setting. Stored in an
       org-level settings row (add alongside the timezone field in Phase 5, or a small
       migration here if Phase 6 comes first).
-- [ ] Admin-only form on a Settings page to change the day and time, validated
+- [x] Admin-only form on a Settings page to change the day and time, validated
       (day 0-6, time on a 15-minute step). Changes apply from the next run.
-- [ ] Worker checks each tick whether the scheduled moment this week has passed and no
+- [x] Worker checks each tick whether the scheduled moment this week has passed and no
       digest has gone out for this ISO week (log key = ISO week). If the worker was
       down at the scheduled time it sends on its next tick, not skipping the week.
       If an admin moves the schedule to later this week after the digest already sent,
       it does not send twice.
-- [ ] Optional: admin "Send digest now" button, which uses the same log key so it counts
+- [x] Optional: admin "Send digest now" button, which uses the same log key so it counts
       as this week's digest.
-- [ ] Digest respects role: viewers get the read-only summary, members get items
+- [x] Digest respects role: viewers get the read-only summary, members get items
       they own, team admins also get team totals.
-- [ ] Tests: content per role, empty digest sends nothing, once per week, schedule
+- [x] Tests: content per role, empty digest sends nothing, once per week, schedule
       change honored, daylight-saving week boundaries.
+
+Built as: `app/core/digest.py` (who gets what), `app/core/digest_emails.py` (sending and the "is it due this week"
+rule), `weekly_digest` email templates, worker step in `app/worker.py`, org columns `digest_weekday` / `digest_time`
+(migration `f8c2e5a1b7d3`) and the Weekly summary card on the Settings page.
+- Content: a member or admin gets what they own (all open To-Dos, nearest due first, ten at most; their Rocks that are
+  off track this quarter; their scorecard numbers whose latest result, this week or last, missed goal). A viewer gets a
+  summary per team they are on. A team admin gets both, with the summary only for the teams they administer. An org
+  admin gets what they own, not a summary of every team. Nobody is emailed when their summary would be empty.
+- Schedule: Monday 7:00 by the organization's clock until an admin changes it (day, and a time in 15-minute steps).
+  Once the moment has passed it stays due for the rest of that Monday-to-Sunday week, so a worker that was down, or a
+  first start mid-week, sends at its next tick; each person gets at most one per week (ISO week label), so restarts,
+  moving the schedule later, and "Send this week's summary now" never double-send.
+- Tests: `tests/test_digest.py` (38). The three older worker tests that count one tick's emails use the `no_digest`
+  fixture. Run on the SQLite stand-in, not yet on Postgres.
 
 ## Phase 7: Opt-in team alerts
 
