@@ -10,6 +10,14 @@
 </div>
 {% endif %}
 
+<div class="card">
+  <h2>Calendar</h2>
+  {% include "notifications/_calendar_feed.html" %}
+  <p class="field-hint">Meeting emails also carry a calendar file you can open to add or update a single meeting.
+    A subscription needs your calendar app to reach this site: Outlook on the district network usually can; Google Calendar
+    fetches from the internet, so it cannot reach a private address, and refreshes only every few hours.</p>
+</div>
+
 {% for group, items in groups.items() %}
 <div class="card">
   <h2>{{ group }}</h2>

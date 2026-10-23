@@ -1,7 +1,11 @@
 {% from "_macros.html" import icon_pencil, icon_trash %}
+{% set can_admin = request.state.team_ctx.can_admin(meeting.team_id) %}
 <tr id="meeting-row-{{ meeting.id }}">
   <td>{{ meeting.team.name }}</td>
-  <td>{{ meeting.scheduled_date }}</td>
+  <td data-sort="{{ meeting.scheduled_start.timestamp() | int }}">{{ format_short(meeting.scheduled_start, tz) }}</td>
+  <td data-sort="{{ meeting.duration_minutes }}">{{ meeting.duration_minutes }} min</td>
+  <td>{{ meeting.location or "" }}</td>
+  <td><span class="badge">{{ meeting.status.value.replace("_", " ") | capitalize }}</span></td>
   <td data-sort="{{ meeting.step_seconds | sum if meeting.started_at else 0 }}">
     {% if meeting.started_at %}
     <strong>{{ step_clock(meeting.step_seconds | sum) }}</strong>
@@ -13,19 +17,36 @@
     </div>
     {% endif %}
   </td>
-  {% if request.state.team_ctx.can_admin_any %}
   <td class="row-actions">
-    {% if request.state.team_ctx.can_admin(meeting.team_id) %}
+    {% if meeting.status.value == "scheduled" %}
+    <a class="link" href="/meetings/{{ meeting.id }}/calendar.ics" title="Download a calendar file for Outlook, Google Calendar or Apple Calendar">Add to calendar</a>
+    {% endif %}
+    {% if can_admin %}
+    {% if meeting.status.value == "scheduled" %}
+    <button
+      class="icon-button row-icon" aria-label="Edit" title="Edit"
+      hx-get="/meetings/{{ meeting.id }}/edit"
+      hx-target="#meeting-row-{{ meeting.id }}"
+      hx-swap="outerHTML"
+    >
+      {{ icon_pencil | safe }}
+    </button>
+    <button class="link-muted" type="button"
+      hx-post="/meetings/{{ meeting.id }}/cancel"
+      hx-target="#meeting-row-{{ meeting.id }}"
+      hx-swap="outerHTML"
+      hx-confirm="Cancel the {{ meeting.team.name }} meeting on {{ format_short(meeting.scheduled_start, tz) }}?{% if email_enabled() %} The team will be emailed.{% endif %}"
+    >Cancel meeting</button>
+    {% endif %}
     <button
       class="icon-button row-icon danger" aria-label="Delete" title="Delete"
       hx-delete="/meetings/{{ meeting.id }}"
       hx-target="#meeting-row-{{ meeting.id }}"
       hx-swap="delete"
-      hx-confirm="Delete the {{ meeting.team.name }} meeting from {{ meeting.scheduled_date }}? This cannot be undone."
+      hx-confirm="Delete the {{ meeting.team.name }} meeting on {{ format_short(meeting.scheduled_start, tz) }}? This cannot be undone."
     >
       {{ icon_trash | safe }}
     </button>
     {% endif %}
   </td>
-  {% endif %}
 </tr>

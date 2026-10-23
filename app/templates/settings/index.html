@@ -19,4 +19,37 @@
      <code>SMTP_USERNAME</code>, <code>SMTP_PASSWORD</code>) in the server's environment, then restart the app.</p>
   {% endif %}
 </div>
+
+<div class="card">
+  <h2>Time zone</h2>
+  <p class="field-hint">Meeting times are entered and shown in this zone, and the daily and weekly emails go out by its clock.
+     Calendar apps convert meeting times for each person automatically.</p>
+  <form hx-post="/settings/timezone" hx-target="#timezone-result" hx-swap="innerHTML">
+    <div class="form-row">
+      <div class="field">
+        <label for="timezone">Time zone</label>
+        <input type="text" id="timezone" name="timezone" list="timezone-list" value="{{ org.timezone }}" required
+               autocomplete="off">
+        <datalist id="timezone-list">
+          {% for name in timezones %}<option value="{{ name }}"></option>{% endfor %}
+        </datalist>
+      </div>
+      <button class="primary" type="submit">Save</button>
+      <span id="timezone-result" class="field-hint" role="status"></span>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Calendar links in invitations</h2>
+  <p class="field-hint">Meeting emails always attach a calendar file that works in Outlook, Google Calendar and Apple Calendar,
+     with no outside connection. You can also add "Add to Google Calendar" and "Add to Outlook" links. They open those outside
+     websites when someone clicks, so leave this off if your network is closed to the internet.</p>
+  <label class="checkbox-field">
+    <input type="checkbox" name="enabled" value="1" {% if org.calendar_web_links %}checked{% endif %}
+           hx-post="/settings/calendar-links" hx-trigger="change" hx-target="#calendar-links-result" hx-swap="innerHTML">
+    Include "Add to Google / Outlook" links in meeting emails
+  </label>
+  <span id="calendar-links-result" class="field-hint" role="status"></span>
+</div>
 {% endblock %}

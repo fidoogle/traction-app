@@ -1,0 +1,10 @@
+Hi {{ name }},
+
+The {{ team }} meeting has been cancelled.
+
+  Was: {{ when }}
+{% if location %}  Where: {{ location }}
+{% endif %}
+The attached calendar file removes it from Outlook, Google Calendar or Apple Calendar when you open it.
+
+Meetings in Traction: {{ link }}

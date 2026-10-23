@@ -223,9 +223,9 @@ def late_todo(world):
 def test_the_worker_waits_until_7am_local_then_sends_once(world, smtp, configured, late_todo):
     state = worker.WorkerState()
     worker.tick(state, utc(2026, 10, 22, 11, 59))  # 6:59 CDT
-    assert sent(smtp) == [] and state.todo_due_date is None
+    assert sent(smtp) == [] and not state.todo_due_dates
     worker.tick(state, utc(2026, 10, 22, 12, 0))  # 7:00 CDT
-    assert len(sent(smtp)) == 1 and state.todo_due_date == date(2026, 10, 22)
+    assert len(sent(smtp)) == 1 and set(state.todo_due_dates.values()) == {date(2026, 10, 22)}
     worker.tick(state, utc(2026, 10, 22, 12, 1))
     worker.tick(state, utc(2026, 10, 22, 23, 0))
     assert len(sent(smtp)) == 1
@@ -248,13 +248,13 @@ def test_a_restarted_worker_does_not_resend(world, smtp, configured, late_todo):
 def test_the_worker_idles_when_email_is_off(world, smtp, late_todo):
     state = worker.WorkerState()
     worker.tick(state, utc(2026, 10, 22, 15, 0))
-    assert sent(smtp) == [] and state.todo_due_date is None
+    assert sent(smtp) == [] and not state.todo_due_dates
 
 
 def test_a_failed_job_is_retried_on_the_next_tick(world, smtp, configured, monkeypatch):
     calls = []
 
-    def boom(db, today):
+    def boom(db, today, org_id=None):
         calls.append(today)
         raise RuntimeError("database hiccup")
 
@@ -262,4 +262,4 @@ def test_a_failed_job_is_retried_on_the_next_tick(world, smtp, configured, monke
     state = worker.WorkerState()
     worker.tick(state, utc(2026, 10, 22, 15, 0))
     worker.tick(state, utc(2026, 10, 22, 15, 1))
-    assert len(calls) == 2 and state.todo_due_date is None
+    assert len(calls) == 4 and not state.todo_due_dates  # two organizations x two ticks

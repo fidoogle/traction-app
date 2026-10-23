@@ -1,0 +1,18 @@
+{% set local = to_local(meeting.scheduled_start, tz) %}
+<tr id="meeting-row-{{ meeting.id }}" class="row-edit">
+  <td>{{ meeting.team.name }}</td>
+  <td>
+    <input type="date" name="day" value="{{ local.strftime('%Y-%m-%d') }}" required aria-label="Date">
+    <input type="time" name="at" value="{{ local.strftime('%H:%M') }}" required aria-label="Time">
+  </td>
+  <td><input type="number" name="duration_minutes" value="{{ meeting.duration_minutes }}" min="15" max="480" required aria-label="Length in minutes"></td>
+  <td><input type="text" name="location" value="{{ meeting.location or '' }}" maxlength="255" aria-label="Location"></td>
+  <td><span class="badge">Scheduled</span></td>
+  <td></td>
+  <td class="row-actions">
+    <button class="link" hx-put="/meetings/{{ meeting.id }}" hx-include="closest tr"
+            hx-target="#meeting-row-{{ meeting.id }}" hx-swap="outerHTML">Save</button>
+    <button class="link-muted" hx-get="/meetings/{{ meeting.id }}"
+            hx-target="#meeting-row-{{ meeting.id }}" hx-swap="outerHTML">Cancel</button>
+  </td>
+</tr>

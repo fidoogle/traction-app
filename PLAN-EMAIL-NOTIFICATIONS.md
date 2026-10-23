@@ -209,44 +209,44 @@ This phase includes the calendar feature and the scheduling change already liste
 
 ### 5a. Scheduling model
 
-- [ ] Migration: change `meetings.scheduled_date` (Date) to a real timestamp
+- [x] Migration: change `meetings.scheduled_date` (Date) to a real timestamp
       (`scheduled_start` with timezone) plus `duration_minutes` (default 90), optional `location`
       (room name or video link). Convert existing rows to a default time.
-- [ ] Add `ical_uid` (stable UUID) and `ical_sequence` (integer, bumped on each
+- [x] Add `ical_uid` (stable UUID) and `ical_sequence` (integer, bumped on each
       change) to meetings. Calendars use these to update rather than duplicate.
-- [ ] Org-wide timezone setting stored with the organization, default `America/Chicago`
+- [x] Org-wide timezone setting stored with the organization, default `America/Chicago`
       (IANA name, so daylight saving is handled; do not hard-code a fixed UTC-6 offset).
       Admin can change it. Meeting times are entered and displayed in this zone,
       stored in UTC, and written to `.ics` as UTC so every calendar converts correctly.
       Use stdlib `zoneinfo`; the Docker image needs the `tzdata` package since slim
       images often lack zone data.
-- [ ] Bring back the "Schedule a meeting" form and `POST /meetings`. Starting a
+- [x] Bring back the "Schedule a meeting" form and `POST /meetings`. Starting a
       meeting (Play button) should pick up the scheduled one for today.
       Update `app/core/meeting_session.py` and its tests.
-- [ ] Edit and cancel a scheduled meeting. Editing time/location bumps the sequence;
+- [x] Edit and cancel a scheduled meeting. Editing time/location bumps the sequence;
       cancel sets status cancelled.
-- [ ] Tests: migration of existing data, start-meeting picks the scheduled meeting,
-      permissions (admins and that team's team admins only).
+- [ ] Tests: migration of existing data (SQL written and reviewed; not run on Postgres),
+      start-meeting picks the scheduled meeting, permissions (admins and that team's team admins only).
 
 ### 5b. Calendar files (.ics)
 
-- [ ] `app/core/ical.py`: build `VCALENDAR` with one `VEVENT` (UID, SEQUENCE, DTSTAMP,
+- [x] `app/core/ical.py`: build `VCALENDAR` with one `VEVENT` (UID, SEQUENCE, DTSTAMP,
       DTSTART/DTEND in UTC, SUMMARY, LOCATION, DESCRIPTION with the app link, URL,
       ORGANIZER, STATUS, optional `VALARM`). Escape and fold lines per RFC 5545.
       Hand-written, no dependency, so there is nothing to check for phoning home.
-- [ ] Use `METHOD:REQUEST` for invites and updates, and `METHOD:CANCEL` (with the
+- [x] Use `METHOD:REQUEST` for invites and updates, and `METHOD:CANCEL` (with the
       same UID and a higher SEQUENCE) for cancellations.
-- [ ] Authenticated download `GET /meetings/{id}/calendar.ics` ("Add to calendar"
+- [x] Authenticated download `GET /meetings/{id}/calendar.ics` ("Add to calendar"
       button on the Meetings page and the meeting detail).
-- [ ] Tests: output checked against a fixed sample; round-trip parse with a throwaway
+- [x] Tests: output checked against a fixed sample; round-trip parse with a throwaway
       parser in tests; line folding and escaping of commas, semicolons, newlines.
 
 ### 5c. Calendar emails
 
-- [ ] `meeting_invite`: email with the .ics attached (`text/calendar; method=REQUEST`)
+- [x] `meeting_invite`: email with the .ics attached (`text/calendar; method=REQUEST`)
       so Outlook and Apple Mail show Accept / Decline and Gmail shows "Add to
       calendar". Body also has plain details and a link to the app.
-- [ ] Optional links in the email body, built as plain URLs (no data sent anywhere
+- [x] Optional links in the email body, built as plain URLs (no data sent anywhere
       until the user clicks):
       - Google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=...&dates=...`
       - Outlook web: `https://outlook.office.com/calendar/0/deeplink/compose?...`
@@ -254,28 +254,48 @@ This phase includes the calendar feature and the scheduling change already liste
       Show these links only if an admin setting "include web calendar links" is on,
       since they point at external sites. Default off for air-gapped sites; the
       attachment alone is enough there.
-- [ ] `meeting_cancelled` with the cancel .ics.
-- [ ] Add a 15-minute `VALARM` to every `.ics` so calendar apps alert on their own.
-- [ ] `meeting_reminder` via the worker: 24 h before (default), and 1 h before for users
+- [x] `meeting_cancelled` with the cancel .ics.
+- [x] Add a 15-minute `VALARM` to every `.ics` so calendar apps alert on their own.
+- [x] `meeting_reminder` via the worker: 24 h before (default), and 1 h before for users
       who opted in. Log key includes the meeting id and sequence so a rescheduled
       meeting reminds again.
-- [ ] Changed meetings re-send the invite with the new sequence (Phase 3 helper,
+- [x] Changed meetings re-send the invite with the new sequence (Phase 3 helper,
       key `meeting_invite`, period key = sequence).
-- [ ] Tests: attachment present with right content type and METHOD; update uses the
+- [x] Tests: attachment present with right content type and METHOD; update uses the
       same UID with a higher SEQUENCE; reminders not duplicated; cancelled meetings
       stop reminders.
 
 ### 5d. Optional calendar subscription feed
 
-- [ ] Per-user private feed URL `/calendar/{token}.ics` listing the user's teams'
+- [x] Per-user private feed URL `/calendar/{token}.ics` listing the user's teams'
       upcoming meetings, which they can subscribe to in Outlook or Google ("from URL").
       Token is random, revocable and regenerable from "My notifications".
       Google refreshes subscribed calendars slowly (hours), so say that in the UI.
-- [ ] Only for sites where the app URL is reachable from the user's calendar client
+- [x] Only for sites where the app URL is reachable from the user's calendar client
       (Outlook desktop on the district network is the usual case). Note that Google
       Calendar's servers fetch the URL themselves, so this will not work on a private
       network; document that rather than hiding it.
-- [ ] Tests: token auth, revoke, no data from teams the user isn't in.
+- [x] Tests: token auth, revoke, no data from teams the user isn't in.
+
+Built as (5a-5d):
+- Model/migration `e6a9c3d1f8b4`: `meetings.scheduled_start` (UTC) + `duration_minutes` (90) + `location` +
+  `ical_uid` + `ical_sequence`; `organizations.timezone` (America/Chicago) and `calendar_web_links` (off);
+  `users.calendar_token`. Existing meetings keep their real start time, others get 9:00 AM Central on their date.
+- `app/core/org_time.py` (zones, DST-safe local-to-UTC), `app/core/ical.py` (hand-written RFC 5545, folding and
+  escaping, REQUEST / CANCEL / PUBLISH, 15-minute alert, Google and Outlook web links),
+  `app/core/meeting_emails.py` (invites, updates, cancellations, reminders).
+- Meetings page: schedule form (admins of the team), inline edit, Cancel meeting, "Add to calendar" download.
+  Settings page (admins): time zone and the "Add to Google / Outlook links" switch.
+  "My notifications": subscribe to a private calendar feed (`/calendar/<secret>.ics`), replace or switch it off.
+- Reminders: 24 h ahead goes out when the meeting is 22-24 h away (so a meeting made with less than a day's notice
+  gets none; its invite is the notice); the opt-in 1 h reminder when it is 30-60 min away. Rescheduling reminds again.
+- The daily To-Do email and the worker now follow each organization's own time zone (the `DEFAULT_TIMEZONE`
+  setting is only a fallback).
+- Replies: invitations name the app's From address as organizer and ask for no RSVP (RSVP=FALSE), because
+  nothing reads replies. People accept by adding the event.
+- The JSON API's meeting endpoints take the new fields but do not send emails or bump the sequence (backlog).
+- Tests: `tests/test_ical.py` (14, no database), `tests/test_scheduling.py` (46). The whole project suite
+  (317 tests; 2 stand-in-only failures set aside) was run on the SQLite stand-in, not Postgres.
 
 ## Phase 6: Weekly digest
 

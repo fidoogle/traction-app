@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
@@ -45,9 +45,9 @@ def dashboard(
         .where(
             Meeting.team_id.in_(team_ids),
             Meeting.status == MeetingStatus.SCHEDULED,
-            Meeting.scheduled_date >= date.today(),
+            Meeting.scheduled_start >= datetime.now(timezone.utc),
         )
-        .order_by(Meeting.scheduled_date)
+        .order_by(Meeting.scheduled_start)
         .limit(5)
     ).all()
 

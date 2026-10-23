@@ -1,8 +1,8 @@
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import Date, DateTime, Enum as SAEnum, ForeignKey, SmallInteger
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, Integer, SmallInteger, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,7 +16,21 @@ class Meeting(UUIDPKMixin, Base):
     team_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("teams.id"), nullable=False
     )
-    scheduled_date: Mapped[date] = mapped_column(Date, nullable=False)
+    # When the meeting is (or was) due to start. Entered and shown in the
+    # organization's time zone, stored in UTC.
+    scheduled_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    duration_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=90, server_default="90"
+    )
+    location: Mapped[Optional[str]] = mapped_column(String(255))
+    # Calendar identity: calendars match an update or cancellation to the event
+    # they already hold by this UID, and apply it if the sequence is higher.
+    ical_uid: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True, default=lambda: str(uuid.uuid4())
+    )
+    ical_sequence: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     status: Mapped[MeetingStatus] = mapped_column(
         SAEnum(MeetingStatus, name="meeting_status", values_callable=lambda e: [m.value for m in e]),
         nullable=False,

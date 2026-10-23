@@ -1,14 +1,16 @@
 """The daily "your To-Dos are due" email."""
 
 from collections import defaultdict
+import uuid
 from datetime import date, timedelta
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import settings
 from app.core.notifications import notify
-from app.models import Todo, TodoStatus, User
+from app.models import Team, Todo, TodoStatus, User
 
 DUE_WITHIN_DAYS = 2
 MAX_ITEMS = 20  # the rest are summarised as "and N more"
@@ -25,26 +27,26 @@ def due_label(due: date, today: date) -> str:
     return "due " + due.strftime("%A, %B %d").replace(" 0", " ")
 
 
-def send_due_todos(db: Session, today: date) -> int:
+def send_due_todos(db: Session, today: date, org_id: Optional[uuid.UUID] = None) -> int:
     """One email per person listing their open To-Dos that are due within two
     days or late. Safe to run repeatedly: notify() sends at most one per person
-    per `today`. Returns how many emails went out."""
+    per `today`. Limited to one organization when org_id is given (each has its
+    own clock). Returns how many emails went out."""
     if not settings.email_enabled:
         return 0
-    todos = (
-        db.scalars(
-            select(Todo)
-            .where(
-                Todo.status == TodoStatus.OPEN,
-                Todo.due_date.is_not(None),
-                Todo.due_date <= today + timedelta(days=DUE_WITHIN_DAYS),
-            )
-            .options(joinedload(Todo.team))
-            .order_by(Todo.due_date, Todo.title)
+    query = (
+        select(Todo)
+        .where(
+            Todo.status == TodoStatus.OPEN,
+            Todo.due_date.is_not(None),
+            Todo.due_date <= today + timedelta(days=DUE_WITHIN_DAYS),
         )
-        .unique()
-        .all()
+        .options(joinedload(Todo.team))
+        .order_by(Todo.due_date, Todo.title)
     )
+    if org_id is not None:
+        query = query.where(Todo.team_id.in_(select(Team.id).where(Team.org_id == org_id)))
+    todos = db.scalars(query).unique().all()
     # Plain data first: notify() commits, which would expire the ORM objects.
     by_owner = defaultdict(list)
     for todo in todos:

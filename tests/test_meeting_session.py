@@ -128,14 +128,16 @@ def test_finish_restores_the_menu_and_the_times_show_on_the_meetings_page(admin,
 
 def test_starting_reuses_the_meeting_scheduled_for_today(world, admin, clock):
     with SessionLocal() as db:
-        db.add(Meeting(team_id=world["team_alpha"], scheduled_date=datetime.now().date()))
+        scheduled = Meeting(team_id=world["team_alpha"], scheduled_start=meeting_session.now_utc())
+        db.add(scheduled)
         db.commit()
+        scheduled_id = scheduled.id
     admin.post("/meetings/session/start")
     with SessionLocal() as db:
         meetings = db.scalars(select(Meeting).where(Meeting.team_id == world["team_alpha"])).all()
     started = [m for m in meetings if m.status == MeetingStatus.IN_PROGRESS]
-    assert len(started) == 1
-    assert len([m for m in meetings if m.scheduled_date == datetime.now().date()]) == 1
+    assert [m.id for m in started] == [scheduled_id]
+    assert len([m for m in meetings if m.scheduled_start.date() == meeting_session.now_utc().date()]) == 1
 
 
 def test_the_session_follows_the_team_and_non_admins_never_see_it(world, login, admin, clock):
@@ -215,7 +217,7 @@ def test_finish_needs_a_stop_first(world, admin, clock):
 
 def test_admins_can_delete_a_past_meeting_but_not_a_running_one(world, login, admin, clock):
     page = admin.get("/meetings").text
-    assert "Status" not in page and "status-select" not in page
+    assert "status-select" not in page  # the status shows as a badge, never an editable control
     assert f"/meetings/{world['meeting_alpha']}" in page  # the Delete button
 
     assert login("mia").delete(f"/meetings/{world['meeting_alpha']}").status_code == 403
@@ -234,7 +236,7 @@ def test_admins_can_delete_a_past_meeting_but_not_a_running_one(world, login, ad
 
 def test_meetings_page_has_a_plus_that_starts_a_meeting(world, login, admin, clock):
     page = admin.get("/meetings").text
-    assert "Schedule a meeting" not in page
+    assert "Schedule a meeting" in page  # the form returned with scheduling (see tests/test_scheduling.py)
     header = page.split('class="page-header"')[1].split("</div>")[0]
     assert 'hx-post="/meetings/session/start"' in header and "disabled" not in header
     assert "/meetings/session/start" not in login("mia").get("/meetings").text

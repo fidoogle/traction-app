@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.web.activity_routes import router as activity_routes
 from app.web.auth_routes import router as auth_routes
+from app.web.calendar_routes import router as calendar_routes
 from app.web.dashboard_routes import router as dashboard_routes
 from app.web.issues_routes import router as issues_routes
 from app.web.meetings_routes import router as meetings_routes
@@ -32,6 +33,7 @@ web_router.include_router(teams_routes)
 web_router.include_router(users_routes)
 web_router.include_router(settings_routes)
 web_router.include_router(notifications_routes)
+web_router.include_router(calendar_routes)
 web_router.include_router(scorecard_routes)
 web_router.include_router(scorecard_legacy_routes)
 web_router.include_router(meetings_routes)

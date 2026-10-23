@@ -609,7 +609,7 @@ def main() -> None:
                 db.add(
                     Meeting(
                         team_id=teams[key].id,
-                        scheduled_date=held,
+                        scheduled_start=start_at,
                         status=MeetingStatus.COMPLETED,
                         started_at=start_at,
                         finished_at=start_at + timedelta(seconds=sum(steps)),
@@ -621,7 +621,7 @@ def main() -> None:
             db.add(
                 Meeting(
                     team_id=teams[key].id,
-                    scheduled_date=last + timedelta(weeks=1),
+                    scheduled_start=datetime.combine(last + timedelta(weeks=1), time(18, 30), tzinfo=timezone.utc),
                     status=MeetingStatus.SCHEDULED,
                 )
             )

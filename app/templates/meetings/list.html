@@ -21,17 +21,55 @@
   {% endif %}
 </div>
 
+{% if admin_teams %}
+<div class="card">
+  <h2>Schedule a meeting</h2>
+  <form hx-post="/meetings" hx-target="#meetings-table-body" hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful) this.reset()">
+    <div class="form-row">
+      <div class="field">
+        <label for="meeting-team">Team</label>
+        <select id="meeting-team" name="team_id" required>
+          {% for t in admin_teams %}
+          <option value="{{ t.id }}" {% if t.id == default_team_id %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="meeting-day">Date</label>
+        <input type="date" id="meeting-day" name="day" required>
+      </div>
+      <div class="field">
+        <label for="meeting-time">Time</label>
+        <input type="time" id="meeting-time" name="at" value="09:00" required>
+      </div>
+      <div class="field">
+        <label for="meeting-length">Length (minutes)</label>
+        <input type="number" id="meeting-length" name="duration_minutes" value="90" min="15" max="480" required>
+      </div>
+      <div class="field">
+        <label for="meeting-location">Location (optional)</label>
+        <input type="text" id="meeting-location" name="location" maxlength="255" placeholder="Room or video link">
+      </div>
+      <button class="primary" type="submit">Schedule</button>
+    </div>
+    <p class="field-hint">Times are in {{ tz.key }}.
+      {% if email_enabled() %}Team members are emailed an invitation they can add to their calendar.{% endif %}</p>
+  </form>
+</div>
+{% endif %}
+
 <div class="card">
   <div class="table-scroll">
   <table>
     <thead>
-      <tr><th>Team</th><th>Date</th><th>Time</th>{% if request.state.team_ctx.can_admin_any %}<th></th>{% endif %}</tr>
+      <tr><th>Team</th><th>When</th><th>Length</th><th>Location</th><th>Status</th><th>Time used</th><th></th></tr>
     </thead>
     <tbody id="meetings-table-body">
       {% for meeting in meetings %}
         {% include "meetings/_row.html" %}
       {% else %}
-      <tr><td colspan="4">No meetings yet.</td></tr>
+      <tr><td colspan="7">No meetings yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

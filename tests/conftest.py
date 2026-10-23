@@ -91,7 +91,7 @@ def world(engine) -> World:
         UserRole,
         VTO,
     )
-    from datetime import date
+    from datetime import date, datetime, timezone
 
     with engine.begin() as conn:
         conn.execute(
@@ -149,7 +149,7 @@ def world(engine) -> World:
             owner = people[owners[key]]
             rock = Rock(team_id=team.id, owner_id=owner.id, title=f"{key} rock", quarter="2026-Q4")
             issue = Issue(team_id=team.id, title=f"{key} issue", priority=1)
-            meeting = Meeting(team_id=team.id, scheduled_date=date(2099, 1, 1))
+            meeting = Meeting(team_id=team.id, scheduled_start=datetime(2099, 1, 1, 15, 0, tzinfo=timezone.utc))
             seat = Seat(team_id=team.id, user_id=owner.id, title=f"{key} seat")
             card = Scorecard(
                 org_id=team.org_id, team_id=team.id, name=f"{key} card", start_date=date(2026, 10, 5)

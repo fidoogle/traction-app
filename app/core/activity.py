@@ -32,6 +32,7 @@ from app.models import (
     Todo,
     User,
 )
+from app.core.org_time import to_local, tz_of
 from app.core.scorecard_format import format_goal, format_value
 from app.models.base import Base
 
@@ -75,6 +76,9 @@ _MODEL_TYPES: dict[type, str] = {
 # Bookkeeping, not something anyone "did" - a change to only these isn't logged.
 _IGNORED_FIELDS = {
     "id",
+    "ical_uid",
+    "ical_sequence",
+    "calendar_token",
     "activity_last_seen_at",
     # A live meeting's timer bookkeeping changes every few clicks (its status
     # change is what gets logged).
@@ -137,7 +141,7 @@ def _label(db: Session, obj: Any) -> str:
         return obj.name
     if isinstance(obj, Meeting):
         team = db.get(Team, obj.team_id) if obj.team_id else None
-        when = _fmt_date(obj.scheduled_date) if obj.scheduled_date else ""
+        when = _fmt_date(to_local(obj.scheduled_start, tz_of(team.organization.timezone)).date()) if team and obj.scheduled_start else ""
         return f"{team.name if team else 'Team'} meeting {when}".strip()
     if isinstance(obj, ScorecardEntry):
         measurable = db.get(Measurable, obj.measurable_id) if obj.measurable_id else None

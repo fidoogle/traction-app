@@ -85,31 +85,27 @@ queued.
       current-state row (upsert in place). EOS orgs revisit their VTO periodically
       (quarterly/annually) — consider keeping prior versions instead of
       overwriting.
-- [ ] Meetings are run live, not scheduled. Today nobody schedules a meeting
-      in the app: the admin tells the team and everyone meets in a room, and
-      pressing Play (sidebar; admins and the team's team admins) creates - or reuses a meeting
-      scheduled for today - and times its six steps (Segue 5, Rocks 5,
-      Scorecard 5, Issues 60, To-Dos 10, Closing 5 min). That will change once
-      email notifications and a calendar exist, so everyone knows what's
-      scheduled: `scheduled_date` is date-only and would need to become a real
-      datetime (also required for the Google/Microsoft calendar sync below),
-      and "start meeting" should then pick the scheduled one. The Meetings
-      page's "Schedule a meeting" form (and POST /meetings) was removed
-      until then; bring it back as part of that work. The page's + button
-      starts a meeting (same as the sidebar Play button) for now.
 - [ ] Live-meeting follow-ups: step lengths are fixed in
       app/core/meeting_session.py (make them per-team settings); only admins
       (and that team's team admins) see the steps - members/viewers could get a read-only live view of the
       current step; a Meetings-page report of step times over several
-      meetings (which step runs over, and by how much); "today" is the
-      server's date, not the district's time zone.
+      meetings (which step runs over, and by how much).
+- [ ] Recurring meetings. Meetings are scheduled one at a time; a weekly
+      team meeting has to be scheduled each week. Add "repeat weekly" (and
+      the calendar RRULE for it) if teams want it, plus a way to change or
+      cancel one occurrence versus the series.
+- [ ] Email on JSON API meeting writes. Scheduling, changing or cancelling a
+      meeting through the JSON API (app/api/crud_router.py) does not send
+      invitations or bump the calendar sequence; only the web UI does.
 - [ ] Seat vacancy reporting — a quick endpoint/view listing seats with no
       current `user_id`, useful for accountability-chart gap analysis.
 - [ ] Google/Microsoft calendar integration (planned for later). Should be
       an optional sync layer bolted onto Meeting (external event ID +
       push/pull), not baked into the core domain model — consistent with
-      the on-prem/no-required-external-deps rule in CLAUDE.md. Requires
-      the scheduled_date -> datetime change above first.
+      the on-prem/no-required-external-deps rule in CLAUDE.md. Meetings now
+      have a real start time, length, location and a stable calendar UID
+      (`ical_uid`, `ical_sequence`), and invitations/subscription feeds
+      already work through .ics files, so this would only add two-way sync.
 - [ ] Notes on Rocks/Issues/To-Dos are a single free-text field with no
       author, timestamp, or history (last save wins, and two people editing
       at once overwrite each other). If teams want a running log, make it

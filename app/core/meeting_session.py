@@ -11,13 +11,14 @@ starts it. The final Stop freezes everything; Finish closes the session.
 """
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Meeting, MeetingStatus
+from app.core.org_time import local_to_utc, to_local, tz_of
+from app.models import Meeting, MeetingStatus, Team
 
 # (label, page it opens, minutes allotted)
 STEPS = [
@@ -50,21 +51,25 @@ def active_meeting(db: Session, team_id: uuid.UUID) -> Optional[Meeting]:
 
 def start(db: Session, team_id: uuid.UUID, now: datetime) -> Meeting:
     """Begin a meeting for the team and start the first step. Reuses a meeting
-    already scheduled for today, else records a new one; if one is already
-    running it's left as it is."""
+    scheduled for today (the one nearest to now, if there are several), else
+    records a new one; if one is already running it's left as it is.
+    "Today" is by the organization's clock."""
     meeting = active_meeting(db, team_id)
     if meeting is not None:
         return meeting
-    today = date.today()
-    meeting = db.scalar(
+    tz = tz_of(db.get(Team, team_id).organization.timezone)
+    today = to_local(now, tz).date()
+    todays = db.scalars(
         select(Meeting).where(
             Meeting.team_id == team_id,
             Meeting.status == MeetingStatus.SCHEDULED,
-            Meeting.scheduled_date == today,
+            Meeting.scheduled_start >= local_to_utc(today, time.min, tz),
+            Meeting.scheduled_start < local_to_utc(today + timedelta(days=1), time.min, tz),
         )
-    )
+    ).all()
+    meeting = min(todays, key=lambda m: abs(m.scheduled_start - now), default=None)
     if meeting is None:
-        meeting = Meeting(team_id=team_id, scheduled_date=today)
+        meeting = Meeting(team_id=team_id, scheduled_start=now)
         db.add(meeting)
     meeting.status = MeetingStatus.IN_PROGRESS
     meeting.started_at = now

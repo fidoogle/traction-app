@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.core import meeting_session
+from app.core.org_time import format_short, to_local, tz_of
 from app.core.scorecard_format import format_goal, format_value, raw_value
 from app.models.enums import status_rank, status_state
 
@@ -34,6 +35,9 @@ templates.env.globals["raw_value"] = raw_value
 templates.env.globals["status_rank"] = status_rank
 templates.env.globals["status_state"] = status_state
 # A function, not a value, so it reflects the settings at render time.
+templates.env.globals["tz_of"] = tz_of
+templates.env.globals["to_local"] = to_local
+templates.env.globals["format_short"] = format_short
 templates.env.globals["email_enabled"] = lambda: settings.email_enabled
 
 

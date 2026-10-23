@@ -1,0 +1,8 @@
+Hi {{ name }},
+
+Reminder: the {{ team }} meeting is {{ lead }}.
+
+  When:  {{ when }}
+{% if location %}  Where: {{ location }}
+{% endif %}
+Meetings in Traction: {{ link }}

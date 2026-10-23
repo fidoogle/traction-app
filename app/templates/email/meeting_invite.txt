@@ -1,0 +1,14 @@
+Hi {{ name }},
+
+{% if updated %}The {{ team }} meeting has changed.{% else %}The {{ team }} meeting is scheduled.{% endif %}
+
+  When:  {{ when }}
+{% if location %}  Where: {{ location }}
+{% endif %}
+A calendar file is attached. Open it to add the meeting to Outlook, Google Calendar or Apple Calendar{% if updated %}; it replaces the earlier entry{% endif %}.
+{% if google_url %}
+Or add it online:
+  Google Calendar: {{ google_url }}
+  Outlook (web):   {{ outlook_url }}
+{% endif %}
+Meetings in Traction: {{ link }}

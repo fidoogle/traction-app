@@ -1,0 +1,19 @@
+<div id="calendar-feed">
+  {% if feed_url %}
+  <p>Your private calendar address:</p>
+  <p><input type="text" readonly value="{{ feed_url }}" aria-label="Your private calendar address"
+            onclick="this.select()" style="width:100%"></p>
+  <p class="field-hint">Anyone with this address can see the times and places of your team meetings, so keep it to yourself.
+    In Outlook choose <em>Add calendar &rarr; Subscribe from web</em>; in Google Calendar choose <em>Other calendars &rarr; From URL</em>.</p>
+  <button type="button" class="secondary" hx-post="/notifications/calendar-feed"
+          hx-target="#calendar-feed" hx-swap="outerHTML"
+          hx-confirm="Make a new address? Calendars using the old one will stop updating.">Make a new address</button>
+  <button type="button" class="secondary" hx-delete="/notifications/calendar-feed"
+          hx-target="#calendar-feed" hx-swap="outerHTML"
+          hx-confirm="Turn the subscription off? Calendars using it will stop updating.">Turn off</button>
+  {% else %}
+  <p class="field-hint">Subscribe to your team meetings from a calendar app and they stay up to date on their own.</p>
+  <button type="button" class="primary" hx-post="/notifications/calendar-feed"
+          hx-target="#calendar-feed" hx-swap="outerHTML">Subscribe in my calendar app</button>
+  {% endif %}
+</div>

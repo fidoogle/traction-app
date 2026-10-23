@@ -39,6 +39,10 @@ class User(UUIDPKMixin, Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
+    # Secret in the address of this person's calendar subscription feed
+    # (see app/web/calendar_routes.py); empty when they haven't turned it on.
+    calendar_token: Mapped[Optional[str]] = mapped_column(String(64), unique=True)
+
     organization: Mapped["Organization"] = relationship(back_populates="users")
     team: Mapped["Team"] = relationship(back_populates="users", foreign_keys=[team_id])
     memberships: Mapped[List["TeamMembership"]] = relationship(
