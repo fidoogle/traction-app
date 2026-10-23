@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     smtp_from_address: str = ""
     smtp_from_name: str = "Traction"
     smtp_timeout_seconds: int = 10
+    # A send that fails in a way that may pass is retried this many more times,
+    # pausing 2s, then 4s, ... between tries. A server that cannot be reached at
+    # all is then left alone for the cooldown, so an outage doesn't stall the app.
+    smtp_retries: int = 2
+    smtp_retry_delay_seconds: float = 2.0
+    smtp_down_cooldown_seconds: int = 60
+    # Safety net against a bug sending the same person a flood: at most this many
+    # (non-account) emails per person per hour; the rest are dropped and logged.
+    email_max_per_user_per_hour: int = 20
     # Fallback time zone, used only when an organization's own setting (Settings
     # page; US Central to begin with) is missing or unrecognised. An IANA name.
     default_timezone: str = "America/Chicago"

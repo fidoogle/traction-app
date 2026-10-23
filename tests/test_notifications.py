@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app.config import settings
+from app.core import email as mailer
 from app.core import notifications as n
 from app.db import SessionLocal
 from app.models import (
@@ -175,6 +176,7 @@ def test_a_failed_send_is_recorded_and_can_be_retried(world, smtp, configured):
         assert result.status == "failed" and "relay down" in result.detail
         assert db.scalar(select(NotificationLog)).status == "failed"
         smtp.fail_connect = False
+        mailer._unreachable_until = 0.0  # the failed attempt put the mail server on a short cool-down
         assert send(db, world["max"]).sent
         assert db.scalar(select(func.count()).select_from(NotificationLog)) == 1
         assert db.scalar(select(NotificationLog)).status == "sent"

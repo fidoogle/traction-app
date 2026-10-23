@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Iterable, Optional
 
-from sqlalchemy import delete, exists, select
+from sqlalchemy import delete, exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -265,6 +265,20 @@ def notify(
         return NotifyResult("skipped", "turned off by the recipient")
 
     user_id, to, name = user.id, user.email, user.name
+    if not nt.always:
+        # A safety net against a bug or loop flooding one person's inbox.
+        recent = db.scalar(
+            select(func.count())
+            .select_from(NotificationLog)
+            .where(
+                NotificationLog.user_id == user_id,
+                NotificationLog.status == "sent",
+                NotificationLog.created_at >= datetime.now(timezone.utc) - timedelta(hours=1),
+            )
+        )
+        if recent >= settings.email_max_per_user_per_hour:
+            logger.warning("Not emailing %s (%s): %d emails already sent in the last hour", user_id, key, recent)
+            return NotifyResult("skipped", "too many emails to this person in the last hour")
     row = db.scalar(
         select(NotificationLog).where(
             NotificationLog.user_id == user_id,
@@ -289,13 +303,18 @@ def notify(
         return NotifyResult("skipped", "already sent")
 
     try:
+        preferences_url = settings.absolute_url("/notifications")
         text, html = render_email(
             template,
             name=name,
-            preferences_url=settings.absolute_url("/notifications"),
+            preferences_url=preferences_url,
+            always_on=nt.always,
             **(context or {}),
         )
-        result = send_email(to, subject_line, text, html, attachments)
+        # Mail programs offer an "unsubscribe" link from this header; for the
+        # optional kinds it leads to the page where each can be turned off.
+        headers = None if nt.always else {"List-Unsubscribe": f"<{preferences_url}>"}
+        result = send_email(to, subject_line, text, html, attachments, headers)
     except Exception as exc:  # a broken template must not leave the claim pending
         logger.exception("Rendering %s email failed", key)
         db.rollback()
