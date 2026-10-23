@@ -12,12 +12,14 @@ import uuid
 from datetime import date, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db
+from app.config import settings
+from app.core.alert_emails import send_scorecard_missed
 from app.core.scorecard_format import format_value, goal_met, parse_value
 from app.models import (
     SCORECARD_WEEKS,
@@ -443,6 +445,7 @@ def delete_measurable(
 @router.put("/{scorecard_id}/measurables/{measurable_id}/weeks/{week}")
 def set_cell(
     request: Request,
+    background_tasks: BackgroundTasks,
     scorecard_id: uuid.UUID,
     measurable_id: uuid.UUID,
     week: int,
@@ -475,6 +478,8 @@ def set_cell(
         elif parsed is not None:
             db.add(ScorecardEntry(measurable_id=measurable.id, week_number=week, actual_value=parsed))
     db.commit()
+    if settings.email_enabled and value.strip() and not error:
+        background_tasks.add_task(send_scorecard_missed, measurable_id, week, current_user.id)
     db.expire_all()
 
     measurable = _get_measurable(db, scorecard_id, measurable_id, team_ctx)

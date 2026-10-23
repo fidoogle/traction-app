@@ -1,0 +1,9 @@
+Hi {{ name }},
+
+{{ measure }} on {{ team }} has missed its goal ({{ goal }}) {{ streak }} weeks in a row:
+
+{% for r in results %}  - {{ r.week }}: {{ r.actual }}
+{% endfor %}
+Owner: {{ owner }}
+
+See the scorecards: {{ link }}

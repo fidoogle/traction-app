@@ -13,8 +13,9 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.assignment_emails import one_line
 from app.core.notifications import notify
+from app.core.scorecard_format import format_goal, format_value, goal_met
 from app.db import SessionLocal
-from app.models import Rock, RockStatus, Team, TeamMembership, User, UserRole
+from app.models import Measurable, Rock, RockStatus, Team, TeamMembership, User, UserRole
 
 
 def team_admin_ids(db: Session, team_id: uuid.UUID) -> list[uuid.UUID]:
@@ -82,4 +83,57 @@ def send_rock_off_track(rock_id: uuid.UUID, actor_id: uuid.UUID, event_id: str) 
             context=context, subject=f"rock:{rock.id}",
             # Each time a Rock slips is its own occasion; going off track again later alerts again.
             period=event_id,
+        )
+
+
+MISS_STREAK = 2  # weeks in a row below goal before anyone is told
+
+
+def send_scorecard_missed(measurable_id: uuid.UUID, week: int, actor_id: uuid.UUID) -> None:
+    """After a result is saved: if this week and the weeks just before it all
+    missed the goal, MISS_STREAK or more in a row, tell the owner and the
+    team's admins. Once per measurable per week, however often the cell is edited."""
+    with SessionLocal() as db:
+        measurable = db.get(Measurable, measurable_id)
+        if measurable is None:
+            return
+        by_week = {e.week_number: e.actual_value for e in measurable.scorecard_entries}
+        missed = [
+            n for n in range(week, 0, -1)
+            if n in by_week and not goal_met(by_week[n], measurable.goal_value, measurable.goal_direction)
+        ]
+        # Only the unbroken run ending at this week counts.
+        streak = []
+        for n in range(week, 0, -1):
+            if n in missed:
+                streak.append(n)
+            else:
+                break
+        if len(streak) < MISS_STREAK:
+            return
+        card = measurable.scorecard
+        people = set(team_admin_ids(db, card.team_id))
+        if measurable.owner_id:
+            people.add(measurable.owner_id)
+        goal = format_goal(measurable.goal_value, measurable.unit, measurable.goal_direction)
+        context = {
+            "measure": measurable.name,
+            "team": card.team.name,
+            "owner": measurable.owner.name if measurable.owner else "nobody",
+            "goal": goal,
+            "streak": len(streak),
+            "results": [
+                {
+                    "week": f"Week of {card.week_start(n).strftime('%b')} {card.week_start(n).day}",
+                    "actual": format_value(by_week[n], measurable.unit),
+                }
+                for n in reversed(streak)
+            ],
+            "link": settings.absolute_url("/scorecards"),
+        }
+        alert_people(
+            db, sorted(people, key=str), "scorecard_missed", actor_id=actor_id,
+            subject_line=f"Scorecard: {one_line(measurable.name)} missed goal {len(streak)} weeks in a row",
+            template="scorecard_missed", context=context,
+            subject=f"measurable:{measurable.id}", period=f"week-{week}",
         )

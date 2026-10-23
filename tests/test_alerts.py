@@ -124,3 +124,85 @@ def test_no_alert_when_email_is_off(world, login, smtp):
     assert sent(smtp) == []
     with SessionLocal() as db:
         assert db.get(Rock, world["rock_alpha"]).status == RockStatus.OFF_TRACK
+
+
+# --- a scorecard number keeps missing its goal ---
+# Alpha's seeded number has a goal of "at least 1", and week 1 already holds a result of 2.
+
+
+def put_result(browser, world, week, value, team="alpha"):
+    return browser.put(
+        f"/scorecards/{world[f'card_{team}']}/measurables/{world[f'measurable_{team}']}/weeks/{week}",
+        data={"value": value},
+    )
+
+
+def test_two_misses_in_a_row_tell_the_owner_and_opted_in_admins(world, login, smtp, configured):
+    opt_in(world, "mia", "scorecard_missed")      # the owner
+    opt_in(world, "admin", "scorecard_missed")    # an org admin, opted in
+    admin = login("admin")
+    put_result(admin, world, 1, "0")              # replaces the seeded 2: a first miss
+    assert sent(smtp) == []
+    assert put_result(admin, world, 2, "0").status_code == 200   # second in a row
+    assert recipients(smtp) == ["mia@example.com"]  # the admin made the change, so is not told
+    msg = sent(smtp)[0]
+    assert msg["Subject"] == "Scorecard: alpha m missed goal 2 weeks in a row"
+    body = text(msg)
+    assert "alpha m on Alpha" in body and "goal (\u2265 1)" in body.replace("goal (≥ 1)", "goal (\u2265 1)")
+    assert "Week of Oct 5: 0" in body and "Week of Oct 12: 0" in body and "Owner: Mia Member" in body
+
+
+def test_the_owner_entering_their_own_numbers_tells_the_opted_in_admin(world, login, smtp, configured):
+    opt_in(world, "mia", "scorecard_missed")
+    opt_in(world, "admin", "scorecard_missed")
+    mia = login("mia")
+    put_result(mia, world, 1, "0")
+    put_result(mia, world, 2, "0")
+    assert recipients(smtp) == ["admin@example.com"]  # not Mia: she just typed it
+
+
+def test_it_is_off_unless_someone_opts_in(world, login, smtp, configured):
+    admin = login("admin")
+    put_result(admin, world, 1, "0")
+    put_result(admin, world, 2, "0")
+    assert sent(smtp) == []
+
+
+def test_a_met_goal_or_a_gap_breaks_the_run(world, login, smtp, configured):
+    opt_in(world, "mia", "scorecard_missed")
+    admin = login("admin")
+    put_result(admin, world, 1, "0")
+    put_result(admin, world, 2, "5")   # met: the run is broken
+    put_result(admin, world, 3, "0")
+    assert sent(smtp) == []
+    put_result(admin, world, 5, "0")   # week 4 is blank: not "in a row"
+    assert sent(smtp) == []
+
+
+def test_a_longer_run_says_so_and_each_week_is_told_once(world, login, smtp, configured):
+    opt_in(world, "mia", "scorecard_missed")
+    admin = login("admin")
+    for week in (1, 2, 3):
+        put_result(admin, world, week, "0")
+    put_result(admin, world, 3, "0.5")   # edited again, still the same week: not a second email
+    assert [m["Subject"] for m in sent(smtp)] == [
+        "Scorecard: alpha m missed goal 2 weeks in a row",
+        "Scorecard: alpha m missed goal 3 weeks in a row",
+    ]
+
+
+def test_clearing_a_cell_or_a_bad_value_alerts_nobody(world, login, smtp, configured):
+    opt_in(world, "mia", "scorecard_missed")
+    admin = login("admin")
+    put_result(admin, world, 1, "0")
+    put_result(admin, world, 2, "")
+    put_result(admin, world, 2, "not a number")
+    assert sent(smtp) == []
+
+
+def test_no_scorecard_email_when_email_is_off(world, login, smtp):
+    opt_in(world, "mia", "scorecard_missed")
+    admin = login("admin")
+    put_result(admin, world, 1, "0")
+    put_result(admin, world, 2, "0")
+    assert sent(smtp) == []
