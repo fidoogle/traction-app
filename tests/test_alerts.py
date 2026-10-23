@@ -1,11 +1,15 @@
 """The optional team alerts: Rocks going off track, repeated scorecard misses,
 new issues, meeting recaps, quarter reminders and system notices."""
 
-from sqlalchemy import update
+from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import select, update
+
+from app import worker
 from app.core import notifications as n
+from app.core.alert_emails import announce_new_issues
 from app.db import SessionLocal
-from app.models import Rock, RockStatus, TeamMembership, User
+from app.models import Issue, Rock, RockStatus, TeamMembership, User
 
 
 def sent(smtp):
@@ -206,3 +210,133 @@ def test_no_scorecard_email_when_email_is_off(world, login, smtp):
     put_result(admin, world, 1, "0")
     put_result(admin, world, 2, "0")
     assert sent(smtp) == []
+
+
+# --- new issues, grouped ---
+
+NOW = datetime(2026, 10, 22, 15, 0, tzinfo=timezone.utc)
+
+
+def settle_existing_issues(db):
+    """The seeded issues were 'added' when the test world was built; mark them announced."""
+    db.execute(update(Issue).values(announced_at=NOW))
+    db.commit()
+
+
+def add_issue(db, world, title, minutes_ago, team="alpha"):
+    issue = Issue(team_id=world[f"team_{team}"], title=title, created_at=NOW - timedelta(minutes=minutes_ago))
+    db.add(issue)
+    db.commit()
+    return issue.id
+
+
+def test_a_new_issue_is_announced_after_a_quiet_spell(world, smtp, configured):
+    opt_in(world, "mia", "issue_added")
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        add_issue(db, world, "Bus route 12 is late", minutes_ago=4)
+        assert announce_new_issues(db, NOW) == 0                       # only 4 minutes: more may be coming
+        assert announce_new_issues(db, NOW + timedelta(minutes=1)) == 1  # 5 minutes of quiet
+        assert announce_new_issues(db, NOW + timedelta(minutes=2)) == 0  # not announced twice
+    (msg,) = sent(smtp)
+    assert msg["To"] == "mia@example.com" and msg["Subject"] == "Alpha: new issue: Bus route 12 is late"
+    assert "A new issue was added to the Alpha list" in text(msg)
+    assert "https://traction.district.test/issues" in text(msg)
+
+
+def test_issues_added_together_are_one_email(world, smtp, configured):
+    opt_in(world, "mia", "issue_added")
+    opt_in(world, "vic", "issue_added")
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        for i, minutes in enumerate((9, 8, 6)):
+            add_issue(db, world, f"Issue {i}", minutes_ago=minutes)
+        assert announce_new_issues(db, NOW) == 2   # one email each for Mia and Vic, not six
+    assert recipients(smtp) == ["mia@example.com", "vic@example.com"]
+    msg = sent(smtp)[0]
+    assert msg["Subject"] == "Alpha: 3 new issues"
+    assert all(f"Issue {i}" in text(msg) for i in range(3))
+
+
+def test_a_steady_stream_is_not_held_back_forever(world, smtp, configured):
+    opt_in(world, "mia", "issue_added")
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        add_issue(db, world, "First", minutes_ago=16)
+        add_issue(db, world, "Latest", minutes_ago=1)   # still arriving, but the first has waited 16 minutes
+        assert announce_new_issues(db, NOW) == 1
+    assert "2 new issues" in sent(smtp)[0]["Subject"]
+
+
+def test_a_long_list_is_cut_off_with_a_count(world, smtp, configured):
+    opt_in(world, "mia", "issue_added")
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        for i in range(13):
+            add_issue(db, world, f"Item {i:02d}", minutes_ago=10)
+        announce_new_issues(db, NOW)
+    body = text(sent(smtp)[0])
+    assert "...and 3 more." in body and "Item 09" in body and "Item 10" not in body
+
+
+def test_each_team_gets_its_own_email(world, smtp, configured):
+    opt_in(world, "mia", "issue_added")  # Mia is on Alpha and Bravo
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        add_issue(db, world, "Alpha thing", minutes_ago=10, team="alpha")
+        add_issue(db, world, "Bravo thing", minutes_ago=10, team="bravo")
+        announce_new_issues(db, NOW)
+    subjects = sorted(m["Subject"] for m in sent(smtp))
+    assert subjects == ["Alpha: new issue: Alpha thing", "Bravo: new issue: Bravo thing"]
+
+
+def test_people_who_have_not_opted_in_hear_nothing_and_it_is_not_saved_up(world, smtp, configured):
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        add_issue(db, world, "Quiet one", minutes_ago=10)
+        assert announce_new_issues(db, NOW) == 0
+    opt_in(world, "mia", "issue_added")   # opting in later does not bring back the old announcement
+    with SessionLocal() as db:
+        assert announce_new_issues(db, NOW + timedelta(minutes=30)) == 0
+    assert sent(smtp) == []
+
+
+def test_issues_from_long_ago_are_never_announced(world, smtp, configured):
+    opt_in(world, "mia", "issue_added")
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        old = add_issue(db, world, "Added last week", minutes_ago=60 * 24 * 7)
+        assert announce_new_issues(db, NOW) == 0
+        assert db.get(Issue, old).announced_at is not None
+    assert sent(smtp) == []
+
+
+def test_nothing_happens_and_nothing_is_marked_when_email_is_off(world, smtp):
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        issue = add_issue(db, world, "Waiting", minutes_ago=10)
+        assert announce_new_issues(db, NOW) == 0
+        assert db.get(Issue, issue).announced_at is None
+
+
+def test_an_issue_added_in_the_app_is_announced_later(world, login, smtp, configured):
+    opt_in(world, "mia", "issue_added")
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+    resp = login("admin").post("/issues", data={"team_id": str(world["team_alpha"]), "title": "Heater broken", "priority": "1"})
+    assert resp.status_code == 200
+    with SessionLocal() as db:
+        issue = db.scalar(select(Issue).where(Issue.title == "Heater broken"))
+        assert issue.created_at is not None and issue.announced_at is None
+        assert announce_new_issues(db, datetime.now(timezone.utc)) == 0
+        assert announce_new_issues(db, datetime.now(timezone.utc) + timedelta(minutes=6)) == 1
+    assert sent(smtp)[0]["Subject"] == "Alpha: new issue: Heater broken"
+
+
+def test_the_worker_announces_issues_on_its_tick(world, smtp, configured, no_digest):
+    opt_in(world, "mia", "issue_added")
+    with SessionLocal() as db:
+        settle_existing_issues(db)
+        add_issue(db, world, "From the worker", minutes_ago=10)
+    worker.tick(worker.WorkerState(), NOW)
+    assert recipients(smtp) == ["mia@example.com"]

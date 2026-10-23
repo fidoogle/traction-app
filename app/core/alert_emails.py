@@ -5,9 +5,10 @@ never emailed about it. Who actually gets one is decided by notify(): the
 recipient's role and their own choice on the "My notifications" page."""
 
 import uuid
+from datetime import datetime, timedelta
 from typing import Iterable, Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -15,7 +16,7 @@ from app.core.assignment_emails import one_line
 from app.core.notifications import notify
 from app.core.scorecard_format import format_goal, format_value, goal_met
 from app.db import SessionLocal
-from app.models import Measurable, Rock, RockStatus, Team, TeamMembership, User, UserRole
+from app.models import Issue, Measurable, Rock, RockStatus, Team, TeamMembership, User, UserRole
 
 
 def team_admin_ids(db: Session, team_id: uuid.UUID) -> list[uuid.UUID]:
@@ -137,3 +138,75 @@ def send_scorecard_missed(measurable_id: uuid.UUID, week: int, actor_id: uuid.UU
             template="scorecard_missed", context=context,
             subject=f"measurable:{measurable.id}", period=f"week-{week}",
         )
+
+
+# New issues are announced in one email per team: once nothing new has been
+# added for ISSUE_QUIET (so a busy meeting is one email, not twenty), or
+# ISSUE_MAX_WAIT after the first, whichever comes first. Issues added more than
+# ISSUE_STALE_AFTER ago (say, while email was off) are never announced.
+ISSUE_QUIET = timedelta(minutes=5)
+ISSUE_MAX_WAIT = timedelta(minutes=15)
+ISSUE_STALE_AFTER = timedelta(hours=24)
+MAX_LISTED = 10
+
+
+def announce_new_issues(db: Session, now: datetime) -> int:
+    """Emails each team's members (those who opted in) about issues added since
+    the last announcement. Run every minute; returns how many emails went out."""
+    if not settings.email_enabled:
+        return 0
+    pending = db.scalars(
+        select(Issue).where(Issue.announced_at.is_(None)).order_by(Issue.created_at, Issue.title)
+    ).all()
+    # Plain data first: notify() commits, which would expire the ORM objects.
+    batches: dict[uuid.UUID, list[dict]] = {}
+    stale_ids = []
+    for issue in pending:
+        if now - issue.created_at > ISSUE_STALE_AFTER:
+            stale_ids.append(issue.id)
+        else:
+            batches.setdefault(issue.team_id, []).append(
+                {"id": issue.id, "title": issue.title, "created_at": issue.created_at}
+            )
+    if stale_ids:
+        db.execute(update(Issue).where(Issue.id.in_(stale_ids)).values(announced_at=now))
+        db.commit()
+
+    sent = 0
+    for team_id, issues in batches.items():
+        newest = max(i["created_at"] for i in issues)
+        oldest = min(i["created_at"] for i in issues)
+        if now - newest < ISSUE_QUIET and now - oldest < ISSUE_MAX_WAIT:
+            continue  # more may still be coming
+        team = db.get(Team, team_id)
+        count = len(issues)
+        context = {
+            "team": team.name,
+            "count": count,
+            "issues": [i["title"] for i in issues[:MAX_LISTED]],
+            "more": max(0, count - MAX_LISTED),
+            "link": settings.absolute_url("/issues"),
+        }
+        subject_line = (
+            f"{team.name}: new issue: {one_line(issues[0]['title'])}"
+            if count == 1
+            else f"{team.name}: {count} new issues"
+        )
+        user_ids = list(
+            db.scalars(
+                select(TeamMembership.user_id)
+                .join(User, User.id == TeamMembership.user_id)
+                .where(TeamMembership.team_id == team_id)
+                .order_by(User.name)
+            )
+        )
+        ids = [i["id"] for i in issues]
+        sent += alert_people(
+            db, user_ids, "issue_added", actor_id=None, subject_line=subject_line,
+            template="issue_added", context=context,
+            # Named by the batch's first issue, so running this again can't send it twice.
+            subject=f"issues:{team_id}", period=str(ids[0]),
+        )
+        db.execute(update(Issue).where(Issue.id.in_(ids)).values(announced_at=now))
+        db.commit()
+    return sent

@@ -17,6 +17,7 @@ from typing import Optional
 from sqlalchemy import select
 
 from app.config import settings
+from app.core.alert_emails import announce_new_issues
 from app.core.digest_emails import digest_due, send_digests
 from app.core.due_emails import send_due_todos
 from app.core.meeting_emails import send_meeting_reminders
@@ -75,6 +76,14 @@ def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
                 state.digest_weeks[org_id] = label
             except Exception:
                 logger.exception("Weekly summary job failed; will retry next tick")
+
+    try:
+        with SessionLocal() as db:
+            sent = announce_new_issues(db, now)
+        if sent:
+            logger.info("New-issue alerts: %d sent", sent)
+    except Exception:
+        logger.exception("New-issue alert job failed; will retry next tick")
 
     try:
         with SessionLocal() as db:

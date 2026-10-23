@@ -1,0 +1,8 @@
+Hi {{ name }},
+
+{% if count == 1 %}A new issue was added to the {{ team }} list:{% else %}{{ count }} new issues were added to the {{ team }} list:{% endif %}
+
+{% for title in issues %}  - {{ title }}
+{% endfor %}{% if more %}  ...and {{ more }} more.
+{% endif %}
+See the issues list: {{ link }}

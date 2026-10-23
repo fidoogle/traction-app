@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<h2 style="margin-top:0;">{% if count == 1 %}New issue{% else %}{{ count }} new issues{% endif %}</h2>
+<p>Hi {{ name }},</p>
+<p>{% if count == 1 %}A new issue was added to the {{ team }} list:{% else %}{{ count }} new issues were added to the {{ team }} list:{% endif %}</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:12px 0;">
+  {% for title in issues %}
+  <tr><td style="padding:6px 0;border-top:1px solid #e4e7eb;">{{ title }}</td></tr>
+  {% endfor %}
+</table>
+{% if more %}<p style="color:#52606d;">...and {{ more }} more.</p>{% endif %}
+<p><a href="{{ link }}" style="display:inline-block;padding:10px 18px;background:#2b6cb0;color:#ffffff;text-decoration:none;border-radius:4px;">See the issues list</a></p>
+{% endblock %}

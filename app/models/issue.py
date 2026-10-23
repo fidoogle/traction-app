@@ -1,8 +1,9 @@
 import uuid
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,6 +24,12 @@ class Issue(UUIDPKMixin, Base):
         default=IssueStatus.OPEN,
     )
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    # When the team was emailed about this issue (the optional "new issue"
+    # alert, which groups issues added close together). None = not yet.
+    announced_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     notes: Mapped[Optional[str]] = mapped_column(Text)
 

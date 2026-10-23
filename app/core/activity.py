@@ -77,6 +77,8 @@ _MODEL_TYPES: dict[type, str] = {
 _IGNORED_FIELDS = {
     "id",
     "ical_uid",
+    "created_at",
+    "announced_at",
     "ical_sequence",
     "calendar_token",
     "activity_last_seen_at",
