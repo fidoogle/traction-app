@@ -1,0 +1,8 @@
+Hi {{ name }},
+
+{{ changed_by }} marked a Rock off track on {{ team }} ({{ quarter }}):
+
+  {{ title }}
+  Owner: {{ owner }}
+
+See the Rocks: {{ link }}

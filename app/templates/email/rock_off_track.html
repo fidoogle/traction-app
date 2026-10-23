@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block body %}
+<h2 style="margin-top:0;">Rock off track</h2>
+<p>Hi {{ name }},</p>
+<p>{{ changed_by }} marked a Rock off track on {{ team }} ({{ quarter }}):</p>
+<p style="margin:16px 0;padding:12px 16px;background:#fdecec;border-radius:4px;"><strong>{{ title }}</strong><br><span style="color:#52606d;">Owner: {{ owner }}</span></p>
+<p><a href="{{ link }}" style="display:inline-block;padding:10px 18px;background:#2b6cb0;color:#ffffff;text-decoration:none;border-radius:4px;">See the Rocks</a></p>
+{% endblock %}

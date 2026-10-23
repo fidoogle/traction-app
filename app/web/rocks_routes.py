@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
+from app.core.alert_emails import goes_off_track, send_rock_off_track
 from app.core.assignment_emails import new_event_id, send_rock_assigned, should_notify
 from app.models import Rock, RockStatus, Team, User
 from app.models.enums import status_order
@@ -109,6 +110,8 @@ def create_rock(
     db.commit()
     if should_notify(None, owner_id):
         background_tasks.add_task(send_rock_assigned, rock.id, current_user.id, new_event_id())
+    if goes_off_track(None, status):
+        background_tasks.add_task(send_rock_off_track, rock.id, current_user.id, new_event_id())
     return _row_response(request, current_user, _get_rock(db, rock.id, team_ctx))
 
 
@@ -174,7 +177,7 @@ def update_rock(
         keep_owner=rock.owner_id if team_id == rock.team_id else None,
     )
 
-    previous_owner = rock.owner_id
+    previous_owner, previous_status = rock.owner_id, rock.status
     rock.team_id = team.id
     rock.owner_id = owner_id
     rock.title = title
@@ -183,6 +186,8 @@ def update_rock(
     db.commit()
     if should_notify(previous_owner, owner_id):
         background_tasks.add_task(send_rock_assigned, rock_id, current_user.id, new_event_id())
+    if goes_off_track(previous_status, status):
+        background_tasks.add_task(send_rock_off_track, rock_id, current_user.id, new_event_id())
     db.expire_all()
     return _row_response(request, current_user, _get_rock(db, rock_id, team_ctx))
 
@@ -190,6 +195,7 @@ def update_rock(
 @router.patch("/{rock_id}/status")
 def update_rock_status(
     request: Request,
+    background_tasks: BackgroundTasks,
     rock_id: uuid.UUID,
     status: RockStatus = Form(...),
     db: Session = Depends(get_db),
@@ -199,8 +205,11 @@ def update_rock_status(
     rock = _get_rock(db, rock_id, team_ctx)
     team_ctx.require_admin(rock.team_id)
 
+    previous_status = rock.status
     rock.status = status
     db.commit()
+    if goes_off_track(previous_status, status):
+        background_tasks.add_task(send_rock_off_track, rock_id, current_user.id, new_event_id())
     db.refresh(rock)
     return _row_response(request, current_user, rock)
 
