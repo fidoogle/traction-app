@@ -17,7 +17,7 @@ from typing import Optional
 from sqlalchemy import select
 
 from app.config import settings
-from app.core.alert_emails import announce_new_issues
+from app.core.alert_emails import announce_new_issues, send_quarter_reminders
 from app.core.digest_emails import digest_due, send_digests
 from app.core.due_emails import send_due_todos
 from app.core.meeting_emails import send_meeting_reminders
@@ -37,6 +37,7 @@ class WorkerState:
 
     todo_due_dates: dict[uuid.UUID, date] = field(default_factory=dict)  # per organization
     digest_weeks: dict[uuid.UUID, str] = field(default_factory=dict)  # week label last sent, per organization
+    quarter_dates: dict[uuid.UUID, date] = field(default_factory=dict)  # day last checked, per organization
 
 
 def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
@@ -64,6 +65,17 @@ def tick(state: WorkerState, now: Optional[datetime] = None) -> None:
                 state.todo_due_dates[org_id] = local.date()
             except Exception:
                 logger.exception("To-Do due job failed; will retry next tick")
+
+        # Quarter start / end reminders to team admins, checked once a day.
+        if local.hour >= TODO_DUE_HOUR and state.quarter_dates.get(org_id) != local.date():
+            try:
+                with SessionLocal() as db:
+                    sent = send_quarter_reminders(db, org_id, local.date())
+                if sent:
+                    logger.info("Quarter reminders: %d sent", sent)
+                state.quarter_dates[org_id] = local.date()
+            except Exception:
+                logger.exception("Quarter reminder job failed; will retry next tick")
 
         # The weekly summary: once this week's moment (set by the admin) has passed,
         # until it has gone out. The per-person record stops a second send.

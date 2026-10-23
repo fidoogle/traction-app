@@ -5,7 +5,7 @@ never emailed about it. Who actually gets one is decided by notify(): the
 recipient's role and their own choice on the "My notifications" page."""
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Iterable, Optional
 
 from sqlalchemy import select, update
@@ -287,3 +287,67 @@ def send_meeting_recap(meeting_id: uuid.UUID) -> None:
             subject_line=f"{one_line(team.name)} meeting recap, {format_short(meeting.started_at, tz)}",
             template="meeting_summary", context=context, subject=f"meeting:{meeting_id}", period="recap",
         )
+
+
+# --- quarter reminders ---
+# Rocks are labelled by calendar quarter ("2026-Q4"), so the quarters here are
+# calendar quarters too. A reminder goes out the day a quarter starts, and two
+# weeks before it ends; one that was missed (the worker was down) is still sent
+# for up to a week afterwards, but never later.
+
+QUARTER_END_NOTICE = timedelta(days=14)
+QUARTER_CATCH_UP = timedelta(days=7)
+
+
+def quarter_bounds(day: date) -> tuple[date, date]:
+    """First and last day of the calendar quarter containing `day`."""
+    first_month = 3 * ((day.month - 1) // 3) + 1
+    first = date(day.year, first_month, 1)
+    next_first = date(day.year + (first_month == 10), (first_month + 3 - 1) % 12 + 1, 1)
+    return first, next_first - timedelta(days=1)
+
+
+def due_quarter_events(today: date) -> list[tuple[str, str, date]]:
+    """The reminders due today: (kind, quarter label, the day it belongs to)."""
+    first, last = quarter_bounds(today)
+    label = f"{today.year}-Q{(today.month - 1) // 3 + 1}"
+    events = [("start", label, first), ("end", label, last - QUARTER_END_NOTICE)]
+    return [e for e in events if e[2] <= today < e[2] + QUARTER_CATCH_UP]
+
+
+def send_quarter_reminders(db: Session, org_id: uuid.UUID, today: date) -> int:
+    """Tells each team's admins that the quarter is starting or ending. Safe to
+    run repeatedly: each person gets each reminder once per quarter."""
+    if not settings.email_enabled:
+        return 0
+    events = due_quarter_events(today)
+    if not events:
+        return 0
+    sent = 0
+    team_ids = list(db.scalars(select(Team.id).where(Team.org_id == org_id).order_by(Team.name)))
+    for kind, quarter, _day in events:
+        for team_id in team_ids:
+            team = db.get(Team, team_id)
+            rocks = db.scalars(select(Rock).where(Rock.team_id == team_id, Rock.quarter == quarter)).all()
+            first, last = quarter_bounds(today)
+            context = {
+                "kind": kind,
+                "team": team.name,
+                "quarter": quarter,
+                "ends": f"{last.strftime('%B')} {last.day}",
+                "rocks_total": len(rocks),
+                "rocks_done": sum(1 for r in rocks if r.status == RockStatus.DONE),
+                "unfinished": sorted(r.title for r in rocks if r.status != RockStatus.DONE)[:MAX_LISTED],
+                "link": settings.absolute_url("/rocks"),
+            }
+            subject_line = (
+                f"{quarter} has begun: set Rocks for {one_line(team.name)}"
+                if kind == "start"
+                else f"{quarter} ends {context['ends']}: review {one_line(team.name)}'s Rocks"
+            )
+            sent += alert_people(
+                db, team_admin_ids(db, team_id), "quarter_reminder", actor_id=None,
+                subject_line=subject_line, template="quarter_reminder", context=context,
+                subject=f"team:{team_id}", period=f"{quarter}-{kind}",
+            )
+    return sent

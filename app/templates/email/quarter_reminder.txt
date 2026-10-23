@@ -1,0 +1,13 @@
+Hi {{ name }},
+
+{% if kind == "start" %}{{ quarter }} has begun. Time to set {{ team }}'s Rocks for the quarter.
+
+{% if rocks_total %}{{ rocks_total }} Rock{{ 's' if rocks_total != 1 }} {{ 'are' if rocks_total != 1 else 'is' }} set so far.{% else %}No Rocks are set yet.{% endif %}
+{% else %}{{ quarter }} ends {{ ends }}. Time to review {{ team }}'s Rocks and plan the next quarter.
+
+{% if rocks_total %}{{ rocks_done }} of {{ rocks_total }} Rock{{ 's' if rocks_total != 1 }} done so far.
+{% if unfinished %}Not done yet:
+{% for title in unfinished %}  - {{ title }}
+{% endfor %}{% endif %}{% else %}No Rocks were set for this quarter.{% endif %}
+{% endif %}
+See the Rocks: {{ link }}

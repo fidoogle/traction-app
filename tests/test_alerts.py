@@ -1,7 +1,7 @@
 """The optional team alerts: Rocks going off track, repeated scorecard misses,
 new issues, meeting recaps, quarter reminders and system notices."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import select, update
@@ -9,7 +9,7 @@ from sqlalchemy import select, update
 from app import worker
 from app.core import meeting_session
 from app.core import notifications as n
-from app.core.alert_emails import announce_new_issues
+from app.core.alert_emails import announce_new_issues, due_quarter_events, quarter_bounds, send_quarter_reminders
 from app.db import SessionLocal
 from app.models import Issue, Rock, RockStatus, TeamMembership, Todo, TodoStatus, User
 
@@ -419,3 +419,102 @@ def test_no_recap_when_email_is_off(world, login, smtp, clock):
     opt_in(world, "mia", "meeting_summary")
     run_meeting(world, login, clock).post("/meetings/session/finish")
     assert sent(smtp) == []
+
+
+# --- quarter reminders ---
+
+
+def test_quarter_bounds():
+    assert quarter_bounds(date(2026, 2, 14)) == (date(2026, 1, 1), date(2026, 3, 31))
+    assert quarter_bounds(date(2026, 4, 1)) == (date(2026, 4, 1), date(2026, 6, 30))
+    assert quarter_bounds(date(2026, 9, 30)) == (date(2026, 7, 1), date(2026, 9, 30))
+    assert quarter_bounds(date(2026, 12, 31)) == (date(2026, 10, 1), date(2026, 12, 31))
+
+
+def test_reminders_are_due_at_the_start_and_two_weeks_before_the_end():
+    assert due_quarter_events(date(2026, 10, 1)) == [("start", "2026-Q4", date(2026, 10, 1))]
+    assert due_quarter_events(date(2026, 10, 7)) == [("start", "2026-Q4", date(2026, 10, 1))]  # a week's grace
+    assert due_quarter_events(date(2026, 10, 8)) == []
+    assert due_quarter_events(date(2026, 12, 16)) == []
+    assert due_quarter_events(date(2026, 12, 17)) == [("end", "2026-Q4", date(2026, 12, 17))]
+    assert due_quarter_events(date(2026, 12, 23)) == [("end", "2026-Q4", date(2026, 12, 17))]
+    assert due_quarter_events(date(2026, 12, 24)) == []
+    assert due_quarter_events(date(2027, 1, 2)) == [("start", "2027-Q1", date(2027, 1, 1))]
+    assert due_quarter_events(date(2026, 3, 17)) == [("end", "2026-Q1", date(2026, 3, 17))]
+
+
+def org_of(world):
+    with SessionLocal() as db:
+        return db.get(User, world["admin"]).org_id
+
+
+def test_team_admins_hear_when_a_quarter_begins(world, smtp, configured):
+    make_team_admin(world, "mia", "alpha")
+    with SessionLocal() as db:
+        assert send_quarter_reminders(db, org_of(world), date(2026, 10, 2)) == 1
+    (msg,) = sent(smtp)
+    assert msg["To"] == "mia@example.com"
+    assert msg["Subject"] == "2026-Q4 has begun: set Rocks for Alpha"
+    assert "1 Rock is set so far" in text(msg)  # the seeded 2026-Q4 rock
+
+
+def test_team_admins_hear_two_weeks_before_the_quarter_ends(world, smtp, configured):
+    make_team_admin(world, "mia", "alpha")
+    with SessionLocal() as db:
+        assert send_quarter_reminders(db, org_of(world), date(2026, 12, 18)) == 1
+    msg = sent(smtp)[0]
+    assert msg["Subject"] == "2026-Q4 ends December 31: review Alpha's Rocks"
+    body = text(msg)
+    assert "0 of 1 Rock done so far" in body and "alpha rock" in body
+
+
+def test_each_reminder_is_sent_once_per_quarter(world, smtp, configured):
+    make_team_admin(world, "mia", "alpha")
+    with SessionLocal() as db:
+        org = org_of(world)
+        assert send_quarter_reminders(db, org, date(2026, 10, 1)) == 1
+        assert send_quarter_reminders(db, org, date(2026, 10, 1)) == 0
+        assert send_quarter_reminders(db, org, date(2026, 10, 4)) == 0
+        assert send_quarter_reminders(db, org, date(2026, 12, 17)) == 1   # the end-of-quarter one
+        assert send_quarter_reminders(db, org, date(2027, 1, 1)) == 1     # and the next quarter's start
+        assert send_quarter_reminders(db, org, date(2026, 11, 15)) == 0   # nothing due mid-quarter
+
+
+def test_only_the_teams_own_admins_hear_and_org_admins_must_opt_in(world, smtp, configured):
+    make_team_admin(world, "mia", "bravo")
+    with SessionLocal() as db:
+        send_quarter_reminders(db, org_of(world), date(2026, 10, 1))
+    assert [m["Subject"] for m in sent(smtp)] == ["2026-Q4 has begun: set Rocks for Bravo"]  # not Alpha or Charlie
+    smtp.instances.clear()
+    opt_in(world, "admin", "quarter_reminder")
+    with SessionLocal() as db:
+        send_quarter_reminders(db, org_of(world), date(2027, 1, 1))
+    admin_subjects = [m["Subject"] for m in sent(smtp) if m["To"] == "admin@example.com"]
+    assert len(admin_subjects) == 3   # an opted-in org admin hears for each of the district's three teams
+
+
+def test_people_can_turn_quarter_reminders_off(world, smtp, configured):
+    make_team_admin(world, "mia", "alpha")
+    opt_in(world, "mia", "quarter_reminder", False)
+    with SessionLocal() as db:
+        assert send_quarter_reminders(db, org_of(world), date(2026, 10, 1)) == 0
+    assert sent(smtp) == []
+
+
+def test_quarter_reminders_do_nothing_when_email_is_off(world, smtp):
+    make_team_admin(world, "mia", "alpha")
+    with SessionLocal() as db:
+        assert send_quarter_reminders(db, org_of(world), date(2026, 10, 1)) == 0
+    assert sent(smtp) == []
+
+
+def test_the_worker_sends_them_from_7am_local_on_the_day(world, smtp, configured, no_digest):
+    make_team_admin(world, "mia", "alpha")
+    state = worker.WorkerState()
+    worker.tick(state, datetime(2026, 10, 1, 11, 59, tzinfo=timezone.utc))  # 6:59 CDT
+    assert sent(smtp) == []
+    worker.tick(state, datetime(2026, 10, 1, 12, 0, tzinfo=timezone.utc))   # 7:00 CDT
+    assert recipients(smtp) == ["mia@example.com"]
+    worker.tick(state, datetime(2026, 10, 1, 18, 0, tzinfo=timezone.utc))
+    worker.tick(worker.WorkerState(), datetime(2026, 10, 1, 20, 0, tzinfo=timezone.utc))  # even after a restart
+    assert len(sent(smtp)) == 1
