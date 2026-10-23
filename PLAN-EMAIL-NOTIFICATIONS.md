@@ -371,22 +371,39 @@ unless email is configured, and the person who caused it is never emailed:
 
 ## Phase 8: Hardening and documentation
 
-- [ ] Rate limit and cap per-user sends per hour as a safety net against loops.
-- [ ] Retry policy for transient SMTP failures (a few tries with backoff, then
+- [x] Rate limit and cap per-user sends per hour as a safety net against loops.
+- [x] Retry policy for transient SMTP failures (a few tries with backoff, then
       mark failed in the log).
-- [ ] Unsubscribe: every optional email links to "My notifications" and carries a
+- [x] Unsubscribe: every optional email links to "My notifications" and carries a
       `List-Unsubscribe` header pointing there. Always-on types are marked as such.
-- [ ] Admin view of recent failures from `notification_log`.
+- [x] Admin view of recent failures from `notification_log`.
 - [ ] Check emails render in Outlook, Gmail and a plain-text client (text version
-      reads fine on its own).
-- [ ] Privacy pass: confirm no email includes personnel evaluations, People Analyzer
+      reads fine on its own). Automated checks are done (see below); looking at them in real mail programs
+      is a manual step: `python -m scripts.preview_emails --send you@district.org`.
+- [x] Privacy pass: confirm no email includes personnel evaluations, People Analyzer
       content, or full issue text.
-- [ ] Docs: README or deployment section covering SMTP settings, `BASE_URL`, the
+- [x] Docs: README or deployment section covering SMTP settings, `BASE_URL`, the
       worker service, timezone, calendar behavior, and what is sent externally (only
       the mail itself; web calendar links are opt-in).
-- [ ] Update `TODO-ENHANCEMENTS.md`: remove the "Meetings are run live" item once
-      Phase 5 lands, and keep the Google/Microsoft calendar sync item as separate
-      future work.
+- [x] Update `TODO-ENHANCEMENTS.md`: the "Meetings are run live" item was removed in Phase 5; the
+      Google/Microsoft calendar sync item stays as separate future work, with new items added for what remains.
+
+Built as:
+- Sending (`app/core/email.py`): two retries with 2 s then 4 s pauses for failures that may pass (4xx replies, dropped or
+  refused connections), none for permanent ones (5xx, bad login, unknown recipient). A server that cannot be reached is
+  left alone for 60 s so a long list during an outage fails fast rather than stalling the worker. Tuning settings are in
+  `docker-compose.yml` / `.env.example`.
+- Cap: `notify()` drops (and logs) a non-account email to someone who already received 20 in the last hour.
+- Unsubscribe: optional emails get a `List-Unsubscribe` header and a footer (HTML and plain text) linking to
+  My notifications; account emails say they can't be turned off. One-click (RFC 8058) is in the backlog.
+- Failures view: Settings > "Email problems" (last day's sent/failed counts and the 20 most recent failures).
+- Checks: `app/core/email_samples.py` holds sample data for every email; `tests/test_email_rendering.py` checks each renders
+  in both versions, loads nothing from outside, links only over https, has every link in its plain text, and that the
+  email code never touches notes, People Analyzer, seats, VTO or password fields (plus a marker test across every sender).
+  `scripts/preview_emails.py` writes the samples to a folder or emails them to an address.
+- Docs: `docs/EMAIL.md` (turning it on, the worker, who gets what, schedules, calendar behaviour, reliability, privacy,
+  adding an email).
+- Tests: `tests/test_hardening.py` (24), `tests/test_email_rendering.py` (76).
 
 ---
 

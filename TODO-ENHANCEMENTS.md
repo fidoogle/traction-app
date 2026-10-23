@@ -97,6 +97,23 @@ queued.
 - [ ] Email on JSON API meeting writes. Scheduling, changing or cancelling a
       meeting through the JSON API (app/api/crud_router.py) does not send
       invitations or bump the calendar sequence; only the web UI does.
+- [ ] Emails that failed are not sent again later. A send is retried a couple
+      of times straight away (app/core/email.py), and a failure is recorded
+      (Settings > Email problems), but nothing re-sends it afterwards - so a
+      long mail-server outage loses that day's emails, including a weekly
+      summary. Store enough on notification_log (or a queue table) to retry
+      failed rows with backoff for a day or so.
+- [ ] One-click unsubscribe (RFC 8058). Optional emails carry a
+      `List-Unsubscribe` link to My notifications, which needs a login. A
+      signed per-email token and a `List-Unsubscribe-Post` endpoint would let
+      mail programs unsubscribe someone in one click without signing in.
+- [ ] Meeting recaps list how the time went, new To-Dos and open issues, but
+      not decisions - the app has nowhere to record them. If teams want that,
+      add a decisions/notes field to a meeting and include it in the recap.
+- [ ] Check the emails in real mail programs. The tests prove they render,
+      load nothing from outside and read fine as plain text, but nobody has
+      looked at them in Outlook, Gmail or a phone. `python -m scripts.preview_emails
+      --send you@district.org` sends one of each.
 - [ ] Seat vacancy reporting — a quick endpoint/view listing seats with no
       current `user_id`, useful for accountability-chart gap analysis.
 - [ ] Google/Microsoft calendar integration (planned for later). Should be
