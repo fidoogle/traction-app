@@ -208,3 +208,58 @@ def test_the_welcome_and_reset_emails_are_marked_as_account_emails(smtp, configu
     for msg in sent(smtp):
         assert "can't be turned off" in text(msg) and "List-Unsubscribe" not in msg
         assert "can't be turned off" in msg.get_body(("html",)).get_content()
+
+
+# --- the admin's view of email problems ---
+
+
+def log_row(db, world, who, status, key="todo_assigned", error=None, minutes_ago=5, subject=""):
+    db.add(
+        NotificationLog(
+            user_id=world[who], key=key, subject=subject or f"{who}-{status}-{minutes_ago}-{key}", status=status,
+            error=error, created_at=datetime.now(timezone.utc) - timedelta(minutes=minutes_ago),
+        )
+    )
+
+
+def test_the_settings_page_lists_recent_failures_and_the_days_counts(world, login, configured):
+    with SessionLocal() as db:
+        log_row(db, world, "mia", "sent")
+        log_row(db, world, "mia", "sent", key="weekly_digest")
+        log_row(db, world, "vic", "failed", error="SMTPRecipientsRefused: 550 No such user", minutes_ago=3)
+        log_row(db, world, "max", "failed", error="ConnectionRefusedError: down", minutes_ago=30, key="weekly_digest")
+        log_row(db, world, "other", "failed", error="belongs to the other district")
+        log_row(db, world, "mia", "failed", error="old news", minutes_ago=60 * 30)
+        db.commit()
+    page = login("admin").get("/settings").text
+    assert "Email problems" in page
+    assert "<strong>2</strong> sent, <strong>2</strong> failed" in page   # the old failure and the other district are not in the day's counts
+    assert "Vic Viewer (vic@example.com)" in page and "550 No such user" in page
+    assert "Weekly summary" in page and "ConnectionRefusedError: down" in page   # shown with the friendly name
+    assert "belongs to the other district" not in page
+    assert page.index("550 No such user") < page.index("ConnectionRefusedError")   # most recent first
+
+
+def test_errors_are_shown_as_text_never_as_markup(world, login, configured):
+    with SessionLocal() as db:
+        log_row(db, world, "vic", "failed", error="<script>alert(1)</script>")
+        db.commit()
+    page = login("admin").get("/settings").text
+    assert "<script>alert(1)</script>" not in page and "&lt;script&gt;" in page
+
+
+def test_only_the_latest_twenty_failures_are_listed(world, login, configured):
+    with SessionLocal() as db:
+        for i in range(25):
+            log_row(db, world, "vic", "failed", error=f"problem {i:02d}", minutes_ago=i + 1, subject=f"s{i}")
+        db.commit()
+    page = login("admin").get("/settings").text
+    assert "problem 00" in page and "problem 19" in page and "problem 20" not in page
+
+
+def test_a_clean_record_says_so(world, login, configured):
+    assert "No email has failed recently." in login("admin").get("/settings").text
+
+
+def test_the_section_is_hidden_when_email_is_off(world, login):
+    assert "Email problems" not in login("admin").get("/settings").text

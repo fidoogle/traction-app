@@ -20,6 +20,29 @@
   {% endif %}
 </div>
 
+{% if cfg.email_enabled %}
+<div class="card">
+  <h2>Email problems</h2>
+  <p class="field-hint">In the last 24 hours: <strong>{{ health.sent_24h }}</strong> sent, <strong>{{ health.failed_24h }}</strong> failed.
+     A failed email is tried again a couple of times straight away, then recorded here; it is not sent later on its own.
+     Admins who turn on "System notices" under My notifications are emailed when failures pile up.</p>
+  {% if health.failures %}
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>When</th><th>To</th><th>Email</th><th>What went wrong</th></tr></thead>
+    <tbody>
+      {% for f in health.failures %}
+      <tr><td>{{ f.when }}</td><td>{{ f.who }}</td><td>{{ f.kind }}</td><td>{{ f.error }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p>No email has failed recently.</p>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="card">
   <h2>Time zone</h2>
   <p class="field-hint">Meeting times are entered and shown in this zone, and the daily and weekly emails go out by its clock.
