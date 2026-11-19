@@ -344,3 +344,16 @@ def test_deleting_a_user_removes_their_links(world, login, smtp, configured):
     assert admin.delete(f"/users/{nia}").status_code == 200
     with SessionLocal() as db:
         assert db.scalar(select(func.count()).select_from(PasswordToken)) == 0
+
+
+def test_admin_can_set_a_password_directly(world, login):
+    admin = login("admin")
+    assert admin.post(f"/users/{world['mia']}/password", data={"password": "short"}).text.count("At least")
+    assert "Password set" in admin.post(f"/users/{world['mia']}/password", data={"password": "fresh-pw-123"}).text
+    with SessionLocal() as db:
+        assert verify_password("fresh-pw-123", db.get(User, world["mia"]).hashed_password)
+
+
+def test_setting_a_password_is_admin_only_and_stays_inside_the_org(world, login):
+    assert login("mia").post(f"/users/{world['vic']}/password", data={"password": "fresh-pw-123"}).status_code == 403
+    assert login("admin").post(f"/users/{world['other']}/password", data={"password": "fresh-pw-123"}).status_code == 404

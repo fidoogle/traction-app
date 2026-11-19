@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db
@@ -12,7 +12,7 @@ from app.core.alert_emails import send_role_changed_notice, send_user_added_noti
 from app.core.assignment_emails import new_event_id
 from app.core.password_tokens import MIN_PASSWORD_LENGTH, WELCOME, issue_token
 from app.core.security import hash_password
-from app.models import Team, TeamMembership, User, UserRole
+from app.models import PasswordToken, Team, TeamMembership, User, UserRole
 from app.web.deps import get_current_user_web, get_team_context
 from app.web.team_context import TeamContext
 from app.web.templates import templates
@@ -176,6 +176,30 @@ def resend_welcome(
     db.commit()
     background_tasks.add_task(send_welcome_email, user.email, user.name, token, current_user.name)
     return HTMLResponse("<span>Sent.</span>")
+
+
+@router.post("/{user_id}/password")
+def set_user_password(
+    user_id: uuid.UUID,
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user_web),
+):
+    """An admin sets someone's password directly. Works without email; the
+    person can change it afterwards (or use the forgot-password link)."""
+    _require_admin(current_user)
+    user = db.get(User, user_id)
+    if user is None or user.org_id != current_user.org_id:
+        raise HTTPException(status_code=404)
+    if len(password) < MIN_PASSWORD_LENGTH:
+        return HTMLResponse(
+            f'<span class="error">At least {MIN_PASSWORD_LENGTH} characters.</span>'
+        )
+    user.hashed_password = hash_password(password)
+    # Any emailed link issued before this is now stale.
+    db.execute(delete(PasswordToken).where(PasswordToken.user_id == user.id))
+    db.commit()
+    return HTMLResponse("<span>Password set.</span>")
 
 
 @router.delete("/{user_id}")

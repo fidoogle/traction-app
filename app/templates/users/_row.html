@@ -32,6 +32,15 @@
       hx-confirm="Email {{ user.name }} a new link to set their password?">Resend welcome email</button>
     <span id="resend-status-{{ user.id }}" class="field-hint" role="status"></span>
     {% endif %}
+    <form class="inline-form"
+      hx-post="/users/{{ user.id }}/password"
+      hx-target="#password-status-{{ user.id }}" hx-swap="innerHTML"
+      hx-on::after-request="if (event.detail.successful) this.reset()">
+      <input type="password" name="password" minlength="8" required
+        autocomplete="new-password" placeholder="New password" aria-label="New password for {{ user.name }}">
+      <button type="submit" class="secondary">Set password</button>
+      <span id="password-status-{{ user.id }}" class="field-hint" role="status"></span>
+    </form>
     {% if user.id != current_user.id %}
     <button
       class="icon-button row-icon danger" aria-label="Delete" title="Delete"
